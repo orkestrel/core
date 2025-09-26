@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Lifecycle, InvalidTransitionError } from '@orkestrel/core'
+import { Lifecycle, InvalidTransitionError, type LifecycleState } from '@orkestrel/core'
 
 class TestLifecycle extends Lifecycle {
 	public log: string[] = []
@@ -62,7 +62,7 @@ test('onTransition runs between hook and state change and can be filtered', asyn
 		public transitions: string[] = []
 		protected async onStart(): Promise<void> { /* no-op */ }
 		protected async onStop(): Promise<void> { /* no-op */ }
-		protected async onTransition(from: any, to: any, hook: any): Promise<void> {
+		protected async onTransition(from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy'): Promise<void> {
 			this.transitions.push(`${from}->${to}:${hook}`)
 		}
 	}

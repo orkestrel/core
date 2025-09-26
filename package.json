@@ -20,7 +20,7 @@
     "example:simple": "tsx examples\\simple.ts",
     "example:large": "tsx examples\\large\\app.ts",
     "check": "tsc -p tsconfig.json",
-    "format": "eslint .. --fix",
+    "format": "eslint . --fix",
     "prepublishOnly": "npm run check && npm run build"
   },
   "devDependencies": {

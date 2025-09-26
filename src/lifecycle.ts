@@ -6,7 +6,7 @@ import { InvalidTransitionError, LifecycleError, TimeoutError } from './errors.j
 import { Emitter } from './emitter.js'
 
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
-export interface LifecycleOptions { hookTimeoutMs?: number; onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean }
+export interface LifecycleOptions { hookTimeoutMs?: number, onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean }
 
 type EventMap = {
 	stateChange: [LifecycleState]

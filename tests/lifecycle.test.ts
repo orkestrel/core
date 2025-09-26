@@ -56,3 +56,33 @@ test('invalid transition throws', async () => {
 	await lc.destroy()
 	await assert.rejects(() => lc.start(), /Invalid lifecycle transition/)
 })
+
+test('onTransition runs between hook and state change and can be filtered', async () => {
+	class Transitions extends Lifecycle {
+		public transitions: string[] = []
+		protected async onStart(): Promise<void> { /* no-op */ }
+		protected async onStop(): Promise<void> { /* no-op */ }
+		protected async onTransition(from: any, to: any, hook: any): Promise<void> {
+			this.transitions.push(`${from}->${to}:${hook}`)
+		}
+	}
+
+	const lc = new Transitions({ hookTimeoutMs: 50, onTransitionFilter: (_f, _t, hook) => hook === 'start' })
+	await lc.start()
+	assert.equal(lc.state, 'started')
+	await lc.stop()
+	assert.equal(lc.state, 'stopped')
+	assert.deepEqual(lc.transitions, [
+		'created->started:start',
+	])
+})
+
+test('onTransition timeout is treated like the main hook and surfaces as TimeoutError', async () => {
+	class SlowTransition extends Lifecycle {
+		protected async onStart(): Promise<void> { /* ok */ }
+		protected async onTransition(): Promise<void> { await new Promise(() => {}) }
+	}
+	const lc = new SlowTransition({ hookTimeoutMs: 10 })
+	await assert.rejects(() => lc.start(), /timed out/)
+	assert.equal(lc.state, 'created')
+})

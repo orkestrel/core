@@ -45,6 +45,7 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
 
 ### interface LifecycleOptions
 - `hookTimeoutMs?: number` — default 5000
+- `onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean` — defaults to always true; when false, `onTransition` is skipped for that transition
 
 ### class Lifecycle
 - constructor(opts?: LifecycleOptions)
@@ -58,16 +59,28 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
   - `destroy(): Promise<void>`
 - Protected hooks to override:
   - `onCreate()`, `onStart()`, `onStop()`, `onDestroy()`
+  - `onTransition(from, to, hook)` — runs after the primary hook resolves and before the state changes; useful for debugging or cross-cutting transitions
 - Throws:
   - `InvalidTransitionError` on illegal state transitions
-  - `TimeoutError` if hook exceeds configured timeout
+  - `TimeoutError` if a hook exceeds configured timeout (applies to both the primary hook and `onTransition`)
   - Wraps hook errors in `LifecycleError`
+
+Hook timing
+- For each public method (`create`, `start`, `stop`, `destroy`):
+  1. Validate transition (throws on invalid)
+  2. Run corresponding `onX` hook with timeout
+  3. If `onTransitionFilter(from, to, hook)` returns true, run `onTransition(from, to, hook)` with the same timeout
+  4. Update `state` and emit `stateChange`
+  5. Emit the hook event (`create`/`start`/`stop`/`destroy`)
 
 Example:
 ```ts
 class EmailService extends Lifecycle {
   protected async onStart() { /* open connection */ }
   protected async onStop() { /* flush/close */ }
+  protected async onTransition(from: 'created'|'started'|'stopped'|'destroyed', to: typeof from, hook: 'create'|'start'|'stop'|'destroy') {
+    console.debug(`[lc] ${from} -> ${to} via ${hook}`)
+  }
 }
 ```
 

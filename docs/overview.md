@@ -15,8 +15,8 @@ Highlights
 - No heavy dependencies
 - Strict DI, explicit wiring
 
-Recommendation
-- Prefer `orchestrator.start([...])` at your app entry to declare all registrations in one place and start lifecycles in dependency order. Use `register()` + `startAll()` later when you need fine-grained control (e.g., tests or incremental wiring).
+Startup
+- See [Start](./start.md) for the canonical boot pattern, and [Patterns](./patterns.md) for alternatives and when to use them.
 
 See the examples for a tiny single-file app and a larger multi-file composition:
 - examples/simple.ts

@@ -18,8 +18,8 @@ Quick links
 - API Reference: [docs/api.md](docs/api.md)
 - Contribute: [docs/contribute.md](docs/contribute.md)
 
-Recommendation
-- Prefer `orchestrator.start([...])` at your app entry to declare registrations and start lifecycles in one step. See [Start](docs/start.md) and [Patterns](docs/patterns.md).
+Startup
+- See [Start](docs/start.md) for a quick way to wire and run your app, and [Patterns](docs/patterns.md) for alternatives.
 
 Source
 - Public entrypoint: `src/index.ts`

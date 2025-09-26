@@ -3,6 +3,9 @@
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -10,8 +13,8 @@
     "baseUrl": ".",
     "paths": {
       "@orkestrel/core": ["./src/index.ts"]
-    },
-    "noEmit": true
+    }
   },
-  "include": ["src", "examples", "tests"]
+  "include": ["src"]
 }
+

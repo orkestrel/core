@@ -2,7 +2,7 @@
 
 Opinionated ways to compose apps with Orkestrel.
 
-## Preferred startup: start([...])
+## Startup pattern: start([...])
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/container.ts](../src/container.ts)
 - At your app entry, declare all registrations in an array and call `orchestrator.start(regs)`.
 - This both registers components and starts lifecycles in dependency order.
@@ -52,7 +52,7 @@ try {
 
 ## Testing
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/container.ts](../src/container.ts), [src/ports.ts](../src/ports.ts)
-- Prefer `start([...])` for concise wiring, or call `register()` for fine-grained control.
+- Use `start([...])` for concise wiring, or call `register()` for fine-grained control.
 
 ## Error Handling
 Source: [src/errors.ts](../src/errors.ts)

@@ -147,8 +147,8 @@ container.set(new Container(), 'tenant:A') // named instance
 
 Source: [src/orchestrator.ts](../src/orchestrator.ts)
 
-Preferred entry
-- At app startup, prefer `orchestrator.start(regs)` with a single array of registrations. This both registers components and starts lifecycles in dependency order. Use `register()` + `startAll()` later for fine-grained control or tests.
+Note
+- See [Start](./start.md) for a common boot pattern using `start([...])`. The methods below let you choose the right level of control for your app or tests.
 
 ### type OrchestratorRegistration<T>
 - `{ token: Token<T>; provider: Provider<T>; deps?: Token<unknown>[] }`

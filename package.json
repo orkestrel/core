@@ -18,7 +18,7 @@
   },
   "scripts": {
     "clear": "node -e \"try{require('fs').rmSync(process.argv[1],{recursive:true,force:true})}catch(e){}\"",
-    "build": "npm run clear dist && tsc -p tsconfig.build.json",
+    "build": "npm run clear dist && vite build && tsc -p tsconfig.build.json",
     "test": "tsx --test tests\\**\\*.ts",
     "example:simple": "tsx examples\\simple.ts",
     "example:large": "tsx examples\\large\\app.ts",
@@ -31,6 +31,7 @@
     "@types/node": "^22.18.6",
     "eslint": "^9.36.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
   }
 }

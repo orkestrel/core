@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["node"],
+    "lib": ["ESNext"],
     "baseUrl": ".",
     "paths": {
       "@orkestrel/core": ["./src/index.ts"]

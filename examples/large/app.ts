@@ -35,7 +35,7 @@ orchestrator.set(app)
 // Prefer start([...]) at the app entry: declare infra + module registrations
 const infra: OrchestratorRegistration<unknown>[] = [
 	{ token: Ports.logger, provider: { useFactory: () => new ConsoleLogger() } },
-	{ token: Ports.email, provider: { useFactory: (c: IContainer) => new ConsoleEmail(c.get(Ports.logger)) }, deps: [Ports.logger] },
+	{ token: Ports.email, provider: { useFactory: (c: IContainer) => new ConsoleEmail(c.get(Ports.logger)) }, dependencies: [Ports.logger] },
 ]
 
 const regs = [...infra, ...userRegistrations()]

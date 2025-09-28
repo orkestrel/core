@@ -15,10 +15,20 @@ const app = new Orchestrator(c)
 
 const regs: OrchestratorRegistration<unknown>[] = [
   { token: Ports.logger, provider: { useFactory: () => new Logger() } },
-  { token: Ports.email, provider: { useFactory: c => new Email(c.get(Ports.logger)) }, deps: [Ports.logger] },
+  { token: Ports.email, provider: { useFactory: c => new Email(c.get(Ports.logger)) }, dependencies: [Ports.logger] },
 ]
 await app.start(regs)
 ```
+
+Timeouts per lifecycle phase
+- You can specify optional timeouts per component when registering via `start([...])`.
+- Example: `{ timeouts: { onStart: 5000, onStop: 2000, onDestroy: 2000 } }`.
+- If a phase times out, it fails with telemetry noting `timedOut: true`.
+
+Parallelization and rollback
+- Start/stop/destroy are parallelized within each dependency layer.
+- If any component in a layer fails to start, the orchestrator stops all previously started components (including successful ones in the same layer) in reverse order before throwing.
+- Failures are aggregated and exposed via `AggregateLifecycleError.details` with token, phase, duration, and timeout flag.
 
 ## Single Orchestrator (App-level)
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/container.ts](../src/container.ts), [src/registry.ts](../src/registry.ts)
@@ -33,7 +43,7 @@ await orchestrator().start(regs)
 
 ## Explicit Dependencies
 Source: [src/orchestrator.ts](../src/orchestrator.ts)
-- Use `deps` token edges to enforce deterministic ordering.
+- Use `dependencies` token edges to enforce deterministic ordering.
 - Inside factories, use the container to resolve dependent tokens when needed.
 
 ## Request/Job Scopes
@@ -56,8 +66,9 @@ Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/container.ts](../src
 
 ## Error Handling
 Source: [src/errors.ts](../src/errors.ts)
-- `startAll`, `stopAll`, and `destroyAll` aggregate lifecycle errors and throw at the end (except `startAll` stops on the first failure).
-- Inspect `AggregateLifecycleError.errors` to see all underlying errors.
+- `startAll` stops on the first failing dependency layer and performs a rollback of already-started components.
+- `stopAll` and `destroyAll` aggregate lifecycle errors across layers and throw once.
+- Inspect `AggregateLifecycleError.details` for per-component telemetry (token, phase, durationMs, timedOut, context).
 
 ## Fine-grained control (register + startAll)
 Source: [src/orchestrator.ts](../src/orchestrator.ts)

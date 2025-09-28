@@ -13,7 +13,7 @@ test('Registry with symbol default: setDefault/get/clear/list', () => {
 	// tryGet returns value
 	assert.equal(reg.tryGet(), 42)
 	// list contains default symbol key
-	assert.ok(reg.list().some(k => typeof k === 'symbol'))
+	assert.ok(reg.list().some(k => typeof k !== 'string'))
 	// clear default
 	assert.equal(reg.clear(), true)
 	assert.equal(reg.tryGet(), undefined)

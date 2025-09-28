@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import type { AggregateLifecycleError, Provider } from '@orkestrel/core'
 import { Orchestrator, orchestrator, createToken, Container, Adapter } from '@orkestrel/core'
 
 class TestComponent extends Adapter {
@@ -30,6 +31,27 @@ class FailingDestroyComponent extends Adapter {
 	protected async onDestroy(): Promise<void> {
 		throw new Error('bye')
 	}
+}
+
+class SlowStart extends Adapter {
+	private readonly delayMs: number
+	constructor(delayMs: number) {
+		super()
+		this.delayMs = delayMs
+	}
+
+	protected async onStart(): Promise<void> { await new Promise(r => setTimeout(r, this.delayMs)) }
+}
+
+class FailingStop extends Adapter {
+	protected async onStop(): Promise<void> { throw new Error('stop-fail') }
+}
+
+class Track extends Adapter {
+	public started = false
+	public stopped = false
+	protected async onStart(): Promise<void> { this.started = true }
+	protected async onStop(): Promise<void> { this.stopped = true }
 }
 
 test('orchestrator starts components in topological order', async () => {
@@ -111,7 +133,7 @@ test('orchestrator() helper supports default symbol and named string keys', asyn
 	orchestrator.set(other, 'other')
 	assert.equal(orchestrator('other'), other)
 	const names = orchestrator.list()
-	assert.ok(names.some((k: string | symbol) => typeof k === 'symbol'))
+	assert.ok(names.some(k => typeof k !== 'string'))
 	assert.ok(names.some((k: string | symbol) => k === 'other'))
 	assert.equal(orchestrator.clear('other'), true)
 })
@@ -119,4 +141,65 @@ test('orchestrator() helper supports default symbol and named string keys', asyn
 test('orchestrator() throws if default not set', () => {
 	for (const name of orchestrator.list()) orchestrator.clear(name)
 	assert.throws(() => orchestrator(), /No orchestrator instance registered/)
+})
+
+test('startAll rollback stops previously started components on failure', async () => {
+	const A = createToken<Track>('A')
+	const B = createToken<Track>('B')
+	const X = createToken<FailingStartComponent>('X')
+	const orch = new Orchestrator(new Container())
+	const a = new Track()
+	const b = new Track()
+	orch.register(A, { useValue: a })
+	orch.register(B, { useValue: b }, [A])
+	orch.register(X, { useValue: new FailingStartComponent() }, [A])
+	let err: unknown
+	try {
+		await orch.startAll()
+	}
+	catch (e) { err = e }
+	assert.ok(err instanceof Error)
+	// both A and B should be stopped due to rollback
+	assert.equal(a.started, true)
+	assert.equal(b.started, true)
+	assert.equal(a.stopped, true)
+	assert.equal(b.stopped, true)
+})
+
+test('per-lifecycle onStart timeout triggers failure with telemetry', async () => {
+	const SLOW = createToken<SlowStart>('SLOW')
+	const orch = new Orchestrator(new Container())
+	let err: unknown
+	try {
+		await orch.start([{ token: SLOW, provider: { useFactory: () => new SlowStart(30) }, dependencies: [], timeouts: { onStart: 10 } }])
+	}
+	catch (e) { err = e }
+	assert.ok(err instanceof Error)
+	assert.match((err as Error).message, /Errors during startAll/)
+	const details = (err as AggregateLifecycleError).details
+	assert.ok(Array.isArray(details))
+	assert.ok(details.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
+})
+
+test('stopAll aggregates multiple stop failures', async () => {
+	const F1 = createToken<FailingStop>('F1')
+	const F2 = createToken<FailingStop>('F2')
+	const orch = new Orchestrator(new Container())
+	orch.register(F1, { useFactory: () => new FailingStop() })
+	orch.register(F2, { useFactory: () => new FailingStop() })
+	await orch.startAll()
+	await assert.rejects(() => orch.stopAll(), /Errors during stopAll/)
+})
+
+test('async provider guard: useValue Promise throws at registration', () => {
+	const T = createToken<Promise<number>>('AsyncVal')
+	const orch = new Orchestrator(new Container())
+	assert.throws(() => orch.register(T, { useValue: Promise.resolve(1) }), /Async providers are not supported/)
+})
+
+test('async provider guard: useFactory Promise throws at registration', () => {
+	const T = createToken<number>('AsyncFactory')
+	const orch = new Orchestrator(new Container())
+	const prov = { useFactory: async () => 1 } as unknown as Provider<number>
+	assert.throws(() => orch.register(T, prov), /Async providers are not supported/)
 })

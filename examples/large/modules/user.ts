@@ -21,7 +21,7 @@ export function userRegistrations(): OrchestratorRegistration<unknown>[] {
 		{
 			token: Ports.userService,
 			provider: { useFactory: (c: Container) => new DefaultUserService(c.get(Ports.email), c.get(Ports.logger)) },
-			deps: [Ports.email, Ports.logger],
+			dependencies: [Ports.email, Ports.logger],
 		},
 	]
 }

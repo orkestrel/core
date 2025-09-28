@@ -31,8 +31,25 @@ Source: [src/errors.ts](../src/errors.ts)
 - Message: `Lifecycle hook '<hook>' timed out after <ms>ms`
 
 ### class AggregateLifecycleError extends LifecycleError
-- constructor(message: string, errors: Error[])
-- Properties: `errors: Error[]` (also sets `cause` to `errors[0]`)
+- constructor(message: string, details: LifecycleErrorDetail[])
+- Properties:
+  - `errors: Error[]` — the underlying errors
+  - `details: LifecycleErrorDetail[]` — enriched telemetry per failure
+
+### type LifecyclePhase
+- `'start' | 'stop' | 'destroy'`
+
+### type LifecycleContext
+- `'normal' | 'rollback' | 'container'`
+
+### interface LifecycleErrorDetail
+- `tokenDescription: string`
+- `tokenKey?: symbol`
+- `phase: LifecyclePhase`
+- `context: LifecycleContext`
+- `timedOut: boolean`
+- `durationMs: number`
+- `error: Error`
 
 ---
 
@@ -164,21 +181,29 @@ Note
 - See [Start](./start.md) for a common boot pattern using `start([...])`. The methods below let you choose the right level of control for your app or tests.
 
 ### type OrchestratorRegistration<T>
-- `{ token: Token<T>; provider: Provider<T>; deps?: Token<unknown>[] }`
+- `{ token: Token<T>; provider: Provider<T>; dependencies?: Token<unknown>[]; timeouts?: { onStart?: number; onStop?: number; onDestroy?: number } }`
 
 ### class Orchestrator
 - constructor(container?: Container) — if omitted, creates an internal container
 - Methods:
   - `getContainer(): Container`
-  - `register<T>(token: Token<T>, provider: Provider<T>, deps?: Token<unknown>[]): void`
+  - `register<T>(token: Token<T>, provider: Provider<T>, dependencies?: Token<unknown>[]): void`
   - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>` — registers then `startAll()`
-  - `startAll(): Promise<void>` — starts Lifecycle components in topological order
-  - `stopAll(): Promise<void>` — stops in reverse order; aggregates errors
-  - `destroyAll(): Promise<void>` — destroys in reverse order; then `container.destroy()`; aggregates errors
+  - `startAll(): Promise<void>` — starts Lifecycle components in topological order; parallelizes within dependency layers; rolls back (stops) prior successes if a layer fails
+  - `stopAll(): Promise<void>` — stops in reverse topological layers; parallelizes; aggregates errors
+  - `destroyAll(): Promise<void>` — destroys in reverse layers; then `container.destroy()`; aggregates errors
 
 Throws
-- `AggregateLifecycleError` from batch operations; inspect `.errors`
+- `AggregateLifecycleError` from batch operations; inspect `.details` for per-component telemetry
 - Error on unknown dependency or dependency cycles
+
+Telemetry per failure (AggregateLifecycleError.details)
+- `tokenDescription`, `tokenKey?`
+- `phase: 'start'|'stop'|'destroy'`
+- `context: 'normal'|'rollback'|'container'`
+- `timedOut: boolean`
+- `durationMs: number`
+- `error: Error`
 
 ### global helper: orchestrator
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)

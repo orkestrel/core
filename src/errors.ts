@@ -20,9 +20,39 @@ export class TimeoutError extends LifecycleError {
 	}
 }
 
+// Telemetry types for aggregated lifecycle operations
+export type LifecyclePhase = 'start' | 'stop' | 'destroy'
+export type LifecycleContext = 'normal' | 'rollback' | 'container'
+export interface LifecycleErrorDetail {
+	tokenDescription: string
+	tokenKey?: symbol
+	phase: LifecyclePhase
+	context: LifecycleContext
+	timedOut: boolean
+	durationMs: number
+	error: Error
+}
+
 export class AggregateLifecycleError extends LifecycleError {
-	constructor(message: string, public readonly errors: Error[]) {
-		super(message, errors[0])
+	public readonly errors: Error[]
+	public readonly details: LifecycleErrorDetail[]
+	constructor(message: string, detailsOrErrors: LifecycleErrorDetail[] | Error[]) {
+		const details = detailsOrErrors.map((e: LifecycleErrorDetail | Error): LifecycleErrorDetail => {
+			if (e instanceof Error) {
+				return {
+					tokenDescription: 'unknown',
+					phase: 'start',
+					context: 'normal',
+					timedOut: false,
+					durationMs: 0,
+					error: e,
+				}
+			}
+			return e
+		})
+		super(message, details[0]?.error)
 		this.name = 'AggregateLifecycleError'
+		this.details = details
+		this.errors = details.map(d => d.error)
 	}
 }

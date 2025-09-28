@@ -77,7 +77,7 @@ test('container() helper supports default symbol and named string keys', () => {
 	assert.ok(gotAlt)
 	// list/clear
 	const keys = container.list()
-	assert.ok(keys.some(k => typeof k === 'symbol'))
+	assert.ok(keys.some(k => typeof k !== 'string'))
 	assert.ok(keys.some(k => k === 'alt'))
 	assert.equal(container.clear('alt'), true)
 })

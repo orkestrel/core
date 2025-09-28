@@ -30,9 +30,9 @@ class ConsoleEmail implements EmailPort {
 const c = new Container(); container.set(c)
 const app = new Orchestrator(c); orchestrator.set(app)
 
-// Register and start
+// Register and start (with optional timeouts)
 await orchestrator().start([
-  { token: Ports.email, provider: { useFactory: () => new ConsoleEmail() } },
+  { token: Ports.email, provider: { useFactory: () => new ConsoleEmail() }, timeouts: { onStart: 2000, onStop: 1000 } },
 ])
 
 // Use
@@ -52,4 +52,3 @@ Next steps
 - Read Concepts: `docs/concepts.md`
 - Browse Patterns: `docs/patterns.md`
 - Full API reference: `docs/api.md`
-

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { AggregateLifecycleError, Provider } from '@orkestrel/core'
-import { Orchestrator, orchestrator, createToken, Container, Adapter } from '@orkestrel/core'
+import { Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError } from '@orkestrel/core'
 
 class TestComponent extends Adapter {
 	public readonly name: string
@@ -179,6 +179,8 @@ test('per-lifecycle onStart timeout triggers failure with telemetry', async () =
 	const details = (err as AggregateLifecycleError).details
 	assert.ok(Array.isArray(details))
 	assert.ok(details.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
+	// Also ensure TimeoutError is propagated in details
+	assert.ok(details.some(d => d.error instanceof TimeoutError))
 })
 
 test('stopAll aggregates multiple stop failures', async () => {

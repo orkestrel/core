@@ -1,7 +1,7 @@
-import type { Provider, Token, ValueProvider, FactoryProvider, ClassProvider } from './container.js'
-import { Container } from './container.js'
+import type { Provider, Token } from './container.js'
+import { Container, isClassProvider, isFactoryProvider, isValueProvider } from './container.js'
 import { Lifecycle } from './lifecycle.js'
-import { AggregateLifecycleError, type LifecycleContext, type LifecycleErrorDetail, type LifecyclePhase } from './errors.js'
+import { AggregateLifecycleError, type LifecycleContext, type LifecycleErrorDetail, type LifecyclePhase, TimeoutError } from './errors.js'
 import { Registry } from './registry.js'
 
 export interface OrchestratorRegistration<T> {
@@ -29,7 +29,6 @@ export class Orchestrator {
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: Token<unknown>[] = []): void {
 		if (this.nodes.has(token.key)) throw new Error(`Duplicate registration for ${token.description}`)
 		this.nodes.set(token.key, { token: token as Token<unknown>, dependencies, timeouts: undefined })
-		// guard async providers by wrapping factories to detect promise returns at materialization time
 		const guarded = this.guardProvider(token, provider)
 		this.container.register(token, guarded)
 		this.layers = null
@@ -48,7 +47,6 @@ export class Orchestrator {
 	}
 
 	private now(): number {
-		// performance.now has better resolution when available
 		const perfLike = (globalThis as unknown as { performance?: { now: () => number } }).performance
 		return typeof perfLike?.now === 'function' ? perfLike.now() : Date.now()
 	}
@@ -56,7 +54,6 @@ export class Orchestrator {
 	private topoLayers(): Token<unknown>[][] {
 		if (this.layers) return this.layers
 		const nodes = Array.from(this.nodes.values())
-		// validate unknown dependencies up-front
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
 				if (!this.nodes.has(d.key)) throw new Error(`Unknown dependency ${d.description} required by ${n.token.description}`)
@@ -91,7 +88,6 @@ export class Orchestrator {
 	}
 
 	private guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
-		// Value providers must not be Promises. Class providers are fine. Factory must be sync.
 		if (isValueProvider(provider)) {
 			const v = provider.useValue
 			if (isPromiseLike(v)) {
@@ -101,7 +97,6 @@ export class Orchestrator {
 		}
 		if (isFactoryProvider(provider)) {
 			const orig: (c: Container) => T = provider.useFactory
-			// detect async function (including async arrow) by constructor name
 			if (orig.constructor && orig.constructor.name === 'AsyncFunction') {
 				throw new Error(`Async providers are not supported: useFactory for token '${token.description}' is an async function. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`)
 			}
@@ -129,12 +124,17 @@ export class Orchestrator {
 				const timeoutPromise = new Promise<never>((_, reject) => {
 					const id = setTimeout(() => {
 						timedOut = true
-						reject(new Error(`Lifecycle '${phase}' timed out after ${timeoutMs}ms`))
+						reject(new TimeoutError(phase, timeoutMs))
 					}, timeoutMs)
-					// ensure timer cleared when phase settles
 					void Promise.resolve(p).finally(() => clearTimeout(id))
 				})
-				await Promise.race([p, timeoutPromise])
+				await Promise.race([p, timeoutPromise]).catch((err) => {
+					if (timedOut) {
+						// prevent unhandled rejection when the lifecycle promise eventually rejects (e.g., its own hook timeout)
+						void Promise.resolve(p).catch(() => {})
+					}
+					return Promise.reject(err)
+				})
 			}
 			else {
 				await p
@@ -164,7 +164,6 @@ export class Orchestrator {
 		const layers = this.topoLayers()
 		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
 		for (const layer of layers) {
-			// prepare tasks for this layer
 			const tasks: { token: Token<unknown>, lc: Lifecycle, timeoutMs?: number, promise: Promise<{ ok: true, durationMs: number } | { ok: false, durationMs: number, error: Error, timedOut: boolean }> }[] = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
@@ -173,7 +172,6 @@ export class Orchestrator {
 					tasks.push({ token: tk, lc: inst, timeoutMs, promise: this.runPhase(inst, 'start', timeoutMs) })
 				}
 				else if (inst instanceof Lifecycle && inst.state === 'started') {
-					// already started; consider as successful for rollback ordering but no action
 					startedOrder.push({ token: tk, lc: inst })
 				}
 			}
@@ -185,17 +183,15 @@ export class Orchestrator {
 				else failures.push(this.makeDetail(t.token, 'start', 'normal', r))
 			}
 			if (failures.length > 0) {
-				// rollback: stop all previously started components plus current layer successes
 				const toStop = [...startedOrder, ...successes].reverse()
 				const rollbackErrors: LifecycleErrorDetail[] = []
 				for (const batch of this.groupByLayerOrder(toStop.map(x => x.token))) {
-					// stop in parallel per original layer ordering (reverse already applied)
 					const stopTasks: Promise<LifecycleErrorDetail | undefined>[] = []
 					for (const tk of batch) {
-						const lc = this.container.get(tk)
-						if (lc instanceof Lifecycle && lc.state === 'started') {
+						const lc2 = this.container.get(tk)
+						if (lc2 instanceof Lifecycle && lc2.state === 'started') {
 							const timeoutMs = this.getNodeEntry(tk).timeouts?.onStop
-							stopTasks.push(this.runPhase(lc, 'stop', timeoutMs).then((r) => {
+							stopTasks.push(this.runPhase(lc2, 'stop', timeoutMs).then((r) => {
 								if (!r.ok) return this.makeDetail(tk, 'stop', 'rollback', r)
 							}))
 						}
@@ -205,13 +201,11 @@ export class Orchestrator {
 				}
 				throw new AggregateLifecycleError('Errors during startAll', [...failures, ...rollbackErrors])
 			}
-			// record successes for potential later rollback
 			for (const s of successes) startedOrder.push(s)
 		}
 	}
 
 	private groupByLayerOrder(tokens: Token<unknown>[]): Token<unknown>[][] {
-		// helper to group a list of tokens into their original topological layers order for parallelized stopping
 		const layerIndex = new Map<symbol, number>()
 		const layers = this.topoLayers()
 		layers.forEach((layer, idx) => layer.forEach(tk => layerIndex.set(tk.key, idx)))
@@ -223,7 +217,6 @@ export class Orchestrator {
 			arr.push(tk)
 			groups.set(idx, arr)
 		}
-		// return in reverse index order because callers typically already reversed tokens
 		return Array.from(groups.entries()).sort((a, b) => b[0] - a[0]).map(([, arr]) => arr)
 	}
 
@@ -303,14 +296,4 @@ export const orchestrator: OrchestratorGetter = Object.assign(
 
 function isPromiseLike(x: unknown): x is PromiseLike<unknown> {
 	return typeof x === 'object' && x !== null && 'then' in (x as { then?: unknown }) && typeof (x as { then?: unknown }).then === 'function'
-}
-
-function isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> {
-	return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useValue')
-}
-function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
-	return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useFactory')
-}
-function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
-	return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useClass')
 }

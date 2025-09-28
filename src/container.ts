@@ -12,6 +12,18 @@ export interface FactoryProvider<T> { useFactory: (c: Container) => T }
 export interface ClassProvider<T> { useClass: new (c: Container) => T }
 export type Provider<T> = ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | T
 
+export function isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> {
+	return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useValue')
+}
+
+export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
+	return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useFactory')
+}
+
+export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
+	return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useClass')
+}
+
 interface ResolvedProvider<T> { value: T, lifecycle?: Lifecycle, disposable: boolean }
 interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: ResolvedProvider<T> }
 
@@ -81,15 +93,11 @@ export class Container {
 	}
 
 	private instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
-		if (this.isValueProvider(provider)) return this.wrapLifecycle(provider.useValue, false)
-		if (this.isFactoryProvider(provider)) return this.wrapLifecycle(provider.useFactory(this), true)
-		if (this.isClassProvider(provider)) return this.wrapLifecycle(new provider.useClass(this), true)
+		if (isValueProvider(provider)) return this.wrapLifecycle(provider.useValue, false)
+		if (isFactoryProvider(provider)) return this.wrapLifecycle(provider.useFactory(this), true)
+		if (isClassProvider(provider)) return this.wrapLifecycle(new provider.useClass(this), true)
 		return this.wrapLifecycle(provider as T, false)
 	}
-
-	private isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> { return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useValue') }
-	private isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> { return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useFactory') }
-	private isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> { return typeof p === 'object' && p !== null && Object.hasOwn(p as object, 'useClass') }
 
 	private wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
 		return value instanceof Lifecycle ? { value, lifecycle: value, disposable } : { value, disposable }

@@ -4,19 +4,26 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __rootdir = path.resolve(__dirname)
 
 // Vite config to bundle the library (ESM only)
 export default defineConfig({
+	root: path.resolve(__rootdir, 'src'),
+	resolve: {
+		alias: {
+			'@orkestrel/core': path.resolve(__rootdir, 'src', 'index.ts'),
+		},
+	},
 	build: {
 		sourcemap: true,
-		emptyOutDir: true,
+		emptyOutDir: false,
+		outDir: path.resolve(__rootdir, 'dist'),
 		lib: {
-			entry: path.resolve(__dirname, 'src/index.ts'),
+			entry: 'index.ts',
 			formats: ['es'],
 			fileName: () => 'index.js',
 		},
 		rollupOptions: {
-			// Do not bundle Node built-ins or node: protocol imports
 			external: [
 				...builtinModules,
 				/^node:.*/,

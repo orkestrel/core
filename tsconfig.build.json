@@ -1,21 +1,11 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
     "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "types": ["node"],
-    "lib": ["ESNext"],
-    "baseUrl": ".",
-    "paths": {
-      "@orkestrel/core": ["./src/index.ts"]
-    }
+    "noEmit": false
   },
   "include": ["src"]
 }

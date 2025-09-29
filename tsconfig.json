@@ -9,10 +9,12 @@
     "types": ["node"],
     "lib": ["ESNext"],
     "baseUrl": ".",
+    "resolveJsonModule": true,
+    "noEmit": true,
     "paths": {
       "@orkestrel/core": ["./src/index.ts"]
     },
-    "noEmit": true
   },
-  "include": ["src", "examples", "tests"]
+  "include": ["**/*"],
+  "exclude": ["node_modules", "dist"]
 }

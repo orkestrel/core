@@ -123,6 +123,9 @@ Source: [src/container.ts](../src/container.ts)
 ### function createToken<T = unknown>(description: string): Token<T>
 - Creates a unique token with a human-readable description.
 
+### type TokensOf<T>
+- Mapped type for sets returned by `createTokens`/`createPortTokens`.
+
 ### function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): { [K in keyof T & string]: Token<T[K]> }
 - Creates a set of tokens for the provided shape using a shared namespace.
 
@@ -131,6 +134,11 @@ Source: [src/container.ts](../src/container.ts)
 - `FactoryProvider<T> { useFactory: (c: Container) => T }`
 - `ClassProvider<T> { useClass: new (c: Container) => T }`
 - `Provider<T> = ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | T`
+
+### Type guards
+- `isValueProvider<T>(p): p is ValueProvider<T>`
+- `isFactoryProvider<T>(p): p is FactoryProvider<T>`
+- `isClassProvider<T>(p): p is ClassProvider<T>`
 
 ### class Container
 - constructor(opts?: { parent?: Container })
@@ -196,6 +204,12 @@ Note
 Throws
 - `AggregateLifecycleError` from batch operations; inspect `.details` for per-component telemetry
 - Error on unknown dependency or dependency cycles
+
+Async provider guards
+- The orchestrator forbids async providers to keep startup deterministic:
+  - `useValue` must not be a Promise — registration throws with a helpful error.
+  - `useFactory` must be synchronous and must not return a Promise — registration throws if the function is `async` or returns a Promise.
+- Move async work to `Lifecycle.onStart()` or pre-resolve the value before registration.
 
 Telemetry per failure (AggregateLifecycleError.details)
 - `tokenDescription`, `tokenKey?`

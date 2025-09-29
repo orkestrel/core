@@ -78,7 +78,7 @@ export abstract class Lifecycle {
 			clearTimeout(timeoutId)
 			const wrapped = err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, err)
 			this.emitter.emit('error', wrapped)
-			throw wrapped
+			return Promise.reject(wrapped)
 		}
 	}
 

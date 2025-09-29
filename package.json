@@ -1,6 +1,7 @@
 {
   "name": "@orkestrel/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire implementations via a tiny DI container, and drive lifecycles deterministically with an orchestrator.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,8 +12,33 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "docs",
+    "README.md"
   ],
+  "keywords": [
+    "injection",
+    "ioc",
+    "container",
+    "dependency",
+    "lifecycle",
+    "orchestrator",
+    "orkestrel",
+    "ports",
+    "adapters",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orkestrel/core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/orkestrel/core/issues"
+  },
+  "homepage": "https://github.com/orkestrel/core#readme",
+  "engines": {
+    "node": ">=18"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -28,7 +54,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^1.9.0",
-    "@types/node": "^22.18.6",
+    "@types/node": "^22.18.7",
     "eslint": "^9.36.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2",

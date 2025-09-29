@@ -47,6 +47,18 @@ class FailingStop extends Adapter {
 	protected async onStop(): Promise<void> { throw new Error('stop-fail') }
 }
 
+class SlowStop extends Adapter {
+	private readonly delayMs: number
+	constructor(delayMs: number) {
+		super()
+		this.delayMs = delayMs
+	}
+
+	protected async onStop(): Promise<void> {
+		await new Promise(r => setTimeout(r, this.delayMs))
+	}
+}
+
 class Track extends Adapter {
 	public started = false
 	public stopped = false
@@ -180,6 +192,23 @@ test('per-lifecycle onStart timeout triggers failure with telemetry', async () =
 	assert.ok(Array.isArray(details))
 	assert.ok(details.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
 	// Also ensure TimeoutError is propagated in details
+	assert.ok(details.some(d => d.error instanceof TimeoutError))
+})
+
+test('per-lifecycle onStop timeout triggers failure with telemetry', async () => {
+	const SLOW_STOP = createToken<SlowStop>('SLOW_STOP')
+	const orch = new Orchestrator(new Container())
+	await orch.start([{ token: SLOW_STOP, provider: { useFactory: () => new SlowStop(30) }, dependencies: [], timeouts: { onStop: 10 } }])
+	let err: unknown
+	try {
+		await orch.stopAll()
+	}
+	catch (e) { err = e }
+	assert.ok(err instanceof Error)
+	assert.match((err as Error).message, /Errors during stopAll/)
+	const details = (err as AggregateLifecycleError).details
+	assert.ok(Array.isArray(details))
+	assert.ok(details.some(d => d.tokenDescription === 'SLOW_STOP' && d.phase === 'stop' && d.timedOut && Number.isFinite(d.durationMs)))
 	assert.ok(details.some(d => d.error instanceof TimeoutError))
 })
 

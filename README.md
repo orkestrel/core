@@ -12,6 +12,7 @@ Quick links
 - Start (Getting Started): [docs/start.md](docs/start.md)
 - Concepts: [docs/concepts.md](docs/concepts.md)
 - Patterns: [docs/patterns.md](docs/patterns.md)
+- Providers & Lifetimes: [docs/providers-and-lifetimes.md](docs/providers-and-lifetimes.md)
 - Tips: [docs/tips.md](docs/tips.md)
 - Ecosystems: [docs/ecosystems.md](docs/ecosystems.md)
 - Examples: [docs/examples.md](docs/examples.md)

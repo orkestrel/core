@@ -10,3 +10,6 @@
 - Aggregate lifecycle errors are thrown at the end of stop/destroy; inspect `.errors`.
 - Use `onTransition(from, to, hook)` in `Lifecycle` to log or instrument transitions, and gate it with `onTransitionFilter` to target specific hooks.
 - `hookTimeoutMs` is a safety cap (default 5000ms) for each lifecycle operation: it bounds the time for the primary hook and `onTransition` together. If exceeded, a `TimeoutError` is thrown and emitted; it’s not a delay. Tune per component based on expected IO (set low to fail fast, or higher for slow initializations).
+- Start/stop/destroy run in parallel within each dependency layer; avoid global side effects in hooks or guard with locks.
+- Default `Lifecycle` hook timeout is 5000ms; you can override per component (via `LifecycleOptions` or orchestrator timeouts) or set orchestrator defaults.
+- See Providers & Lifetimes for ownership details and async provider guard behavior.

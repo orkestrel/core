@@ -20,6 +20,37 @@ const regs: OrchestratorRegistration<unknown>[] = [
 await app.start(regs)
 ```
 
+Shorthand helper
+- Use `register(token, provider, ...deps)` to avoid writing `{ token, provider, dependencies }` repeatedly.
+
+```ts
+import { register } from '@orkestrel/core'
+
+await app.start([
+  register(Ports.logger, { useFactory: () => new Logger() }),
+  register(Ports.email, { useFactory: c => new Email(c.get(Ports.logger)) }, Ports.logger),
+])
+```
+
+Timeouts defaults
+- Instead of specifying timeouts per registration, you can set defaults on the orchestrator:
+
+```ts
+const app = new Orchestrator(c, { defaultTimeouts: { onStart: 5000, onStop: 2000, onDestroy: 2000 } })
+```
+
+Events for telemetry
+- Provide `events` callbacks on the orchestrator to centralize logging/metrics:
+
+```ts
+const app = new Orchestrator(c, {
+  events: {
+    onComponentStart: ({ token, durationMs }) => log('start', token.description, durationMs),
+    onComponentError: (d) => log('error', d.tokenDescription, d.phase, d.timedOut),
+  },
+})
+```
+
 Timeouts per lifecycle phase
 - You can specify optional timeouts per component when registering via `start([...])`.
 - Example: `{ timeouts: { onStart: 5000, onStop: 2000, onDestroy: 2000 } }`.

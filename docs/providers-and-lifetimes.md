@@ -13,6 +13,7 @@ Contents
 - Orchestrator integration
 - Async work and timeouts
 - Edge cases and best practices
+- Ownership matrix
 
 Tokens and typing
 - A Token<T> is a typed handle used to register and retrieve values from the Container.
@@ -62,6 +63,13 @@ Ownership semantics
   - Instances supplied via useValue (or bare value) are treated as externally owned; container.destroy() will not destroy them (even if they are Lifecycle instances).
 - Orchestrator lifecycle management:
   - The Orchestrator will start/stop/destroy Lifecycle instances it knows about regardless of provider style. This is usually how long-lived components are managed.
+  - If you registered a Lifecycle via useValue and did not orchestrate it, container.destroy() will not dispose it — either orchestrate it (so destroyAll handles it) or destroy it manually.
+
+Async provider guard
+- Providers must be synchronous. If a provider is async (Promise value or async/thenable factory), registration throws.
+- Quick fixes:
+  - Move async work to `onStart`/`onStop`/`onDestroy` hooks within a `Lifecycle`.
+  - Pre-resolve values before registration and pass them via `useValue`.
 
 Do we need all three styles?
 - Yes, each style communicates intent:
@@ -184,6 +192,19 @@ Edge cases and best practices
 - Transients:
   - Model transients via factory tokens (() => T), and place lifecycleful transients under a manager if they need start/stop/destroy.
 
+Ownership matrix
+
+| Provider style | Created by container | Container destroys on container.destroy() | Orchestrator manages lifecycle       | Async allowed in provider                              |
+|----------------|----------------------|-------------------------------------------|--------------------------------------|--------------------------------------------------------|
+| useValue       | No                   | No (treats as externally owned)           | Yes, if registered with Orchestrator | No (must not be a Promise)                             |
+| useFactory     | Yes                  | Yes (if value is a Lifecycle)             | Yes                                  | No (function must be sync and must not return Promise) |
+| useClass       | Yes                  | Yes (if value is a Lifecycle)             | Yes                                  | N/A (constructor runs sync)                            |
+| Bare value     | No                   | No                                        | Yes, if registered with Orchestrator | No (should not be a Promise)                           |
+
+Notes
+- “Orchestrator manages lifecycle” means: if the token is registered with the `Orchestrator`, it will call `start/stop/destroy` on the instance when it’s a `Lifecycle`.
+- For non-Lifecycle values, only the container caches and returns them; there’s nothing to stop/destroy.
+
 FAQ
 - Can I register multiple providers to the same token?
   - Not currently. Use a manager/composite, multiple explicit tokens, or a collection token if you need many.
@@ -191,4 +212,3 @@ FAQ
   - No. Providers must be synchronous; move async work to lifecycle hooks or pre-resolve values before registration.
 - How do I get per-request instances?
   - Create a child container per request and register providers there. Or inject a factory token and create instances on demand.
-

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { AggregateLifecycleError, Provider } from '@orkestrel/core'
-import { Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError } from '@orkestrel/core'
+import { Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError, register } from '@orkestrel/core'
 
 class TestComponent extends Adapter {
 	public readonly name: string
@@ -233,4 +233,87 @@ test('async provider guard: useFactory Promise throws at registration', () => {
 	const orch = new Orchestrator(new Container())
 	const prov = { useFactory: async () => 1 } as unknown as Provider<number>
 	assert.throws(() => orch.register(T, prov), /Async providers are not supported/)
+})
+
+test('register helper wires dependencies correctly', async () => {
+	class A extends Adapter {}
+	class B extends Adapter {}
+	const TA = createToken<A>('A')
+	const TB = createToken<B>('B')
+	const c = new Container()
+	const app = new Orchestrator(c)
+	await app.start([
+		register(TA, { useFactory: () => new A() }),
+		register(TB, { useFactory: () => new B() }, TA),
+	])
+	// Ensure both are started and retrievable
+	assert.ok(c.get(TA) instanceof A)
+	assert.ok(c.get(TB) instanceof B)
+	await app.stopAll()
+	await app.destroyAll()
+})
+
+test('defaultTimeouts on orchestrator apply when register omits timeouts', async () => {
+	class SlowS extends Adapter {
+		protected async onStart() { /* fast */ }
+		protected async onStop() {
+			await new Promise<void>(r => setTimeout(r, 30))
+		}
+	}
+	const T = createToken<SlowS>('SlowS')
+	const app = new Orchestrator(new Container(), { defaultTimeouts: { onStop: 10 } })
+	await app.start([register(T, { useFactory: () => new SlowS() })])
+	let err: unknown
+	try {
+		await app.stopAll()
+	}
+	catch (e) { err = e }
+	assert.ok(err instanceof Error)
+	assert.match((err as Error).message, /Errors during stopAll/)
+	const details = (err as AggregateLifecycleError).details
+	assert.ok(Array.isArray(details))
+	assert.ok(details.some(d => d.tokenDescription === 'SlowS' && d.phase === 'stop' && d.timedOut))
+	assert.ok(details.some(d => d.error instanceof TimeoutError))
+	// cleanup destroy to avoid dangling lifecycles
+	await app.destroyAll().catch(() => {})
+})
+
+test('events callbacks are invoked for start/stop/destroy and errors', async () => {
+	class Ok extends Adapter {
+		protected async onStart() {}
+		protected async onStop() {}
+		protected async onDestroy() {}
+	}
+	class BadStop extends Adapter {
+		protected async onStop() {
+			throw new Error('nope')
+		}
+	}
+	const TOK = createToken<Ok>('OK')
+	const BAD = createToken<BadStop>('BAD')
+	const events: { starts: string[], stops: string[], destroys: string[], errors: string[] } = { starts: [], stops: [], destroys: [], errors: [] }
+	const app = new Orchestrator(new Container(), {
+		events: {
+			onComponentStart: ({ token }) => events.starts.push(token.description),
+			onComponentStop: ({ token }) => events.stops.push(token.description),
+			onComponentDestroy: ({ token }) => events.destroys.push(token.description),
+			onComponentError: d => events.errors.push(`${d.tokenDescription}:${d.phase}`),
+		},
+	})
+	await app.start([
+		register(TOK, { useFactory: () => new Ok() }),
+		register(BAD, { useFactory: () => new BadStop() }),
+	])
+	assert.ok(events.starts.includes('OK') && events.starts.includes('BAD'))
+	let err: unknown
+	try {
+		await app.stopAll()
+	}
+	catch (e) { err = e }
+	assert.ok(err instanceof Error)
+	assert.ok(events.stops.includes('OK'))
+	assert.ok(events.errors.some(e => e.startsWith('BAD:stop')))
+	await app.destroyAll().catch(() => {})
+	// destroy callbacks should include both
+	assert.ok(events.destroys.includes('OK') && events.destroys.includes('BAD'))
 })

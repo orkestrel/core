@@ -13,22 +13,43 @@ export interface OrchestratorRegistration<T> {
 	timeouts?: { onStart?: number, onStop?: number, onDestroy?: number }
 }
 
+export interface OrchestratorOptions {
+	defaultTimeouts?: { onStart?: number, onStop?: number, onDestroy?: number }
+	events?: {
+		onComponentStart?: (info: { token: Token<unknown>, durationMs: number }) => void
+		onComponentStop?: (info: { token: Token<unknown>, durationMs: number }) => void
+		onComponentDestroy?: (info: { token: Token<unknown>, durationMs: number }) => void
+		onComponentError?: (detail: LifecycleErrorDetail) => void
+	}
+}
+
 interface NodeEntry { token: Token<unknown>, dependencies: Token<unknown>[], timeouts?: { onStart?: number, onStop?: number, onDestroy?: number } }
 
 export class Orchestrator {
 	private readonly container: Container
 	private readonly nodes = new Map<symbol, NodeEntry>()
 	private layers: Token<unknown>[][] | null = null
+	private readonly defaultTimeouts: { onStart?: number, onStop?: number, onDestroy?: number }
+	private readonly events?: OrchestratorOptions['events']
 
-	constructor(container?: Container) {
-		this.container = container ?? new Container()
+	constructor(containerOrOpts?: Container | OrchestratorOptions, maybeOpts?: OrchestratorOptions) {
+		if (containerOrOpts instanceof Container) {
+			this.container = containerOrOpts
+			this.events = maybeOpts?.events
+			this.defaultTimeouts = maybeOpts?.defaultTimeouts ?? {}
+		}
+		else {
+			this.container = new Container()
+			this.events = containerOrOpts?.events
+			this.defaultTimeouts = containerOrOpts?.defaultTimeouts ?? {}
+		}
 	}
 
 	getContainer(): Container { return this.container }
 
-	register<T>(token: Token<T>, provider: Provider<T>, dependencies: Token<unknown>[] = []): void {
+	register<T>(token: Token<T>, provider: Provider<T>, dependencies: Token<unknown>[] = [], timeouts?: { onStart?: number, onStop?: number, onDestroy?: number }): void {
 		if (this.nodes.has(token.key)) throw new Error(`Duplicate registration for ${token.description}`)
-		this.nodes.set(token.key, { token: token as Token<unknown>, dependencies, timeouts: undefined })
+		this.nodes.set(token.key, { token: token as Token<unknown>, dependencies, timeouts })
 		const guarded = this.guardProvider(token, provider)
 		this.container.register(token, guarded)
 		this.layers = null
@@ -160,6 +181,13 @@ export class Orchestrator {
 		}
 	}
 
+	private getTimeout(token: Token<unknown>, phase: LifecyclePhase): number | undefined {
+		const perNode = this.getNodeEntry(token).timeouts
+		const fromNode = phase === 'start' ? perNode?.onStart : phase === 'stop' ? perNode?.onStop : perNode?.onDestroy
+		const fromDefault = phase === 'start' ? this.defaultTimeouts.onStart : phase === 'stop' ? this.defaultTimeouts.onStop : this.defaultTimeouts.onDestroy
+		return fromNode ?? fromDefault
+	}
+
 	async startAll(): Promise<void> {
 		const layers = this.topoLayers()
 		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
@@ -168,7 +196,7 @@ export class Orchestrator {
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
 				if (inst instanceof Lifecycle && inst.state === 'created') {
-					const timeoutMs = this.getNodeEntry(tk).timeouts?.onStart
+					const timeoutMs = this.getTimeout(tk, 'start')
 					tasks.push({ token: tk, lc: inst, timeoutMs, promise: this.runPhase(inst, 'start', timeoutMs) })
 				}
 				else if (inst instanceof Lifecycle && inst.state === 'started') {
@@ -177,10 +205,17 @@ export class Orchestrator {
 			}
 			const results = await Promise.all(tasks.map(t => t.promise.then(r => ({ t, r }))))
 			const failures: LifecycleErrorDetail[] = []
-			const successes: { token: Token<unknown>, lc: Lifecycle }[] = []
+			const successes: { token: Token<unknown>, lc: Lifecycle, durationMs: number }[] = []
 			for (const { t, r } of results) {
-				if (r.ok) successes.push({ token: t.token, lc: t.lc })
-				else failures.push(this.makeDetail(t.token, 'start', 'normal', r))
+				if (r.ok) {
+					successes.push({ token: t.token, lc: t.lc, durationMs: r.durationMs })
+					this.events?.onComponentStart?.({ token: t.token, durationMs: r.durationMs })
+				}
+				else {
+					const detail = this.makeDetail(t.token, 'start', 'normal', r)
+					failures.push(detail)
+					this.events?.onComponentError?.(detail)
+				}
 			}
 			if (failures.length > 0) {
 				const toStop = [...startedOrder, ...successes].reverse()
@@ -190,9 +225,16 @@ export class Orchestrator {
 					for (const tk of batch) {
 						const lc2 = this.container.get(tk)
 						if (lc2 instanceof Lifecycle && lc2.state === 'started') {
-							const timeoutMs = this.getNodeEntry(tk).timeouts?.onStop
+							const timeoutMs = this.getTimeout(tk, 'stop')
 							stopTasks.push(this.runPhase(lc2, 'stop', timeoutMs).then((r) => {
-								if (!r.ok) return this.makeDetail(tk, 'stop', 'rollback', r)
+								if (!r.ok) {
+									const d = this.makeDetail(tk, 'stop', 'rollback', r)
+									this.events?.onComponentError?.(d)
+									return d
+								}
+								else {
+									this.events?.onComponentStop?.({ token: tk, durationMs: r.durationMs })
+								}
 							}))
 						}
 					}
@@ -201,7 +243,7 @@ export class Orchestrator {
 				}
 				throw new AggregateLifecycleError('Errors during startAll', [...failures, ...rollbackErrors])
 			}
-			for (const s of successes) startedOrder.push(s)
+			for (const s of successes) startedOrder.push({ token: s.token, lc: s.lc })
 		}
 	}
 
@@ -228,9 +270,15 @@ export class Orchestrator {
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
 				if (inst instanceof Lifecycle && inst.state === 'started') {
-					const timeoutMs = this.getNodeEntry(tk).timeouts?.onStop
+					const timeoutMs = this.getTimeout(tk, 'stop')
 					tasks.push(this.runPhase(inst, 'stop', timeoutMs).then((r) => {
-						return r.ok ? undefined : this.makeDetail(tk, 'stop', 'normal', r)
+						if (r.ok) {
+							this.events?.onComponentStop?.({ token: tk, durationMs: r.durationMs })
+							return undefined
+						}
+						const d = this.makeDetail(tk, 'stop', 'normal', r)
+						this.events?.onComponentError?.(d)
+						return d
 					}))
 				}
 			}
@@ -248,9 +296,15 @@ export class Orchestrator {
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
 				if (inst instanceof Lifecycle && inst.state !== 'destroyed') {
-					const timeoutMs = this.getNodeEntry(tk).timeouts?.onDestroy
+					const timeoutMs = this.getTimeout(tk, 'destroy')
 					tasks.push(this.runPhase(inst, 'destroy', timeoutMs).then((r) => {
-						return r.ok ? undefined : this.makeDetail(tk, 'destroy', 'normal', r)
+						if (r.ok) {
+							this.events?.onComponentDestroy?.({ token: tk, durationMs: r.durationMs })
+							return undefined
+						}
+						const d = this.makeDetail(tk, 'destroy', 'normal', r)
+						this.events?.onComponentError?.(d)
+						return d
 					}))
 				}
 			}
@@ -293,6 +347,10 @@ export const orchestrator: OrchestratorGetter = Object.assign(
 		list() { return orchestratorRegistry.list() },
 	},
 )
+
+export function register<T>(token: Token<T>, provider: Provider<T>, ...dependencies: Token<unknown>[]): OrchestratorRegistration<T> {
+	return { token, provider, dependencies }
+}
 
 function isPromiseLike(x: unknown): x is PromiseLike<unknown> {
 	return typeof x === 'object' && x !== null && 'then' in (x as { then?: unknown }) && typeof (x as { then?: unknown }).then === 'function'

@@ -191,15 +191,30 @@ Note
 ### type OrchestratorRegistration<T>
 - `{ token: Token<T>; provider: Provider<T>; dependencies?: Token<unknown>[]; timeouts?: { onStart?: number; onStop?: number; onDestroy?: number } }`
 
+### interface OrchestratorOptions
+- `defaultTimeouts?: { onStart?: number; onStop?: number; onDestroy?: number }` — optional defaults applied when a registration doesn’t specify a timeout for that phase
+- `events?: { onComponentStart?, onComponentStop?, onComponentDestroy?, onComponentError? }` — optional callbacks for centralized telemetry/logging
+
 ### class Orchestrator
-- constructor(container?: Container) — if omitted, creates an internal container
+- constructor(container?: Container)
+- constructor(options?: OrchestratorOptions)
+- constructor(container: Container, options?: OrchestratorOptions)
 - Methods:
   - `getContainer(): Container`
-  - `register<T>(token: Token<T>, provider: Provider<T>, dependencies?: Token<unknown>[]): void`
+  - `register<T>(token: Token<T>, provider: Provider<T>, dependencies?: Token<unknown>[], timeouts?: { onStart?: number; onStop?: number; onDestroy?: number }): void`
   - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>` — registers then `startAll()`
   - `startAll(): Promise<void>` — starts Lifecycle components in topological order; parallelizes within dependency layers; rolls back (stops) prior successes if a layer fails
   - `stopAll(): Promise<void>` — stops in reverse topological layers; parallelizes; aggregates errors
   - `destroyAll(): Promise<void>` — destroys in reverse layers; then `container.destroy()`; aggregates errors
+
+Timeout resolution
+- For each component and phase, the timeout is chosen as: `registration.timeouts.on<Phase> ?? orchestrator.defaultTimeouts.on<Phase> ?? undefined`.
+
+Events
+- `events.onComponentStart({ token, durationMs })`
+- `events.onComponentStop({ token, durationMs })`
+- `events.onComponentDestroy({ token, durationMs })`
+- `events.onComponentError(detail: LifecycleErrorDetail)`
 
 Throws
 - `AggregateLifecycleError` from batch operations; inspect `.details` for per-component telemetry
@@ -211,13 +226,8 @@ Async provider guards
   - `useFactory` must be synchronous and must not return a Promise — registration throws if the function is `async` or returns a Promise.
 - Move async work to `Lifecycle.onStart()` or pre-resolve the value before registration.
 
-Telemetry per failure (AggregateLifecycleError.details)
-- `tokenDescription`, `tokenKey?`
-- `phase: 'start'|'stop'|'destroy'`
-- `context: 'normal'|'rollback'|'container'`
-- `timedOut: boolean`
-- `durationMs: number`
-- `error: Error`
+### helper: register
+- `register<T>(token: Token<T>, provider: Provider<T>, ...dependencies: Token<unknown>[]): OrchestratorRegistration<T>` — convenience to reduce boilerplate when building arrays for `start([...])`. Dependencies are optional.
 
 ### global helper: orchestrator
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)

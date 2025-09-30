@@ -14,7 +14,7 @@ npm install @orkestrel/core
 
 Hello World (single file)
 ```ts
-import { Container, Orchestrator, createPortTokens, container, orchestrator } from '@orkestrel/core'
+import { Container, Orchestrator, createPortTokens, container, orchestrator, register } from '@orkestrel/core'
 
 // Define a small port
 interface EmailPort { send(to: string, subject: string, body: string): Promise<void> }
@@ -28,11 +28,11 @@ class ConsoleEmail implements EmailPort {
 
 // Set default instances
 const c = new Container(); container.set(c)
-const app = new Orchestrator(c); orchestrator.set(app)
+const app = new Orchestrator(c, { defaultTimeouts: { onStart: 2000, onStop: 1000 } }); orchestrator.set(app)
 
 // Register and start (with optional timeouts)
 await orchestrator().start([
-  { token: Ports.email, provider: { useFactory: () => new ConsoleEmail() }, timeouts: { onStart: 2000, onStop: 1000 } },
+  register(Ports.email, { useFactory: () => new ConsoleEmail() }),
 ])
 
 // Use

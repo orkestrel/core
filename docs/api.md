@@ -3,7 +3,7 @@
 This is the comprehensive reference for `@orkestrel/core`. It documents every exported type, function, class, and helper with signatures and examples.
 
 Exports are re-exported from [src/index.ts](../src/index.ts):
-- errors
+- diagnostics
 - lifecycle
 - adapter
 - container
@@ -14,27 +14,35 @@ Exports are re-exported from [src/index.ts](../src/index.ts):
 
 ---
 
-## errors
+## diagnostics (messages, codes, error classes)
 
-Source: [src/errors.ts](../src/errors.ts)
+Source: [src/diagnostics.ts](../src/diagnostics.ts)
+
+### Codes
+- ORK1001–ORK1006 Registry/Container errors
+- ORK1007–ORK1016 Orchestrator/Container aggregate and guard errors
+- ORK1020 Lifecycle invalid transition
+- ORK1021 Lifecycle hook timeout
+- ORK1099 Internal invariant
+
+Messages
+- All messages are formatted as `[Orkestrel][ORK####] ...` and include an optional `helpUrl`.
 
 ### class LifecycleError extends Error
-- constructor(message: string, cause?: unknown)
-- Properties: `name = 'LifecycleError'`, `cause?: unknown`
+- constructor(message: string, cause?: unknown, code?: string, helpUrl?: string)
+- Properties: `name = 'LifecycleError'`, `cause?`, `code?`, `helpUrl?`
 
 ### class InvalidTransitionError extends LifecycleError
 - constructor(from: string, to: string)
-- Message: `Invalid lifecycle transition from '<from>' to '<to>'`
+- Message uses ORK1020
 
 ### class TimeoutError extends LifecycleError
 - constructor(hook: string, ms: number)
-- Message: `Lifecycle hook '<hook>' timed out after <ms>ms`
+- Message uses ORK1021
 
 ### class AggregateLifecycleError extends LifecycleError
-- constructor(message: string, details: LifecycleErrorDetail[])
-- Properties:
-  - `errors: Error[]` — the underlying errors
-  - `details: LifecycleErrorDetail[]` — enriched telemetry per failure
+- constructor(info: { message: string, code?: string, helpUrl?: string }, details: LifecycleErrorDetail[] | Error[])
+- Properties: `errors: Error[]`, `details: LifecycleErrorDetail[]`
 
 ### type LifecyclePhase
 - `'start' | 'stop' | 'destroy'`
@@ -43,13 +51,13 @@ Source: [src/errors.ts](../src/errors.ts)
 - `'normal' | 'rollback' | 'container'`
 
 ### interface LifecycleErrorDetail
-- `tokenDescription: string`
-- `tokenKey?: symbol`
-- `phase: LifecyclePhase`
-- `context: LifecycleContext`
-- `timedOut: boolean`
-- `durationMs: number`
-- `error: Error`
+A uniform, concise shape used for aggregated lifecycle errors. Each item helps you locate the failing component and understand what happened.
+- `tokenDescription: string` — human-friendly token description
+- `phase: LifecyclePhase` — which lifecycle phase ran
+- `context: LifecycleContext` — normal flow, rollback, or container cleanup
+- `timedOut: boolean` — whether a timeout occurred during the hook
+- `durationMs: number` — how long the hook ran
+- `error: Error` — the original error that was thrown
 
 ---
 
@@ -131,9 +139,37 @@ Source: [src/container.ts](../src/container.ts)
 
 ### Provider types
 - `ValueProvider<T> { useValue: T }`
-- `FactoryProvider<T> { useFactory: (c: Container) => T }`
-- `ClassProvider<T> { useClass: new (c: Container) => T }`
-- `Provider<T> = ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | T`
+- Factory providers (strictly synchronous):
+  - Tuple injection: `{ useFactory: (...args: A) => T, inject: InjectTuple<A> }`
+  - Object injection: `{ useFactory: (deps: O) => T, inject: InjectObject<O> }`
+  - No deps: `{ useFactory: () => T }` or `{ useFactory: (container: Container) => T }`
+- Class providers (strictly synchronous):
+  - Tuple injection: `{ useClass: new (...args: A) => T, inject: InjectTuple<A> }`
+  - No deps: `{ useClass: new () => T }` or `{ useClass: new (container: Container) => T }`
+- Bare value: `T` — equivalent to `useValue` (container treats it as externally owned)
+
+### Inject helpers
+- `type InjectTuple<A extends readonly unknown[]> = { [K in keyof A]: Token<A[K]> }`
+- `type InjectObject<O extends Record<string, unknown>> = { [K in keyof O]: Token<O[K]> }`
+
+These types ensure that your `inject` shape matches the parameter types of your factory or class constructor at compile time.
+
+### register forms
+`register` supports three concise forms:
+1) Tuple/Object inject forms (inference-friendly)
+- `register(token, { useFactory, inject: [...] })`
+- `register(token, { useFactory, inject: { ... } })`
+- `register(token, { useClass, inject: [...] })`
+
+2) No-deps forms
+- `register(token, { useFactory: () => T })`
+- `register(token, { useFactory: (c: Container) => T })`
+- `register(token, { useClass: Ctor })` where `Ctor` is `new () => T` or `new (c: Container) => T`
+  - The container inspects constructor arity at runtime: if the constructor expects one parameter, it passes the container; otherwise, it calls the zero-arg constructor.
+
+3) Value forms
+- `register(token, { useValue: value })`
+- `register(token, value)`
 
 ### Type guards
 - `isValueProvider<T>(p): p is ValueProvider<T>`
@@ -143,16 +179,20 @@ Source: [src/container.ts](../src/container.ts)
 ### class Container
 - constructor(opts?: { parent?: Container })
 - Methods:
-  - `register<T>(token: Token<T>, provider: Provider<T>): this`
-  - `set<T>(token: Token<T>, value: T): void`
+  - `register<T>(token: Token<T>, provider: Provider<T>, lock?: boolean): this` — lock prevents re-registration for the same token.
+  - `set<T>(token: Token<T>, value: T, lock?: boolean): void` — lock prevents overwriting the value provider.
   - `has<T>(token: Token<T>): boolean`
   - `resolve<T>(token: Token<T>): T`
-  - `resolve<TMap extends Record<string, Token<unknown>>>>(tokens: TMap): { ... }`
+  - `resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap: TMap[K] extends Token<infer U> ? U : never }`
   - `get<T>(token: Token<T>): T | undefined`
-  - `get<TMap extends Record<string, Token<unknown>>>>(tokens: TMap): { ... }`
+  - `get<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap: TMap[K] extends Token<infer U> ? U | undefined : never }`
   - `createChild(): Container`
   - `using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>`
   - `destroy(): Promise<void>`
+
+Lifecycle ownership semantics
+- Instances created via factory/class providers are considered container-created and will be destroyed by `container.destroy()` if they extend `Lifecycle`.
+- Instances supplied via value/bare value are treated as externally owned and are not destroyed by `container.destroy()`.
 
 ### global helper: container
 Source: [src/container.ts](../src/container.ts), [src/registry.ts](../src/registry.ts)

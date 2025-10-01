@@ -22,6 +22,49 @@ test('value provider resolution', () => {
 	assert.equal(c.has(TOK), true)
 })
 
+// Inject tests
+
+test('factory provider with inject array resolves dependencies by order', () => {
+	const A = createToken<number>('A')
+	const B = createToken<string>('B')
+	const OUT = createToken<{ a: number, b: string }>('OUT')
+	const c = new Container()
+	c.set(A, 10)
+	c.set(B, 'hi')
+	c.register(OUT, { useFactory: (a, b) => ({ a, b }), inject: [A, B] })
+	const v = c.resolve(OUT)
+	assert.deepEqual(v, { a: 10, b: 'hi' })
+})
+
+test('factory provider with inject object resolves named dependencies', () => {
+	const A = createToken<number>('A2')
+	const B = createToken<string>('B2')
+	const SUM = createToken<number>('SUM')
+	const c = new Container()
+	c.set(A, 3)
+	c.set(B, 'abcd')
+	c.register(SUM, { useFactory: ({ a, b }) => a + b.length, inject: { a: A, b: B } })
+	assert.equal(c.resolve(SUM), 3 + 4)
+})
+
+class NeedsDeps {
+	constructor(public readonly a: number, public readonly b: string) {}
+}
+
+test('class provider with inject array constructs with resolved dependencies', () => {
+	const A = createToken<number>('A3')
+	const B = createToken<string>('B3')
+	const C = createToken<NeedsDeps>('C3')
+	const c = new Container()
+	c.set(A, 5)
+	c.set(B, 'z')
+	c.register(C, { useClass: NeedsDeps, inject: [A, B] })
+	const inst = c.resolve(C)
+	assert.ok(inst instanceof NeedsDeps)
+	assert.equal(inst.a, 5)
+	assert.equal(inst.b, 'z')
+})
+
 test('factory provider resolution and get/has', () => {
 	const TOK = createToken<{ v: number }>('obj')
 	const MISS = createToken('missing')
@@ -141,4 +184,20 @@ test('Container.using runs in a child scope and destroys it after', async () => 
 	})
 	assert.ok(inst)
 	assert.equal(inst?.destroyed, true)
+})
+
+test('register with lock prevents re-registration for the same token', () => {
+	const T = createToken<number>('lockReg')
+	const c = new Container()
+	c.register(T, { useValue: 1 }, true) // lock
+	assert.equal(c.resolve(T), 1)
+	assert.throws(() => c.register(T, { useValue: 2 }), /Cannot replace locked provider/)
+})
+
+test('set with lock prevents overwriting value', () => {
+	const T = createToken<string>('lockSet')
+	const c = new Container()
+	c.set(T, 'A', true)
+	assert.equal(c.resolve(T), 'A')
+	assert.throws(() => c.set(T, 'B'), /Cannot replace locked provider/)
 })

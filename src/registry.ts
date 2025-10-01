@@ -1,3 +1,5 @@
+import { D } from './diagnostics.js'
+
 export class Registry<T> {
 	private readonly store = new Map<string | symbol, T>()
 	private readonly locked = new Set<string | symbol>()
@@ -21,18 +23,18 @@ export class Registry<T> {
 	// Strict lookup: throws if missing
 	resolve(name?: string | symbol): T {
 		const key = name ?? this.defaultKey
-		if (key === undefined) throw new Error(`No ${this.label} instance registered for '<default>'`)
+		if (key === undefined) throw D.registryNoDefault(this.label)
 		const v = this.store.get(key)
-		if (!v) throw new Error(`No ${this.label} instance registered for '${String(key)}'`)
+		if (!v) throw D.registryNoNamed(this.label, String(key))
 		return v
 	}
 
 	set(nameOrKey: string | symbol, value: T, lock = false): void {
 		if (this.defaultKey !== undefined && nameOrKey === this.defaultKey) {
-			throw new Error(`Cannot replace default ${this.label} instance`)
+			throw D.registryCannotReplaceDefault(this.label)
 		}
 		if (this.locked.has(nameOrKey)) {
-			throw new Error(`Cannot replace locked ${this.label} instance for '${String(nameOrKey)}'`)
+			throw D.registryCannotReplaceLocked(this.label, String(nameOrKey))
 		}
 		this.store.set(nameOrKey, value)
 		if (lock) this.locked.add(nameOrKey)

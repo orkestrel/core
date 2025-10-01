@@ -9,7 +9,7 @@ This repository includes two runnable examples to illustrate both a simple and a
 - Demonstrates strict resolution with `resolve(token)`.
 
 Run:
-```sh
+```bat
 npm run example:simple
 ```
 
@@ -26,41 +26,70 @@ Highlights
 - Shows resolving multiple tokens at once with `container().resolve({ ... })`.
 
 Run:
-```sh
+```bat
 npm run example:large
 ```
 
-## Additional snippets
+## Register forms cheat sheet
 
-Named instance map resolution:
+Tuple/Object inject forms (best inference):
 ```ts
-import { container, createPortTokens, Container } from '@orkestrel/core'
+// Factory with positional injection
+container().register(Ports.repo, {
+  useFactory: (cfg: Config, log: Logger) => new Repo(cfg, log),
+  inject: [Ports.config, Ports.logger],
+})
 
-interface A { /* ... */ }
-interface B { /* ... */ }
-const Ports = createPortTokens({ a: {} as A, b: {} as B })
+// Factory with named-object injection
+container().register(Ports.svc, {
+  useFactory: ({ repo, bus }: { repo: Repo, bus: Bus }) => new Service(repo, bus),
+  inject: { repo: Ports.repo, bus: Ports.bus },
+})
 
-// Create and register a named container
-const tenant = new Container()
-container.set('tenant:A', tenant)
-
-// Resolve multiple tokens at once from the named instance
-const { a, b } = container('tenant:A').resolve({ a: Ports.a, b: Ports.b })
+// Class with positional injection
+container().register(Ports.bus, {
+  useClass: EventBus,
+  inject: [Ports.config, Ports.logger],
+})
 ```
 
-Optional multi-resolution with get:
+No-deps forms (optionally receive Container):
 ```ts
-import { container, createPortTokens } from '@orkestrel/core'
+// Factory without inject
+container().register(Ports.clock, { useFactory: () => new SystemClock() })
+container().register(Ports.email, { useFactory: c => new Email(c.resolve(Ports.logger)) })
 
-interface Email { /* ... */ }
-interface Unknown { /* ... */ }
-const Ports = createPortTokens({ email: {} as Email, unknown: {} as Unknown })
+// Class without inject
+class ZeroArg {}
+class NeedsContainer { constructor(private readonly c: Container) {} }
+container().register(Ports.zero, { useClass: ZeroArg })
+container().register(Ports.needs, { useClass: NeedsContainer }) // container is passed based on constructor arity
+```
 
-// Returns { email: Email | undefined, unknown: Unknown | undefined }
-const maybe = container().get({ email: Ports.email, unknown: Ports.unknown })
-if (!maybe.unknown) {
-  // handle missing dependency gracefully
+Value forms:
+```ts
+container().register(Ports.config, { useValue: { appName: 'Acme' } })
+container().register(Ports.answer, 42)
+```
+
+## Class provider that takes Container explicitly
+
+When a class constructor accepts one argument, the container will pass itself to the constructor. This lets you manually resolve and cache dependencies.
+
+```ts
+import { container, type Container } from '@orkestrel/core'
+
+class NeedsContainer {
+  private logger: Logger
+  constructor(c: Container) {
+    this.logger = c.resolve(Ports.logger)
+  }
+  doWork() {
+    this.logger.info('work!')
+  }
 }
+
+container().register(Ports.needsContainer, { useClass: NeedsContainer })
 ```
 
 See also

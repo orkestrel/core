@@ -1,8 +1,8 @@
 import type { Provider, Token } from './container.js'
 import { Container, isClassProvider, isFactoryProvider, isValueProvider, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
-import { AggregateLifecycleError, type LifecycleContext, type LifecycleErrorDetail, type LifecyclePhase, TimeoutError } from './errors.js'
 import { Registry } from './registry.js'
+import { D, type LifecycleErrorDetail, type LifecyclePhase, AggregateLifecycleError, TimeoutError } from './diagnostics.js'
 
 export interface OrchestratorRegistration<T> {
 	token: Token<T>
@@ -48,7 +48,7 @@ export class Orchestrator {
 	getContainer(): Container { return this.container }
 
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: Token<unknown>[] = [], timeouts?: { onStart?: number, onStop?: number, onDestroy?: number }): void {
-		if (this.nodes.has(token.key)) throw new Error(`Duplicate registration for ${token.description}`)
+		if (this.nodes.has(token.key)) throw D.duplicateRegistration(token.description)
 		this.nodes.set(token.key, { token: token as Token<unknown>, dependencies, timeouts })
 		const guarded = this.guardProvider(token, provider)
 		this.container.register(token, guarded)
@@ -58,7 +58,7 @@ export class Orchestrator {
 	async start(regs: OrchestratorRegistration<unknown>[]): Promise<void> {
 		for (const e of regs) {
 			const deps = e.dependencies ?? []
-			if (this.nodes.has(e.token.key)) throw new Error(`Duplicate registration for ${e.token.description}`)
+			if (this.nodes.has(e.token.key)) throw D.duplicateRegistration(e.token.description)
 			this.nodes.set(e.token.key, { token: e.token as Token<unknown>, dependencies: deps, timeouts: e.timeouts })
 			const guarded = this.guardProvider(e.token, e.provider)
 			this.container.register(e.token, guarded)
@@ -77,7 +77,7 @@ export class Orchestrator {
 		const nodes = Array.from(this.nodes.values())
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
-				if (!this.nodes.has(d.key)) throw new Error(`Unknown dependency ${d.description} required by ${n.token.description}`)
+				if (!this.nodes.has(d.key)) throw D.unknownDependency(d.description, n.token.description)
 			}
 		}
 		const layers: Token<unknown>[][] = []
@@ -97,14 +97,14 @@ export class Orchestrator {
 				progressed = true
 			}
 		}
-		if (removed.size !== this.nodes.size) throw new Error('Cycle detected in dependencies')
+		if (removed.size !== this.nodes.size) throw D.cycleDetected()
 		this.layers = layers
 		return layers
 	}
 
 	private getNodeEntry(token: Token<unknown>): NodeEntry {
 		const n = this.nodes.get(token.key)
-		if (!n) throw new Error('Invariant: missing node entry')
+		if (!n) throw D.invariantMissingNode()
 		return n
 	}
 
@@ -112,23 +112,23 @@ export class Orchestrator {
 		if (isValueProvider(provider)) {
 			const v = provider.useValue
 			if (isPromiseLike(v)) {
-				throw new Error(`Async providers are not supported: token '${token.description}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`)
+				throw D.asyncUseValuePromise(token.description)
 			}
 			return provider
 		}
 		if (isFactoryProvider(provider)) {
-			const orig: (c: Container) => T = provider.useFactory
+			const orig: (...args: unknown[]) => T = provider.useFactory as unknown as (...args: unknown[]) => T
 			if (orig.constructor && orig.constructor.name === 'AsyncFunction') {
-				throw new Error(`Async providers are not supported: useFactory for token '${token.description}' is an async function. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`)
+				throw D.asyncUseFactoryAsync(token.description)
 			}
-			const wrapped: (c: Container) => T = (c: Container) => {
-				const res = orig(c)
+			const wrapped: (...args: unknown[]) => T = (...args: unknown[]) => {
+				const res = orig(...args)
 				if (isPromiseLike(res)) {
-					throw new Error(`Async providers are not supported: useFactory for token '${token.description}' returned a Promise. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`)
+					throw D.asyncUseFactoryPromise(token.description)
 				}
 				return res as T
 			}
-			return { useFactory: wrapped }
+			return { ...provider, useFactory: wrapped }
 		}
 		if (isClassProvider(provider)) {
 			return provider
@@ -169,18 +169,6 @@ export class Orchestrator {
 		}
 	}
 
-	private makeDetail(token: Token<unknown>, phase: LifecyclePhase, context: LifecycleContext, res: { durationMs: number, error: Error, timedOut?: boolean }): LifecycleErrorDetail {
-		return {
-			tokenDescription: token.description,
-			tokenKey: token.key,
-			phase,
-			context,
-			timedOut: res.timedOut ?? false,
-			durationMs: res.durationMs,
-			error: res.error,
-		}
-	}
-
 	private getTimeout(token: Token<unknown>, phase: LifecyclePhase): number | undefined {
 		const perNode = this.getNodeEntry(token).timeouts
 		const fromNode = phase === 'start' ? perNode?.onStart : phase === 'stop' ? perNode?.onStop : perNode?.onDestroy
@@ -212,7 +200,7 @@ export class Orchestrator {
 					this.events?.onComponentStart?.({ token: t.token, durationMs: r.durationMs })
 				}
 				else {
-					const detail = this.makeDetail(t.token, 'start', 'normal', r)
+					const detail = D.makeDetail(t.token, 'start', 'normal', r)
 					failures.push(detail)
 					this.events?.onComponentError?.(detail)
 				}
@@ -228,7 +216,7 @@ export class Orchestrator {
 							const timeoutMs = this.getTimeout(tk, 'stop')
 							stopTasks.push(this.runPhase(lc2, 'stop', timeoutMs).then((r) => {
 								if (!r.ok) {
-									const d = this.makeDetail(tk, 'stop', 'rollback', r)
+									const d = D.makeDetail(tk, 'stop', 'rollback', r)
 									this.events?.onComponentError?.(d)
 									return d
 								}
@@ -241,7 +229,8 @@ export class Orchestrator {
 					const settled = await Promise.all(stopTasks)
 					for (const d of settled) if (d) rollbackErrors.push(d)
 				}
-				throw new AggregateLifecycleError('Errors during startAll', [...failures, ...rollbackErrors])
+				const agg = D.startAllAggregate()
+				throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, [...failures, ...rollbackErrors])
 			}
 			for (const s of successes) startedOrder.push({ token: s.token, lc: s.lc })
 		}
@@ -276,7 +265,7 @@ export class Orchestrator {
 							this.events?.onComponentStop?.({ token: tk, durationMs: r.durationMs })
 							return undefined
 						}
-						const d = this.makeDetail(tk, 'stop', 'normal', r)
+						const d = D.makeDetail(tk, 'stop', 'normal', r)
 						this.events?.onComponentError?.(d)
 						return d
 					}))
@@ -285,7 +274,10 @@ export class Orchestrator {
 			const settled = await Promise.all(tasks)
 			for (const d of settled) if (d) errors.push(d)
 		}
-		if (errors.length) throw new AggregateLifecycleError('Errors during stopAll', errors)
+		if (errors.length) {
+			const agg = D.stopAllAggregate()
+			throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
+		}
 	}
 
 	async destroyAll(): Promise<void> {
@@ -302,7 +294,7 @@ export class Orchestrator {
 							this.events?.onComponentDestroy?.({ token: tk, durationMs: r.durationMs })
 							return undefined
 						}
-						const d = this.makeDetail(tk, 'destroy', 'normal', r)
+						const d = D.makeDetail(tk, 'destroy', 'normal', r)
 						this.events?.onComponentError?.(d)
 						return d
 					}))
@@ -322,7 +314,10 @@ export class Orchestrator {
 				errors.push({ tokenDescription: 'container', phase: 'destroy', context: 'container', timedOut: false, durationMs: 0, error: e })
 			}
 		}
-		if (errors.length) throw new AggregateLifecycleError('Errors during destroyAll', errors)
+		if (errors.length) {
+			const agg = D.destroyAllAggregate()
+			throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
+		}
 	}
 }
 

@@ -36,25 +36,46 @@ Tokens and typing
   ```
 
 Provider types and ownership
-- Register values using one of the following provider styles:
+- Register values using one of the following provider styles (all strictly synchronous):
   
   ```ts
   import { Container } from '@orkestrel/core'
   
   const c = new Container()
   
-  // 1) useValue — pre-built value or instance (container does not own disposal)
+  // 1) Value forms — pre-built value or instance (container does not own disposal)
   c.register(Config, { useValue: { dbUrl: 'postgres://...' } })
+  c.register(Config, { dbUrl: 'postgres://...' } as const) // bare value
   
-  // 2) useFactory — lazy singleton via function (container owns disposal of Lifecycle)
-  c.register(Ports.logger, { useFactory: () => createLogger() })
+  // 2) Factory forms — lazy singleton via function (container owns disposal of Lifecycle)
+  // 2a) Tuple inject — best inference
+  c.register(Ports.repo, {
+    useFactory: (cfg: Cfg, log: Logger) => new Repo(cfg, log),
+    inject: [Ports.config, Ports.logger],
+  })
   
-  // 3) useClass — lazy singleton via constructor(new (c: Container) => T)
-  c.register(Ports.email, { useClass: EmailAdapter })
+  // 2b) Object inject — named parameters in a single object
+  c.register(Ports.svc, {
+    useFactory: ({ repo, bus }: { repo: Repo, bus: Bus }) => new Service(repo, bus),
+    inject: { repo: Ports.repo, bus: Ports.bus },
+  })
   
-  // 4) Bare value — equivalent to useValue but less explicit
-  c.register(Config, { dbUrl: 'postgres://...' }) // typed as Provider<T> union
+  // 2c) No-deps — optional Container for manual resolution
+  c.register(Ports.clock, { useFactory: () => new SystemClock() })
+  c.register(Ports.email, { useFactory: (cc) => new Email(cc.resolve(Ports.logger)) })
+  
+  // 3) Class forms — lazy singleton via constructor
+  // 3a) Tuple inject — positional dependencies
+  c.register(Ports.bus, { useClass: EventBus, inject: [Ports.config, Ports.logger] })
+  
+  // 3b) No-deps — zero-arg or Container constructor
+  c.register(Ports.zero, { useClass: ZeroArg })
+  c.register(Ports.needs, { useClass: NeedsContainer }) // if constructor has arity 1, Container is passed
   ```
+
+Inject typing helpers
+- `InjectTuple<A>` and `InjectObject<O>` are exported types used internally to ensure your `inject` matches the parameter types of your factory or class constructor.
+- You rarely need to reference them directly, but they are available in the public API for clarity and advanced typing.
 
 Ownership semantics
 - Container disposal:

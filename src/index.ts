@@ -1,4 +1,4 @@
-export * from './errors.js'
+export * from './diagnostics.js'
 export * from './lifecycle.js'
 export * from './adapter.js'
 export * from './container.js'

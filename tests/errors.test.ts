@@ -19,7 +19,7 @@ test('TimeoutError formats hook and milliseconds', () => {
 test('AggregateLifecycleError aggregates errors and exposes first cause', () => {
 	const e1 = new Error('boom1')
 	const e2 = new Error('boom2')
-	const agg = new AggregateLifecycleError('agg', [e1, e2])
+	const agg = new AggregateLifecycleError({ message: 'agg' }, [e1, e2])
 	assert.equal(agg.message, 'agg')
 	assert.equal(agg.errors.length, 2)
 })

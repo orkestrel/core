@@ -87,7 +87,7 @@ test('orchestrator starts components in topological order', async () => {
 	assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
 })
 
-test('orchestrator detects cycles', () => {
+test('orchestrator detects cycles', async () => {
 	TestComponent.counter = 0
 	const A = createToken<TestComponent>('A')
 	const B = createToken<TestComponent>('B')
@@ -96,7 +96,20 @@ test('orchestrator detects cycles', () => {
 	const orch = new Orchestrator(new Container())
 	orch.register(A, { useValue: a }, [B])
 	orch.register(B, { useValue: b }, [A])
-	return assert.rejects(() => orch.startAll(), /Cycle detected/)
+	await assert.rejects(() => orch.startAll(), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Cycle detected/)
+		// diagnostics prefix + code
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1009]/)
+		// expose code/helpUrl when present
+		type WithDiag = Error & { code?: string, helpUrl?: string }
+		const e2 = err as WithDiag
+		assert.equal(e2.code, 'ORK1009')
+		if (typeof e2.helpUrl === 'string') {
+			assert.ok(e2.helpUrl.includes('/docs/overview.md'))
+		}
+		return true
+	})
 })
 
 test('orchestrator aggregates start errors', async () => {
@@ -118,7 +131,14 @@ test('unknown dependency throws with context', async () => {
 	const a = new TestComponent('A')
 	const orch = new Orchestrator(new Container())
 	orch.register(A, { useValue: a }, [B])
-	await assert.rejects(() => orch.startAll(), /Unknown dependency B required by A/)
+	await assert.rejects(() => orch.startAll(), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Unknown dependency B required by A/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1008]/)
+		type WithDiag = Error & { code?: string }
+		assert.equal((err as WithDiag).code, 'ORK1008')
+		return true
+	})
 })
 
 test('destroyAll aggregates errors from components and container', async () => {
@@ -130,7 +150,14 @@ test('destroyAll aggregates errors from components and container', async () => {
 	orch.register(BAD, { useValue: new FailingDestroyComponent() })
 	await orch.startAll()
 	await orch.stopAll()
-	await assert.rejects(() => orch.destroyAll(), /Errors during destroyAll/)
+	await assert.rejects(() => orch.destroyAll(), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Errors during destroyAll/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1015]/)
+		type WithDiag = Error & { code?: string }
+		assert.equal((err as WithDiag).code, 'ORK1015')
+		return true
+	})
 })
 
 test('orchestrator() helper supports default symbol and named string keys', async () => {
@@ -182,6 +209,9 @@ test('per-lifecycle onStart timeout triggers failure with telemetry', async () =
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
 	assert.match((err as Error).message, /Errors during startAll/)
+	assert.match((err as Error).message, /\[Orkestrel]\[ORK1013]/)
+	type WithDiag = Error & { code?: string }
+	assert.equal((err as WithDiag).code, 'ORK1013')
 	const details = (err as AggregateLifecycleError).details
 	assert.ok(Array.isArray(details))
 	assert.ok(details.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
@@ -200,6 +230,9 @@ test('per-lifecycle onStop timeout triggers failure with telemetry', async () =>
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
 	assert.match((err as Error).message, /Errors during stopAll/)
+	assert.match((err as Error).message, /\[Orkestrel]\[ORK1014]/)
+	type WithDiag2 = Error & { code?: string }
+	assert.equal((err as WithDiag2).code, 'ORK1014')
 	const details = (err as AggregateLifecycleError).details
 	assert.ok(Array.isArray(details))
 	assert.ok(details.some(d => d.tokenDescription === 'SLOW_STOP' && d.phase === 'stop' && d.timedOut && Number.isFinite(d.durationMs)))
@@ -213,20 +246,41 @@ test('stopAll aggregates multiple stop failures', async () => {
 	orch.register(F1, { useFactory: () => new FailingStop() })
 	orch.register(F2, { useFactory: () => new FailingStop() })
 	await orch.startAll()
-	await assert.rejects(() => orch.stopAll(), /Errors during stopAll/)
+	await assert.rejects(() => orch.stopAll(), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Errors during stopAll/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1014]/)
+		type WithDiag3 = Error & { code?: string }
+		assert.equal((err as WithDiag3).code, 'ORK1014')
+		return true
+	})
 })
 
 test('async provider guard: useValue Promise throws at registration', () => {
 	const T = createToken<Promise<number>>('AsyncVal')
 	const orch = new Orchestrator(new Container())
-	assert.throws(() => orch.register(T, { useValue: Promise.resolve(1) }), /Async providers are not supported/)
+	assert.throws(() => orch.register(T, { useValue: Promise.resolve(1) }), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Async providers are not supported/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1010]/)
+		type WithDiag4 = Error & { code?: string }
+		assert.equal((err as WithDiag4).code, 'ORK1010')
+		return true
+	})
 })
 
 test('async provider guard: useFactory Promise throws at registration', () => {
 	const T = createToken<number>('AsyncFactory')
 	const orch = new Orchestrator(new Container())
 	const prov = { useFactory: async () => 1 } as unknown as Provider<number>
-	assert.throws(() => orch.register(T, prov), /Async providers are not supported/)
+	assert.throws(() => orch.register(T, prov), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Async providers are not supported/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1011]/)
+		type WithDiag5 = Error & { code?: string }
+		assert.equal((err as WithDiag5).code, 'ORK1011')
+		return true
+	})
 })
 
 test('register helper wires dependencies correctly', async () => {

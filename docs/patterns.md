@@ -7,10 +7,12 @@ Contents
 - Timeouts defaults
 - Events for telemetry
 - Explicit dependencies
+- Explicit injection (no decorators)
 - Request/Job scopes
 - Manager pattern (many instances/transients)
 - Fine-grained control (register + startAll)
 - Helpers vs explicit DI
+- Locking providers (guard your wiring)
 
 ## Startup pattern: start([...])
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/container.ts](../src/container.ts)
@@ -80,6 +82,55 @@ Source: [src/orchestrator.ts](../src/orchestrator.ts)
 - Use `dependencies` token edges to enforce deterministic ordering.
 - Inside factories, use the container to resolve dependent tokens when needed.
 
+## Explicit injection (no decorators)
+Source: [src/container.ts](../src/container.ts)
+- Keep providers synchronous; resolve dependencies explicitly without decorators or reflection.
+- Three register forms:
+  1) Tuple/Object inject (best inference)
+  2) No-deps (optionally receive Container)
+  3) Value/bare value
+
+`useFactory` supports:
+- Array form: `inject: [TokenA, TokenB]` — resolved values are passed as positional args `(a, b)`.
+- Named-object form: `inject: { a: TokenA, b: TokenB }` — resolved object is passed as a single argument `({ a, b })`.
+- No-deps: `useFactory()` or `useFactory(container)`.
+
+`useClass` supports:
+- Array form: `inject: [TokenA, TokenB]` — values are passed to the constructor `new C(a, b)`.
+- No-deps: `useClass: Ctor`. If `Ctor.length >= 1`, the container is passed (`new Ctor(container)`), otherwise the zero-arg constructor is used (`new Ctor()`).
+
+Examples:
+```ts
+// Factory with positional injection
+container().register(Ports.repo, {
+  useFactory: (cfg: Cfg, log: Logger) => new Repo(cfg, log),
+  inject: [Ports.config, Ports.logger],
+})
+
+// Factory with named-object injection
+container().register(Ports.svc, {
+  useFactory: ({ repo, bus }: { repo: Repo, bus: Bus }) => new Service(repo, bus),
+  inject: { repo: Ports.repo, bus: Ports.bus },
+})
+
+// Class with positional injection
+container().register(Ports.bus, {
+  useClass: EventBus,
+  inject: [Ports.config, Ports.logger],
+})
+
+// Class that takes the Container explicitly
+class NeedsContainer {
+  constructor(private readonly c: Container) {}
+  get logger() { return this.c.resolve(Ports.logger) }
+}
+container().register(Ports.needsContainer, { useClass: NeedsContainer })
+```
+
+Notes
+- Injection is opt-in and explicit. There are no decorators.
+- Providers remain strictly synchronous; perform async work in lifecycle hooks.
+
 ## Request/Job Scopes
 Source: [src/container.ts](../src/container.ts)
 - Use `container.createChild()` to build a per-request scope.
@@ -141,3 +192,22 @@ Source: [src/container.ts](../src/container.ts), [src/orchestrator.ts](../src/or
 - Helpers (`container()`, `orchestrator()`) are optional and handy for app composition.
 - Libraries should prefer receiving `Container`/`Orchestrator` instances explicitly for stricter DI.
 - We intentionally avoid multi‑binding (`resolveAll/getAll`) and container‑level transient lifetimes. For many instances, use the Manager pattern.
+
+## Locking providers (guard your wiring)
+Source: [src/container.ts](../src/container.ts)
+- To prevent accidental overrides during composition, you can lock registrations:
+  - `container().register(Token, { useValue: x }, true)` — locks the provider for Token.
+  - `container().set(Token, x, true)` — locks the value provider for Token.
+- Attempts to re-register or overwrite a locked provider will throw.
+- Use locking in app entry points or integration layers, after you finalize wiring.
+
+```ts
+const T = createToken<number>('answer')
+const c = new Container()
+
+// Lock the registration
+c.register(T, { useValue: 42 }, true)
+
+// Later attempts to change it will throw
+// c.register(T, { useValue: 7 }) // Error: Cannot replace locked provider
+```

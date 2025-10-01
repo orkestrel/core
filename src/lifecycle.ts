@@ -2,7 +2,7 @@
 // Public methods: create, start, stop, destroy
 // Extension points: onCreate, onStart, onStop, onDestroy
 
-import { InvalidTransitionError, LifecycleError, TimeoutError } from './errors.js'
+import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnostics.js'
 import { Emitter } from './emitter.js'
 
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'

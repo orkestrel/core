@@ -3,8 +3,14 @@ import { Registry } from './registry.js'
 import { AggregateLifecycleError } from './errors.js'
 
 export interface Token<_T> { readonly key: symbol, readonly description: string }
+
+// Private brand to harden token guards at runtime
+const TOKEN_BRAND: unique symbol = Symbol('token.brand')
+
 export function createToken<_T = unknown>(description: string): Token<_T> {
-	return { key: Symbol(description), description }
+	// Freeze and brand tokens to prevent mutation and spoofing
+	const tok = { key: Symbol(description), description, __brand: TOKEN_BRAND } as const
+	return Object.freeze(tok) as unknown as Token<_T>
 }
 
 export interface ValueProvider<T> { useValue: T }
@@ -43,7 +49,16 @@ type ResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K] extend
 type OptionalResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
 
 function isToken(x: unknown): x is Token<unknown> {
-	return typeof x === 'object' && x !== null && hasOwn(x, 'key') && hasOwn(x, 'description')
+	if (typeof x !== 'object' || x === null) return false
+	if (!hasOwn(x, 'key')) return false
+	const key = (x as Record<string, unknown>).key
+	if (typeof key !== 'symbol') return false
+	if (!hasOwn(x, 'description')) return false
+	const desc = (x as Record<string, unknown>).description
+	if (typeof desc !== 'string') return false
+	if (!hasOwn(x, '__brand')) return false
+	const brand = (x as Record<string, unknown>).__brand
+	return brand === TOKEN_BRAND
 }
 
 export class Container {
@@ -170,8 +185,8 @@ export function createTokens<T extends Record<string, unknown>>(namespace: strin
 
 export type ContainerGetter = {
 	(name?: string | symbol): Container
-	set(c: Container, name?: string | symbol): void
-	clear(name?: string | symbol): boolean
+	set(name: string | symbol, c: Container, lock?: boolean): void
+	clear(name?: string | symbol, force?: boolean): boolean
 	list(): (string | symbol)[]
 
 	resolve<T>(token: Token<T>, name?: string | symbol): T
@@ -183,13 +198,7 @@ export type ContainerGetter = {
 	using<T>(fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
 }
 
-const DEFAULT_CONTAINER_KEY = Symbol('container.default')
-const containerRegistry = new Registry<Container>('container', DEFAULT_CONTAINER_KEY)
-
-// Ensure a default container is available at module load
-if (!containerRegistry.get()) {
-	containerRegistry.setDefault(new Container())
-}
+const containerRegistry = new Registry<Container>('container', new Container())
 
 function containerResolve<T>(token: Token<T>, name?: string | symbol): T
 function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
@@ -219,11 +228,10 @@ function containerUsing<T>(fn: (scope: Container) => Promise<T> | T, name?: stri
 export const container = Object.assign(
 	(name?: string | symbol): Container => containerRegistry.resolve(name),
 	{
-		set(c: Container, name?: string | symbol) {
-			if (name === undefined) containerRegistry.setDefault(c)
-			else containerRegistry.set(name, c)
+		set(name: string | symbol, c: Container, lock?: boolean) {
+			containerRegistry.set(name, c, lock)
 		},
-		clear(name?: string | symbol) { return containerRegistry.clear(name) },
+		clear(name?: string | symbol, force?: boolean) { return containerRegistry.clear(name, force) },
 		list() { return containerRegistry.list() },
 
 		resolve: containerResolve,

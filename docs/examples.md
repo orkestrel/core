@@ -42,7 +42,7 @@ const Ports = createPortTokens({ a: {} as A, b: {} as B })
 
 // Create and register a named container
 const tenant = new Container()
-container.set(tenant, 'tenant:A')
+container.set('tenant:A', tenant)
 
 // Resolve multiple tokens at once from the named instance
 const { a, b } = container('tenant:A').resolve({ a: Ports.a, b: Ports.b })

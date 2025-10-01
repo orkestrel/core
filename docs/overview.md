@@ -17,7 +17,7 @@ Highlights
 
 Defaults and helpers
 - A default `Container` and `Orchestrator` are auto-registered under symbol keys and accessible via `container()` and `orchestrator()`.
-- Named instances are supported: `container.set(new Container(), 'tenant:A')`, then `container('tenant:A')`.
+- Named instances are supported: `container.set('tenant:A', new Container())`, then `container('tenant:A')`.
 
 Resolve vs Get
 - `resolve(token | map)` is strict and throws if a token is missing; `get(token | map)` is optional and returns `undefined` for missing tokens.

@@ -2,27 +2,22 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Registry } from '@orkestrel/core'
 
-test('Registry with symbol default: setDefault/get/clear/list', () => {
+test('Registry with symbol default: construct/get/resolve/list and protected default', () => {
 	const DEF = Symbol('def')
-	const reg = new Registry<number>('thing', DEF)
-	// get should throw before set via resolve
-	assert.throws(() => reg.resolve(), /No thing instance registered/)
-	// set default and get
-	reg.setDefault(42)
+	const reg = new Registry<number>('thing', 42, DEF)
+	// resolve/get default
 	assert.equal(reg.resolve(), 42)
-	// get (optional) returns value
 	assert.equal(reg.get(), 42)
 	// list contains default symbol key
 	assert.ok(reg.list().some(k => typeof k !== 'string'))
-	// clear default
-	assert.equal(reg.clear(), true)
-	assert.equal(reg.get(), undefined)
+	// default cannot be replaced or cleared (even forced)
+	assert.throws(() => reg.set(DEF, 7), /Cannot replace default/)
+	assert.equal(reg.clear(undefined, true), false)
 })
 
-test('Registry supports string and symbol named keys', () => {
+test('Registry supports string and symbol named keys with default present', () => {
 	const DEF = Symbol('def')
-	const reg = new Registry<string>('thing', DEF)
-	reg.setDefault('default')
+	const reg = new Registry<string>('thing', 'default', DEF)
 	reg.set('alpha', 'A')
 	const S = Symbol('beta')
 	reg.set(S, 'B')
@@ -36,12 +31,11 @@ test('Registry supports string and symbol named keys', () => {
 
 test('Registry clear on non-existent names returns false and is non-destructive', () => {
 	const DEF = Symbol('def')
-	const reg = new Registry<number>('thing', DEF)
-	// nothing set yet; clearing default or named should return false
-	assert.equal(reg.clear(), false)
+	const reg = new Registry<number>('thing', 1, DEF)
+	// clearing unknowns returns false and does not affect entries
 	assert.equal(reg.clear('missing'), false)
+	assert.equal(reg.clear(Symbol('notset')), false)
 	// set some entries
-	reg.setDefault(1)
 	reg.set('a', 2)
 	const before = reg.list().slice()
 	// clear unknown string and symbol

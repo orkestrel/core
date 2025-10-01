@@ -134,25 +134,19 @@ test('destroyAll aggregates errors from components and container', async () => {
 })
 
 test('orchestrator() helper supports default symbol and named string keys', async () => {
-	// clear any existing registrations
-	for (const name of orchestrator.list()) orchestrator.clear(name)
-	const c = new Container()
-	const orch = new Orchestrator(c)
-	orchestrator.set(orch) // default
+	// clear any named registrations (default is protected and will remain)
+	for (const name of orchestrator.list()) orchestrator.clear(name, true)
+	// default
 	const got = orchestrator()
-	assert.equal(got, orch)
+	assert.ok(got instanceof Orchestrator)
+	// named
 	const other = new Orchestrator(new Container())
-	orchestrator.set(other, 'other')
+	orchestrator.set('other', other)
 	assert.equal(orchestrator('other'), other)
 	const names = orchestrator.list()
 	assert.ok(names.some(k => typeof k !== 'string'))
 	assert.ok(names.some((k: string | symbol) => k === 'other'))
-	assert.equal(orchestrator.clear('other'), true)
-})
-
-test('orchestrator() throws if default not set', () => {
-	for (const name of orchestrator.list()) orchestrator.clear(name)
-	assert.throws(() => orchestrator(), /No orchestrator instance registered/)
+	assert.equal(orchestrator.clear('other', true), true)
 })
 
 test('startAll rollback stops previously started components on failure', async () => {

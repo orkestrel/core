@@ -328,26 +328,20 @@ export class Orchestrator {
 
 export type OrchestratorGetter = {
 	(name?: string | symbol): Orchestrator
-	set(o: Orchestrator, name?: string | symbol): void
-	clear(name?: string | symbol): boolean
+	set(name: string | symbol, o: Orchestrator, lock?: boolean): void
+	clear(name?: string | symbol, force?: boolean): boolean
 	list(): (string | symbol)[]
 }
 
-const DEFAULT_ORCHESTRATOR_KEY = Symbol('orchestrator.default')
-const orchestratorRegistry = new Registry<Orchestrator>('orchestrator', DEFAULT_ORCHESTRATOR_KEY)
-
-if (!orchestratorRegistry.get()) {
-	orchestratorRegistry.setDefault(new Orchestrator(container()))
-}
+const orchestratorRegistry = new Registry<Orchestrator>('orchestrator', new Orchestrator(container()))
 
 export const orchestrator: OrchestratorGetter = Object.assign(
 	(name?: string | symbol): Orchestrator => orchestratorRegistry.resolve(name),
 	{
-		set(o: Orchestrator, name?: string | symbol) {
-			if (name === undefined) orchestratorRegistry.setDefault(o)
-			else orchestratorRegistry.set(name, o)
+		set(name: string | symbol, o: Orchestrator, lock?: boolean) {
+			orchestratorRegistry.set(name, o, lock)
 		},
-		clear(name?: string | symbol) { return orchestratorRegistry.clear(name) },
+		clear(name?: string | symbol, force?: boolean) { return orchestratorRegistry.clear(name, force) },
 		list() { return orchestratorRegistry.list() },
 	},
 )

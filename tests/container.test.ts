@@ -78,39 +78,32 @@ test('destroy aggregates errors and is idempotent', async () => {
 })
 
 test('container() helper supports default symbol and named string keys', () => {
-	// clear any existing registrations
-	for (const name of container.list()) container.clear(name)
-	const DEF = new Container()
+	// clear any existing registrations (default is protected and will remain)
+	for (const name of container.list()) container.clear(name, true)
 	const ALT = new Container()
 	const T = createToken<number>('num2')
-	DEF.register(T, { useValue: 7 })
-	container.set(DEF) // default (symbol)
-	container.set(ALT, 'alt') // named (string)
+	// register on default container directly
+	container().register(T, { useValue: 7 })
 	// default
 	const gotDef = container()
 	assert.equal(gotDef.resolve(T), 7)
 	// named
+	container.set('alt', ALT) // named (string)
 	const gotAlt = container('alt')
 	assert.ok(gotAlt)
 	// list/clear
 	const keys = container.list()
 	assert.ok(keys.some(k => typeof k !== 'string'))
 	assert.ok(keys.some(k => k === 'alt'))
-	assert.equal(container.clear('alt'), true)
-})
-
-test('container() throws if default not set', () => {
-	for (const name of container.list()) container.clear(name)
-	assert.throws(() => container(), /No container instance registered/)
+	assert.equal(container.clear('alt', true), true)
 })
 
 test('callable container resolves a token map with resolve({ ... })', () => {
-	// ensure clean registry state
-	for (const name of container.list()) container.clear(name)
-	const c = new Container()
-	container.set(c)
+	// ensure clean registry state (default persists)
+	for (const name of container.list()) container.clear(name, true)
 	const A = createToken<number>('A')
 	const B = createToken<string>('B')
+	const c = container()
 	c.set(A, 123)
 	c.set(B, 'xyz')
 	const { a, b } = container().resolve({ a: A, b: B })
@@ -119,15 +112,13 @@ test('callable container resolves a token map with resolve({ ... })', () => {
 })
 
 test('named container resolves a token map with resolve({ ... })', () => {
-	// clear any existing registrations
-	for (const name of container.list()) container.clear(name)
-	const defaultC = new Container()
+	// clear any existing registrations (default persists)
+	for (const name of container.list()) container.clear(name, true)
 	const namedC = new Container()
-	container.set(defaultC)
-	container.set(namedC, 'tenantA')
+	container.set('tenantA', namedC)
 	const A = createToken<number>('A')
 	const B = createToken<string>('B')
-	defaultC.set(A, 1)
+	container().set(A, 1)
 	namedC.set(A, 2)
 	namedC.set(B, 'z')
 	const { a, b } = container('tenantA').resolve({ a: A, b: B })

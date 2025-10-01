@@ -1,28 +1,52 @@
 export class Registry<T> {
 	private readonly store = new Map<string | symbol, T>()
+	private readonly locked = new Set<string | symbol>()
 	private readonly label: string
-	private readonly defaultKey: symbol
+	private readonly defaultKey?: symbol
 
-	constructor(label: string, defaultKey: symbol) {
+	constructor(label: string, defaultValue?: T, defaultKey?: symbol) {
 		this.label = label
-		this.defaultKey = defaultKey
+		if (defaultValue !== undefined) {
+			this.defaultKey = defaultKey ?? Symbol(`${label}.default`)
+			this.store.set(this.defaultKey, defaultValue)
+		}
 	}
 
 	// Non-throwing lookup: returns undefined if missing
 	get(name?: string | symbol): T | undefined {
-		return this.store.get(name ?? this.defaultKey)
+		const key = name ?? this.defaultKey
+		return key === undefined ? undefined : this.store.get(key)
 	}
 
 	// Strict lookup: throws if missing
 	resolve(name?: string | symbol): T {
 		const key = name ?? this.defaultKey
+		if (key === undefined) throw new Error(`No ${this.label} instance registered for '<default>'`)
 		const v = this.store.get(key)
-		if (!v) throw new Error(`No ${this.label} instance registered for '${String(key)}` + `')`)
+		if (!v) throw new Error(`No ${this.label} instance registered for '${String(key)}'`)
 		return v
 	}
 
-	set(nameOrKey: string | symbol, value: T): void { this.store.set(nameOrKey, value) }
-	setDefault(value: T): void { this.store.set(this.defaultKey, value) }
-	clear(name?: string | symbol): boolean { return this.store.delete(name ?? this.defaultKey) }
+	set(nameOrKey: string | symbol, value: T, lock = false): void {
+		if (this.defaultKey !== undefined && nameOrKey === this.defaultKey) {
+			throw new Error(`Cannot replace default ${this.label} instance`)
+		}
+		if (this.locked.has(nameOrKey)) {
+			throw new Error(`Cannot replace locked ${this.label} instance for '${String(nameOrKey)}'`)
+		}
+		this.store.set(nameOrKey, value)
+		if (lock) this.locked.add(nameOrKey)
+	}
+
+	clear(name?: string | symbol, force = false): boolean {
+		const key = name ?? this.defaultKey
+		if (key === undefined) return false
+		// Default is protected regardless of force
+		if (this.defaultKey !== undefined && key === this.defaultKey) return false
+		if (this.locked.has(key) && !force) return false
+		this.locked.delete(key)
+		return this.store.delete(key)
+	}
+
 	list(): (string | symbol)[] { return Array.from(this.store.keys()) }
 }

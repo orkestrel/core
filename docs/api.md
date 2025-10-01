@@ -62,7 +62,7 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
 
 ### interface LifecycleOptions
 - `hookTimeoutMs?: number` — default 5000
-- `onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean` — defaults to always true; when false, `onTransition` is skipped for that transition
+- `onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean`
 
 ### class Lifecycle
 - constructor(opts?: LifecycleOptions)
@@ -121,7 +121,7 @@ Source: [src/container.ts](../src/container.ts)
 - `{ readonly key: symbol; readonly description: string }`
 
 ### function createToken<T = unknown>(description: string): Token<T>
-- Creates a unique token with a human-readable description.
+- Creates a unique token with a human-readable description (frozen and branded internally).
 
 ### type TokensOf<T>
 - Mapped type for sets returned by `createTokens`/`createPortTokens`.
@@ -144,57 +144,42 @@ Source: [src/container.ts](../src/container.ts)
 - constructor(opts?: { parent?: Container })
 - Methods:
   - `register<T>(token: Token<T>, provider: Provider<T>): this`
-  - `set<T>(token: Token<T>, value: T): void` (shorthand for `useValue`)
+  - `set<T>(token: Token<T>, value: T): void`
   - `has<T>(token: Token<T>): boolean`
-  - `resolve<T>(token: Token<T>): T` — strict resolution (throws if not registered)
-  - `resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }` — resolve multiple tokens at once
-  - `get<T>(token: Token<T>): T | undefined` — non-throwing (optional) resolution
-  - `get<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }` — optional multi-resolution
+  - `resolve<T>(token: Token<T>): T`
+  - `resolve<TMap extends Record<string, Token<unknown>>>>(tokens: TMap): { ... }`
+  - `get<T>(token: Token<T>): T | undefined`
+  - `get<TMap extends Record<string, Token<unknown>>>>(tokens: TMap): { ... }`
   - `createChild(): Container`
-  - `using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>` — run work in a child scope that is automatically destroyed
-  - `destroy(): Promise<void>` — stops/destroys any Lifecycle values created by factory/class providers from this container; aggregates errors
-
-Notes
-- Values from `useFactory`/`useClass` are considered disposable by the container for `destroy()`; raw values and `useValue` are not.
-- Resolution walks up to `parent` if not found locally.
+  - `using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>`
+  - `destroy(): Promise<void>`
 
 ### global helper: container
 Source: [src/container.ts](../src/container.ts), [src/registry.ts](../src/registry.ts)
 
-A getter/setter for globally accessible Container instances (optional; intended for app glue, not libraries). A default container is auto-registered under a symbol key.
+A getter/setter for globally accessible Container instances (a default is created at module load).
 
 Signature:
 ```ts
 export type ContainerGetter = {
   (name?: string | symbol): Container
-  set(c: Container, name?: string | symbol): void
-  clear(name?: string | symbol): boolean
+  set(name: string | symbol, c: Container, lock?: boolean): void
+  clear(name?: string | symbol, force?: boolean): boolean
   list(): (string | symbol)[]
 
   resolve<T>(token: Token<T>, name?: string | symbol): T
-  resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
+  resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { /* ... */ }
 
   get<T>(token: Token<T>, name?: string | symbol): T | undefined
-  get<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
+  get<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { /* ... */ }
 
   using<T>(fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
 }
 ```
 
-Usage:
-```ts
-import { container } from '@orkestrel/core'
-
-// Default exists automatically
-const c = container()
-
-// Named instances (optional)
-container.set(new Container(), 'tenant:A')
-const tenant = container('tenant:A')
-
-// Map resolution
-const { a, b } = container().resolve({ a: TokenA, b: TokenB })
-```
+Notes
+- The default entry is protected and cannot be replaced or cleared.
+- Named entries can be locked by passing `lock=true` when calling `set`.
 
 ---
 
@@ -202,15 +187,12 @@ const { a, b } = container().resolve({ a: TokenA, b: TokenB })
 
 Source: [src/orchestrator.ts](../src/orchestrator.ts)
 
-Note
-- See [Start](./start.md) for a common boot pattern using `start([...])`. The methods below let you choose the right level of control for your app or tests.
-
 ### type OrchestratorRegistration<T>
 - `{ token: Token<T>; provider: Provider<T>; dependencies?: Token<unknown>[]; timeouts?: { onStart?: number; onStop?: number; onDestroy?: number } }`
 
 ### interface OrchestratorOptions
-- `defaultTimeouts?: { onStart?: number; onStop?: number; onDestroy?: number }` — optional defaults applied when a registration doesn’t specify a timeout for that phase
-- `events?: { onComponentStart?, onComponentStop?, onComponentDestroy?, onComponentError? }` — optional callbacks for centralized telemetry/logging
+- `defaultTimeouts?: { onStart?: number; onStop?: number; onDestroy?: number }`
+- `events?: { onComponentStart?, onComponentStop?, onComponentDestroy?, onComponentError? }`
 
 ### class Orchestrator
 - constructor(container?: Container)
@@ -218,54 +200,35 @@ Note
 - constructor(container: Container, options?: OrchestratorOptions)
 - Methods:
   - `getContainer(): Container`
-  - `register<T>(token: Token<T>, provider: Provider<T>, dependencies?: Token<unknown>[], timeouts?: { onStart?: number; onStop?: number; onDestroy?: number }): void`
-  - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>` — registers then `startAll()`
-  - `startAll(): Promise<void>` — starts Lifecycle components in topological order; parallelizes within dependency layers; rolls back (stops) prior successes if a layer fails
-  - `stopAll(): Promise<void>` — stops in reverse topological layers; parallelizes; aggregates errors
-  - `destroyAll(): Promise<void>` — destroys in reverse layers; then `container.destroy()`; aggregates errors
-
-Timeout resolution
-- For each component and phase, the timeout is chosen as: `registration.timeouts.on<Phase> ?? orchestrator.defaultTimeouts.on<Phase> ?? undefined`.
-
-Events
-- `events.onComponentStart({ token, durationMs })`
-- `events.onComponentStop({ token, durationMs })`
-- `events.onComponentDestroy({ token, durationMs })`
-- `events.onComponentError(detail: LifecycleErrorDetail)`
-
-Throws
-- `AggregateLifecycleError` from batch operations; inspect `.details` for per-component telemetry
-- Error on unknown dependency or dependency cycles
-
-Async provider guards
-- The orchestrator forbids async providers to keep startup deterministic:
-  - `useValue` must not be a Promise — registration throws with a helpful error.
-  - `useFactory` must be synchronous and must not return a Promise — registration throws if the function is `async` or returns a Promise.
-- Move async work to `Lifecycle.onStart()` or pre-resolve the value before registration.
+  - `register<T>(...)`
+  - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>`
+  - `startAll(): Promise<void>`
+  - `stopAll(): Promise<void>`
+  - `destroyAll(): Promise<void>`
 
 ### helper: register
 - Overloads:
   - `register<T>(token: Token<T>, provider: Provider<T>): OrchestratorRegistration<T>`
   - `register<T>(token: Token<T>, provider: Provider<T>, options: { dependencies?: Token<unknown>[] | Record<string, Token<unknown>>, timeouts?: { onStart?: number, onStop?: number, onDestroy?: number } }): OrchestratorRegistration<T>`
-- Notes:
-  - Dependencies can be provided as an array or an object-map; entries are de-duplicated by token key.
-  - Self-dependency is ignored to prevent accidental cycles.
-  - Optional per-registration `timeouts` can be specified here; they merge with orchestrator defaults.
 
 ### global helper: orchestrator
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)
 
-A getter/setter for globally accessible Orchestrator instances (optional; intended for app glue). A default orchestrator is auto-registered and bound to the default container.
+A getter/setter for globally accessible Orchestrator instances (a default is created at module load).
 
 Signature:
 ```ts
 export type OrchestratorGetter = {
   (name?: string | symbol): Orchestrator
-  set(o: Orchestrator, name?: string | symbol): void
-  clear(name?: string | symbol): boolean
+  set(name: string | symbol, o: Orchestrator, lock?: boolean): void
+  clear(name?: string | symbol, force?: boolean): boolean
   list(): (string | symbol)[]
 }
 ```
+
+Notes
+- The default entry is protected and cannot be replaced or cleared.
+- Named entries can be locked by passing `lock=true` when calling `set`.
 
 ---
 
@@ -301,8 +264,6 @@ A minimal event emitter used internally by `Lifecycle`.
   - `emit(event: string, ...args: unknown[]): void`
   - `removeAllListeners(): void`
 
-Note: This emitter is very small and untyped (uses `unknown[]`); it’s adequate for internal events.
-
 ---
 
 ## registry
@@ -311,17 +272,14 @@ Source: [src/registry.ts](../src/registry.ts)
 
 ### class Registry<T>
 Helper used by the global instance helpers.
-- constructor(label: string, defaultKey: symbol)
+- constructor(label: string, defaultValue?: T, defaultKey?: symbol)
 - Methods:
-  - `get(name?: string | symbol): T | undefined` — non-throwing lookup
-  - `resolve(name?: string | symbol): T` — strict lookup (throws if missing)
-  - `set(nameOrKey: string | symbol, value: T): void`
-  - `setDefault(value: T): void`
-  - `clear(name?: string | symbol): boolean`
+  - `get(name?: string | symbol): T | undefined`
+  - `resolve(name?: string | symbol): T`
+  - `set(nameOrKey: string | symbol, value: T, lock?: boolean): void`
+  - `clear(name?: string | symbol, force?: boolean): boolean`
   - `list(): (string | symbol)[]`
 
----
-
-## Examples
-
-See `docs/examples.md` for runnable examples and patterns, and `docs/patterns.md` for composition guidance.
+Behavior
+- The default entry is protected: it cannot be replaced or cleared.
+- Named entries can be locked via `set(name, value, true)`; locked entries cannot be replaced and `clear(name)` returns `false` unless `force: true` is passed.

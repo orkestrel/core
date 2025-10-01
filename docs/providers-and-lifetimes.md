@@ -1,19 +1,18 @@
-# Providers, lifetimes, and many-instances patterns
+# Providers, lifetimes, and the Manager pattern
 
-This guide explains how orkestrel/core handles registration providers, lifetimes (singleton vs scoped vs transient), and patterns for managing many instances. It also clarifies type guidance and lifecycle ownership semantics.
+This guide explains how @orkestrel/core handles registration providers, lifetimes, scoping, and how to approach many instances. It reflects our philosophy: keep the core simple and explicit; prefer composition over configuration; no hidden magic.
 
 Applies to: @orkestrel/core v1.x (Container, Orchestrator, Lifecycle, Tokens)
 
 Contents
 - Tokens and typing
 - Provider types and ownership
-- Singleton and scoping
-- Transient pattern (factory tokens)
-- Many-instances patterns
+- Lifetimes: singletons by design
+- Scoping with child containers and `using`
+- Many instances (transients) via the Manager pattern
 - Orchestrator integration
-- Async work and timeouts
+- Async provider guard
 - Edge cases and best practices
-- Ownership matrix
 
 Tokens and typing
 - A Token<T> is a typed handle used to register and retrieve values from the Container.
@@ -25,19 +24,19 @@ Tokens and typing
   
   export const Config = createToken<{ dbUrl: string }>('config')
   ```
-- For grouped tokens, use createTokens/ports helpers:
+- For grouped tokens, use createPortTokens to keep namespaced, explicit capabilities:
   
   ```ts
   import { createPortTokens } from '@orkestrel/core'
   
   export const Ports = createPortTokens({
     logger: {} as { info: (msg: string) => void },
-    metrics: {} as { increment: (key: string) => void },
+    email: {} as { send: (to: string, subject: string, body: string) => Promise<void> },
   })
   ```
 
 Provider types and ownership
-- You can register values using one of the following provider styles:
+- Register values using one of the following provider styles:
   
   ```ts
   import { Container } from '@orkestrel/core'
@@ -51,7 +50,7 @@ Provider types and ownership
   c.register(Ports.logger, { useFactory: () => createLogger() })
   
   // 3) useClass — lazy singleton via constructor(new (c: Container) => T)
-  c.register(Ports.metrics, { useClass: MetricsAdapter })
+  c.register(Ports.email, { useClass: EmailAdapter })
   
   // 4) Bare value — equivalent to useValue but less explicit
   c.register(Config, { dbUrl: 'postgres://...' }) // typed as Provider<T> union
@@ -59,156 +58,82 @@ Provider types and ownership
 
 Ownership semantics
 - Container disposal:
-  - Instances created by useFactory/useClass are considered container-created and will be destroyed by container.destroy() if they are Lifecycle instances.
-  - Instances supplied via useValue (or bare value) are treated as externally owned; container.destroy() will not destroy them (even if they are Lifecycle instances).
+  - Instances created by useFactory/useClass are considered container-created and will be destroyed by `container.destroy()` if they are Lifecycle instances.
+  - Instances supplied via useValue (or bare value) are treated as externally owned; `container.destroy()` will not destroy them (even if they are Lifecycle instances).
 - Orchestrator lifecycle management:
-  - The Orchestrator will start/stop/destroy Lifecycle instances it knows about regardless of provider style. This is usually how long-lived components are managed.
-  - If you registered a Lifecycle via useValue and did not orchestrate it, container.destroy() will not dispose it — either orchestrate it (so destroyAll handles it) or destroy it manually.
+  - The Orchestrator starts/stops/destroys Lifecycle instances it manages (those registered with it) regardless of provider style.
+  - If you registered a Lifecycle via useValue and did not orchestrate it, `container.destroy()` will not dispose it — orchestrate it or destroy it manually.
 
-Async provider guard
-- Providers must be synchronous. If a provider is async (Promise value or async/thenable factory), registration throws.
-- Quick fixes:
-  - Move async work to `onStart`/`onStop`/`onDestroy` hooks within a `Lifecycle`.
-  - Pre-resolve values before registration and pass them via `useValue`.
+Lifetimes: singletons by design
+- All providers are singletons per container. The first `get/resolve` materializes and caches.
+- We intentionally avoid adding container-level "transient" or "scoped" lifetimes to keep the core simple and predictable.
+- Instead, use composition:
+  - Scoping: child containers and `using` (see below).
+  - Transients: a Manager (a Lifecycle/Adapter) that owns many children and handles their lifecycle internally.
 
-Do we need all three styles?
-- Yes, each style communicates intent:
-  - useValue: you already have a value/instance. Container won’t own its disposal. Great for constants or when a value is managed elsewhere.
-  - useFactory: DI-friendly way to assemble instances from other tokens without coupling classes to the Container.
-  - useClass: convenience for container-aware classes (e.g., Adapters that intentionally accept Container in their constructor). Prefer useFactory for classes that should stay container-agnostic.
-
-Singleton and scoping
-- All providers are lazy singletons per container instance. The first get() materializes and caches.
-- Container hierarchy:
+Scoping with child containers and `using`
+- Child containers implement request/job/task scoping with singleton semantics within the scope:
   
   ```ts
-  const root = new Container()
-  const child = root.createChild()
+  import { container } from '@orkestrel/core'
   
-  // Register in root => shared singleton visible to child
-  root.register(Config, { useValue: { dbUrl: '...' } })
-  child.get(Config) === root.get(Config) // true
-  
-  // Register in child => overrides just for child scope
-  child.register(Ports.logger, { useFactory: () => createLogger('scope') })
-  ```
-- Scoped singletons: create a child container per request/job/task, register scoped providers there, and destroy the child to clean up.
-
-Transient pattern (factory tokens)
-- The container always caches providers (i.e., not transient by default). For truly transient instances, inject a factory function as the token’s type.
-  
-  ```ts
-  // Define a factory token that returns a new instance each time you call it.
-  import { createToken } from '@orkestrel/core'
-  
-  type Handler = { handle: (payload: unknown) => Promise<void> }
-  export const HandlerFactory = createToken<() => Handler>('handlerFactory')
-  
-  const c = new Container()
-  c.register(HandlerFactory, { useFactory: () => () => createHandler() })
-  
-  // elsewhere
-  const makeHandler = c.get(HandlerFactory)
-  const h1 = makeHandler()
-  const h2 = makeHandler() // distinct instance
-  ```
-- If transient instances have lifecycles, place them under a manager component (see next section) to ensure they are started/stopped/destroyed appropriately.
-
-Many-instances patterns
-- Composite/Manager pattern (recommended for orchestrated lifecycles):
-  - Register one manager Lifecycle that discovers/creates child instances and owns their start/stop/destroy.
-  - The Orchestrator manages only the manager; the manager manages its children.
-  
-  ```ts
-  import { Adapter } from '@orkestrel/core'
-  
-  class WorkerManager extends Adapter {
-    private workers: Set<Adapter> = new Set()
-    
-    protected async onStart() {
-      // create N workers and start them
-      for (let i = 0; i < 4; i++) {
-        const w = new Worker()
-        await w.start()
-        this.workers.add(w)
-      }
-    }
-    
-    protected async onStop() {
-      for (const w of this.workers) await w.stop()
-    }
-    
-    protected async onDestroy() {
-      for (const w of this.workers) await w.destroy()
-      this.workers.clear()
-    }
+  const scope = container().createChild()
+  try {
+    // register scoped providers in `scope` if needed, then resolve and use
+  } finally {
+    await scope.destroy() // disposes container-owned lifecycles created in the scope
   }
   ```
-- Multiple tokens (explicit instances): register multiple distinct tokens when each instance must be independently referenced or ordered by the Orchestrator.
-- Factory token for collections: inject a Token<() => T> or Token<(cfg) => T> and let call-sites create as-needed, optionally registering them with a manager.
-- Collection tokens: inject Token<T[]> or Token<Map<string, T>> when the collection itself is the dependency.
+- Convenience: run work in a child scope that’s automatically destroyed:
+  
+  ```ts
+  import { container } from '@orkestrel/core'
+  
+  await container().using(async (scope) => {
+    const { email } = scope.resolve({ email: Ports.email })
+    await email.send('me@example.com', 'Hi', 'Welcome!')
+  })
+  ```
+
+Many instances (transients) via the Manager pattern
+- For lots of short‑lived instances, don’t register each instance in the container or the orchestrator.
+- Instead, register a single Manager (a Lifecycle/Adapter) that owns and manages the children internally. The Manager exposes only aggregate lifecycle to the Orchestrator.
+- Benefits: simplicity in the core, explicit ownership, domain-specific policies (creation, retries, batching) live where they belong.
+
+Quick sketch
+```ts
+import { Adapter } from '@orkestrel/core'
+
+class Worker extends Adapter { /* per-child lifecycle */ }
+
+class WorkerManager extends Adapter {
+  private workers = new Set<Worker>()
+  protected async onStart() {
+    // create N workers and start them; on failure, stop started ones and rethrow
+  }
+  protected async onStop() { /* stop all */ }
+  protected async onDestroy() { /* destroy all */ }
+  // expose only what the app needs (e.g., dispatch)
+}
+```
 
 Orchestrator integration
 - Register components and dependencies using the Orchestrator, then start/stop/destroy.
-  
-  ```ts
-  import { Orchestrator, createToken, Container, Adapter } from '@orkestrel/core'
-  
-  class Service extends Adapter { /* lifecycle hooks */ }
-  const ServiceTok = createToken<Service>('Service')
-  
-  const root = new Container()
-  const orch = new Orchestrator(root)
-  
-  orch.register(ServiceTok, { useFactory: () => new Service() })
-  await orch.startAll()
-  // ...
-  await orch.stopAll()
-  await orch.destroyAll()
-  ```
-- Dependencies and order:
-  - Register dependencies explicitly; the Orchestrator will start in topological order and stop/destroy in reverse order.
-  - Orchestrator disallows async providers (Promises) — perform async work in lifecycle hooks (onStart/onStop/onDestroy) or pre-resolve values.
+- Only the Manager is registered with the Orchestrator; it starts/stops/destroys its children internally.
+- Timeouts can be configured per registration; defaults can be set on the Orchestrator.
 
-Async work and timeouts
-- Async work should live in Lifecycle hooks, not in providers.
-- The Orchestrator supports per-component timeouts for phases:
-  
-  ```ts
-  await orch.start([
-    { token: ServiceTok, provider: { useFactory: () => new Service() }, timeouts: { onStart: 5000 } },
-  ])
-  ```
+Async provider guard
+- Providers must be synchronous.
+  - `useValue` must not be a Promise.
+  - `useFactory` must be synchronous and must not return a Promise.
+- Move async work to Lifecycle hooks (`onStart/onStop/onDestroy`) or pre-resolve values before registration.
 
 Edge cases and best practices
 - Value providers with Lifecycle:
-  - The container won’t destroy value-provided lifecycles on container.destroy(). If you orchestrate them, destroyAll will handle it; otherwise, manage disposal yourself or switch to factory/class providers to transfer ownership to the container.
-- Avoid bare values for async guard clarity:
-  - Prefer useValue over passing a bare value so the Orchestrator can reliably guard against Promises during registration.
-- Prefer useFactory to keep classes container-agnostic:
-  - Reserve useClass for intentional container-aware types that accept Container in their constructor (e.g., Adapters). For typical classes, inject dependencies as constructor params and wire with useFactory.
+  - The container won’t destroy value-provided lifecycles on `container.destroy()`. If you orchestrate them, `destroyAll` will handle it; otherwise, manage disposal yourself or switch to factory/class providers to transfer ownership to the container.
 - Scopes:
   - Use child containers to implement request/job-level scoping. Register scoped singletons in the child; destroy the child to clean up.
-- Transients:
-  - Model transients via factory tokens (() => T), and place lifecycleful transients under a manager if they need start/stop/destroy.
-
-Ownership matrix
-
-| Provider style | Created by container | Container destroys on container.destroy() | Orchestrator manages lifecycle       | Async allowed in provider                              |
-|----------------|----------------------|-------------------------------------------|--------------------------------------|--------------------------------------------------------|
-| useValue       | No                   | No (treats as externally owned)           | Yes, if registered with Orchestrator | No (must not be a Promise)                             |
-| useFactory     | Yes                  | Yes (if value is a Lifecycle)             | Yes                                  | No (function must be sync and must not return Promise) |
-| useClass       | Yes                  | Yes (if value is a Lifecycle)             | Yes                                  | N/A (constructor runs sync)                            |
-| Bare value     | No                   | No                                        | Yes, if registered with Orchestrator | No (should not be a Promise)                           |
-
-Notes
-- “Orchestrator manages lifecycle” means: if the token is registered with the `Orchestrator`, it will call `start/stop/destroy` on the instance when it’s a `Lifecycle`.
-- For non-Lifecycle values, only the container caches and returns them; there’s nothing to stop/destroy.
-
-FAQ
-- Can I register multiple providers to the same token?
-  - Not currently. Use a manager/composite, multiple explicit tokens, or a collection token if you need many.
-- Can providers be async?
-  - No. Providers must be synchronous; move async work to lifecycle hooks or pre-resolve values before registration.
-- How do I get per-request instances?
-  - Create a child container per request and register providers there. Or inject a factory token and create instances on demand.
+- Many instances:
+  - Prefer a Manager for many children. Avoid multi-binding and container-level transients to keep the system explicit and debuggable.
+- Resolving many tokens across files:
+  - Prefer map resolution: `container().resolve({ a: TokA, b: TokB })`.

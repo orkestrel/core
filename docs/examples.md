@@ -16,12 +16,12 @@ npm run example:simple
 ## Large (multi-file)
 - Entry: [examples/large/app.ts](../examples/large/app.ts)
 - Ports: [examples/large/infra/ports.ts](../examples/large/infra/ports.ts)
-- Module: [examples/large/modules/user.ts](../examples/large/modules/user.ts)
+- Feature file: [examples/large/modules/user.ts](../examples/large/modules/user.ts)
 
 Highlights
 - Uses `container()`/`orchestrator()` helpers with auto-registered defaults (named instances optional).
 - Registers infra providers (config, clock, logger, email) in the app entry.
-- Registers a `user` module in a separate file with explicit dependencies.
+- Wires a `user` feature in a separate file with explicit dependencies.
 - Demonstrates lifecycle start/stop/destroy and cross-file usage via helpers.
 - Shows resolving multiple tokens at once with `container().resolve({ ... })`.
 
@@ -63,4 +63,5 @@ if (!maybe.unknown) {
 }
 ```
 
-Tip: Review the code for patterns to scale up (see `docs/patterns.md`).
+See also
+- Composition patterns: [docs/patterns.md](./patterns.md)

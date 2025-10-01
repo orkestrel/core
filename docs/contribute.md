@@ -31,6 +31,7 @@ Useful scripts:
 - Strict typing; avoid `any` unless at boundaries
 - Keep adapters side-effect free on import
 - Prefer explicit DI; helpers are for app glue, not libraries
+- Core tests must use real components only (no fakes/mocks/spies). Doubles are for external dependencies in consumer apps.
 
 ## Release
 
@@ -46,4 +47,3 @@ Useful scripts:
 ## Code of Conduct
 
 Be kind. Assume good intent. Discuss ideas, not individuals.
-

@@ -1,11 +1,21 @@
 # Patterns
 
-Opinionated ways to compose apps with Orkestrel.
+Opinionated ways to compose apps with Orkestrel, staying explicit and predictable.
+
+Contents
+- Startup pattern: start([...])
+- Timeouts defaults
+- Events for telemetry
+- Explicit dependencies
+- Request/Job scopes
+- Manager pattern (many instances/transients)
+- Fine-grained control (register + startAll)
+- Helpers vs explicit DI
 
 ## Startup pattern: start([...])
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/container.ts](../src/container.ts)
-- At your app entry, declare all registrations in an array and call `orchestrator.start(regs)`.
-- This both registers components and starts lifecycles in dependency order.
+- At your app entry, declare registrations in an array and call `orchestrator.start(regs)`.
+- This registers components and starts lifecycles in dependency order.
 
 ```ts
 import { Orchestrator, Container, type OrchestratorRegistration } from '@orkestrel/core'
@@ -92,6 +102,30 @@ await container().using(async (scope) => {
 })
 ```
 
+## Manager pattern (many instances/transients)
+When you need many short‑lived instances (workers, connections, shards), don’t register each child with the container or orchestrator. Instead:
+- Register a single Manager (a Lifecycle/Adapter) that owns all children.
+- The Manager exposes an aggregate lifecycle to the orchestrator; child creation/start/stop/destroy happen internally.
+- Benefits: smaller global graph, explicit ownership, domain‑specific policies live with the manager.
+
+Sketch:
+```ts
+import { Adapter } from '@orkestrel/core'
+class Worker extends Adapter { /* per-child lifecycle */ }
+class WorkerManager extends Adapter {
+  private workers = new Set<Worker>()
+  protected async onStart() { /* create/start N; rollback on failure */ }
+  protected async onStop() { /* stop all */ }
+  protected async onDestroy() { /* destroy all */ }
+  // expose only what the app needs (e.g., dispatch)
+}
+```
+
+Guidance
+- Per‑child DI: create a child container per worker when you need overrides or container‑owned disposables; destroy the child scope in `onDestroy`.
+- Concurrency: prefer batching or a small limiter inside the manager (keep core orchestrator simple by default).
+- Telemetry: inject logger/metrics ports and add useful context (child id, timings) inside the manager.
+
 ## Fine-grained control (register + startAll)
 Source: [src/orchestrator.ts](../src/orchestrator.ts)
 - Use when you need incremental wiring or custom ordering for tests.
@@ -104,5 +138,6 @@ await app.startAll()
 
 ## Helpers vs Explicit DI
 Source: [src/container.ts](../src/container.ts), [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)
-- Helpers (`container()`, `orchestrator()`) are optional and handy for app glue.
+- Helpers (`container()`, `orchestrator()`) are optional and handy for app composition.
 - Libraries should prefer receiving `Container`/`Orchestrator` instances explicitly for stricter DI.
+- We intentionally avoid multi‑binding (`resolveAll/getAll`) and container‑level transient lifetimes. For many instances, use the Manager pattern.

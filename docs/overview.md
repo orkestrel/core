@@ -15,6 +15,13 @@ Highlights
 - No heavy dependencies
 - Strict DI, explicit wiring
 
+Defaults and helpers
+- A default `Container` and `Orchestrator` are auto-registered under symbol keys and accessible via `container()` and `orchestrator()`.
+- Named instances are supported: `container.set(new Container(), 'tenant:A')`, then `container('tenant:A')`.
+
+Resolve vs Get
+- `resolve(token | map)` is strict and throws if a token is missing; `get(token | map)` is optional and returns `undefined` for missing tokens.
+
 Startup
 - See [Start](./start.md) for the canonical boot pattern, and [Patterns](./patterns.md) for alternatives and when to use them.
 

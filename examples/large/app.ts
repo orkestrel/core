@@ -1,5 +1,5 @@
-import { Container, Orchestrator, Lifecycle, container, orchestrator, type Container as IContainer, type OrchestratorRegistration } from '@orkestrel/core'
-import { Ports, type LoggerPort, type EmailPort } from './infra/ports.js'
+import { Lifecycle, container, orchestrator, type Container as IContainer, type OrchestratorRegistration } from '@orkestrel/core'
+import { Ports, type LoggerPort, type EmailPort, type ClockPort, type AppConfig } from './infra/ports.js'
 import { userRegistrations, createDemoUser } from './modules/user.js'
 
 // Simple console logger implementation
@@ -7,6 +7,13 @@ class ConsoleLogger implements LoggerPort {
 	info(msg: string, meta?: Record<string, unknown>): void { console.log(`[info] ${msg}`, meta ?? '') }
 	warn(msg: string, meta?: Record<string, unknown>): void { console.warn(`[warn] ${msg}`, meta ?? '') }
 	error(msg: string, meta?: Record<string, unknown>): void { console.error(`[error] ${msg}`, meta ?? '') }
+}
+
+// Clock implementation
+class SystemClock implements ClockPort {
+	now(): Date {
+		return new Date()
+	}
 }
 
 // Email service with lifecycle to demonstrate orchestrator start/stop/destroy
@@ -26,16 +33,12 @@ class ConsoleEmail extends Lifecycle implements EmailPort {
 	}
 }
 
-// App entry — set up default helpers and wire modules
-const c = new Container()
-container.set(c)
-const app = new Orchestrator(c)
-orchestrator.set(app)
-
 // Prefer start([...]) at the app entry: declare infra + module registrations
 const infra: OrchestratorRegistration<unknown>[] = [
+	{ token: Ports.config, provider: { useValue: { appName: 'Acme', supportEmail: 'support@acme.test' } satisfies AppConfig } },
+	{ token: Ports.clock, provider: { useFactory: () => new SystemClock() } },
 	{ token: Ports.logger, provider: { useFactory: () => new ConsoleLogger() } },
-	{ token: Ports.email, provider: { useFactory: (c: IContainer) => new ConsoleEmail(c.get(Ports.logger)) }, dependencies: [Ports.logger] },
+	{ token: Ports.email, provider: { useFactory: (c: IContainer) => new ConsoleEmail(c.resolve(Ports.logger)) }, dependencies: [Ports.logger] },
 ]
 
 const regs = [...infra, ...userRegistrations()]
@@ -43,7 +46,15 @@ const regs = [...infra, ...userRegistrations()]
 // Compose, run a small flow, and clean up
 await orchestrator().start(regs)
 try {
-	await createDemoUser(t => container().get(t))
+	// Resolve a map of tokens at once via the callable container helper
+	const { clock, logger, config } = container().resolve({
+		clock: Ports.clock,
+		logger: Ports.logger,
+		config: Ports.config,
+	})
+	logger.info('Boot complete', { app: config.appName, startedAt: clock.now().toISOString() })
+
+	await createDemoUser(t => container().resolve(t))
 }
 finally {
 	await orchestrator().stopAll()

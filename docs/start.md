@@ -14,7 +14,7 @@ npm install @orkestrel/core
 
 Hello World (single file)
 ```ts
-import { Container, Orchestrator, createPortTokens, container, orchestrator, register } from '@orkestrel/core'
+import { createPortTokens, container, orchestrator, register } from '@orkestrel/core'
 
 // Define a small port
 interface EmailPort { send(to: string, subject: string, body: string): Promise<void> }
@@ -26,17 +26,13 @@ class ConsoleEmail implements EmailPort {
   }
 }
 
-// Set default instances
-const c = new Container(); container.set(c)
-const app = new Orchestrator(c, { defaultTimeouts: { onStart: 2000, onStop: 1000 } }); orchestrator.set(app)
-
 // Register and start (with optional timeouts)
 await orchestrator().start([
   register(Ports.email, { useFactory: () => new ConsoleEmail() }),
 ])
 
-// Use
-await container().get(Ports.email).send('me@example.com', 'Hi', 'Welcome!')
+// Use (strict resolution)
+await container().resolve(Ports.email).send('me@example.com', 'Hi', 'Welcome!')
 
 // Cleanup
 await orchestrator().stopAll()
@@ -44,7 +40,7 @@ await orchestrator().destroyAll()
 ```
 
 Large app (multi-file pattern)
-- Entry file wires infra and sets helpers (see `examples/large/app.ts`)
+- Entry file wires infra (see `examples/large/app.ts`)
 - Feature modules register their own providers (see `examples/large/modules/user.ts`)
 - Use orchestrator dependencies for deterministic ordering
 

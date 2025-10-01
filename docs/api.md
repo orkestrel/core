@@ -146,9 +146,12 @@ Source: [src/container.ts](../src/container.ts)
   - `register<T>(token: Token<T>, provider: Provider<T>): this`
   - `set<T>(token: Token<T>, value: T): void` (shorthand for `useValue`)
   - `has<T>(token: Token<T>): boolean`
-  - `get<T>(token: Token<T>): T` (throws if not registered)
-  - `tryGet<T>(token: Token<T>): T | undefined`
+  - `resolve<T>(token: Token<T>): T` — strict resolution (throws if not registered)
+  - `resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }` — resolve multiple tokens at once
+  - `get<T>(token: Token<T>): T | undefined` — non-throwing (optional) resolution
+  - `get<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }` — optional multi-resolution
   - `createChild(): Container`
+  - `using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>` — run work in a child scope that is automatically destroyed
   - `destroy(): Promise<void>` — stops/destroys any Lifecycle values created by factory/class providers from this container; aggregates errors
 
 Notes
@@ -158,7 +161,7 @@ Notes
 ### global helper: container
 Source: [src/container.ts](../src/container.ts), [src/registry.ts](../src/registry.ts)
 
-A getter/setter for globally accessible Container instances (optional; intended for app glue, not libraries).
+A getter/setter for globally accessible Container instances (optional; intended for app glue, not libraries). A default container is auto-registered under a symbol key.
 
 Signature:
 ```ts
@@ -167,6 +170,14 @@ export type ContainerGetter = {
   set(c: Container, name?: string | symbol): void
   clear(name?: string | symbol): boolean
   list(): (string | symbol)[]
+
+  resolve<T>(token: Token<T>, name?: string | symbol): T
+  resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
+
+  get<T>(token: Token<T>, name?: string | symbol): T | undefined
+  get<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
+
+  using<T>(fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
 }
 ```
 
@@ -174,9 +185,15 @@ Usage:
 ```ts
 import { container } from '@orkestrel/core'
 
-const c = container()           // default instance (must be set first)
-container.set(c)                // set default
-container.set(new Container(), 'tenant:A') // named instance
+// Default exists automatically
+const c = container()
+
+// Named instances (optional)
+container.set(new Container(), 'tenant:A')
+const tenant = container('tenant:A')
+
+// Map resolution
+const { a, b } = container().resolve({ a: TokenA, b: TokenB })
 ```
 
 ---
@@ -227,12 +244,18 @@ Async provider guards
 - Move async work to `Lifecycle.onStart()` or pre-resolve the value before registration.
 
 ### helper: register
-- `register<T>(token: Token<T>, provider: Provider<T>, ...dependencies: Token<unknown>[]): OrchestratorRegistration<T>` — convenience to reduce boilerplate when building arrays for `start([...])`. Dependencies are optional.
+- Overloads:
+  - `register<T>(token: Token<T>, provider: Provider<T>): OrchestratorRegistration<T>`
+  - `register<T>(token: Token<T>, provider: Provider<T>, options: { dependencies?: Token<unknown>[] | Record<string, Token<unknown>>, timeouts?: { onStart?: number, onStop?: number, onDestroy?: number } }): OrchestratorRegistration<T>`
+- Notes:
+  - Dependencies can be provided as an array or an object-map; entries are de-duplicated by token key.
+  - Self-dependency is ignored to prevent accidental cycles.
+  - Optional per-registration `timeouts` can be specified here; they merge with orchestrator defaults.
 
 ### global helper: orchestrator
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)
 
-A getter/setter for globally accessible Orchestrator instances (optional; intended for app glue).
+A getter/setter for globally accessible Orchestrator instances (optional; intended for app glue). A default orchestrator is auto-registered and bound to the default container.
 
 Signature:
 ```ts
@@ -290,8 +313,8 @@ Source: [src/registry.ts](../src/registry.ts)
 Helper used by the global instance helpers.
 - constructor(label: string, defaultKey: symbol)
 - Methods:
-  - `get(name?: string | symbol): T` — throws if missing
-  - `tryGet(name?: string | symbol): T | undefined`
+  - `get(name?: string | symbol): T | undefined` — non-throwing lookup
+  - `resolve(name?: string | symbol): T` — strict lookup (throws if missing)
   - `set(nameOrKey: string | symbol, value: T): void`
   - `setDefault(value: T): void`
   - `clear(name?: string | symbol): boolean`

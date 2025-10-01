@@ -20,7 +20,7 @@ test('service starts and stops', async () => {
   const app = new Orchestrator(c)
   app.register(Svc, { useFactory: () => new Service() })
   await app.startAll()
-  assert.ok(c.get(Svc) instanceof Service)
+  assert.ok(c.resolve(Svc) instanceof Service)
   await app.stopAll()
   await app.destroyAll()
 })

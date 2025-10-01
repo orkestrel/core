@@ -1,5 +1,5 @@
 import type { Provider, Token } from './container.js'
-import { Container, isClassProvider, isFactoryProvider, isValueProvider } from './container.js'
+import { Container, isClassProvider, isFactoryProvider, isValueProvider, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
 import { AggregateLifecycleError, type LifecycleContext, type LifecycleErrorDetail, type LifecyclePhase, TimeoutError } from './errors.js'
 import { Registry } from './registry.js'
@@ -336,8 +336,12 @@ export type OrchestratorGetter = {
 const DEFAULT_ORCHESTRATOR_KEY = Symbol('orchestrator.default')
 const orchestratorRegistry = new Registry<Orchestrator>('orchestrator', DEFAULT_ORCHESTRATOR_KEY)
 
+if (!orchestratorRegistry.get()) {
+	orchestratorRegistry.setDefault(new Orchestrator(container()))
+}
+
 export const orchestrator: OrchestratorGetter = Object.assign(
-	(name?: string | symbol): Orchestrator => orchestratorRegistry.get(name),
+	(name?: string | symbol): Orchestrator => orchestratorRegistry.resolve(name),
 	{
 		set(o: Orchestrator, name?: string | symbol) {
 			if (name === undefined) orchestratorRegistry.setDefault(o)
@@ -348,8 +352,28 @@ export const orchestrator: OrchestratorGetter = Object.assign(
 	},
 )
 
-export function register<T>(token: Token<T>, provider: Provider<T>, ...dependencies: Token<unknown>[]): OrchestratorRegistration<T> {
-	return { token, provider, dependencies }
+function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>): Token<unknown>[] {
+	if (!deps) return []
+	const arr = Array.isArray(deps) ? deps : Object.values(deps)
+	const seen = new Set<symbol>()
+	const out: Token<unknown>[] = []
+	for (const d of arr) {
+		if (!d || seen.has(d.key)) continue
+		seen.add(d.key)
+		out.push(d)
+	}
+	return out
+}
+
+export interface RegisterOptions {
+	dependencies?: Token<unknown>[] | Record<string, Token<unknown>>
+	timeouts?: { onStart?: number, onStop?: number, onDestroy?: number }
+}
+
+export function register<T>(token: Token<T>, provider: Provider<T>, options: RegisterOptions = {}): OrchestratorRegistration<T> {
+	const deps = normalizeDeps(options.dependencies)
+	const dependencies = deps.filter(d => d.key !== token.key)
+	return { token, provider, dependencies, timeouts: options.timeouts }
 }
 
 function isPromiseLike(x: unknown): x is PromiseLike<unknown> {

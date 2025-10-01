@@ -15,10 +15,15 @@ export interface UserServicePort {
 	createUser(email: string, name: string): Promise<void>
 }
 
+export interface ClockPort { now(): Date }
+export interface AppConfig { appName: string, supportEmail: string }
+
 export const Ports = createPortTokens({
 	logger: {} as LoggerPort,
 	email: {} as EmailPort,
 	userService: {} as UserServicePort,
+	clock: {} as ClockPort,
+	config: {} as AppConfig,
 })
 
 export type AppPorts = typeof Ports

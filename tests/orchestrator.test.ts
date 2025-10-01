@@ -244,7 +244,7 @@ test('register helper wires dependencies correctly', async () => {
 	const app = new Orchestrator(c)
 	await app.start([
 		register(TA, { useFactory: () => new A() }),
-		register(TB, { useFactory: () => new B() }, TA),
+		register(TB, { useFactory: () => new B() }, { dependencies: [TA] }),
 	])
 	// Ensure both are started and retrievable
 	assert.ok(c.get(TA) instanceof A)
@@ -316,4 +316,42 @@ test('events callbacks are invoked for start/stop/destroy and errors', async () 
 	await app.destroyAll().catch(() => {})
 	// destroy callbacks should include both
 	assert.ok(events.destroys.includes('OK') && events.destroys.includes('BAD'))
+})
+
+test('register supports dependencies map and dedup/self-filter', async () => {
+	class Cmp extends Adapter {
+		public startedAt: number | null = null
+		static counter = 0
+		protected async onStart(): Promise<void> { this.startedAt = Cmp.counter++ }
+	}
+	const A = createToken<Cmp>('A')
+	const B = createToken<Cmp>('B')
+	const c = new Container()
+	const app = new Orchestrator(c)
+	await app.start([
+		register(A, { useFactory: () => new Cmp() }),
+		// B depends on A twice and itself once — helper should dedup and drop self
+		register(B, { useFactory: () => new Cmp() }, { dependencies: { d1: A, d2: A, self: B } }),
+	])
+	const a = c.get(A) as Cmp
+	const b = c.get(B) as Cmp
+	assert.ok(a instanceof Cmp && b instanceof Cmp)
+	// Ensure dependency ordering: A starts before B
+	assert.ok((a.startedAt as number) < (b.startedAt as number))
+	await app.stopAll()
+	await app.destroyAll()
+})
+
+test('register options allow per-registration onStart timeout', async () => {
+	const SLOW = createToken<SlowStart>('SLOW_REG')
+	const orch = new Orchestrator(new Container())
+	let err: unknown
+	try {
+		await orch.start([
+			register(SLOW, { useFactory: () => new SlowStart(100) }, { timeouts: { onStart: 10 } }),
+		])
+	}
+	catch (e) { err = e }
+	assert.ok(err instanceof Error)
+	assert.match((err as Error).message, /Errors during startAll/)
 })

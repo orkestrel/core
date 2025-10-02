@@ -4,7 +4,19 @@ All notable API changes to @orkestrel/core.
 
 ## Unreleased
 
-- Placeholder for upcoming changes.
+- Orchestrator options (public): Added `tracer` hooks (`onLayers`, `onPhase`) and a per-layer `concurrency` cap. Defaults remain unchanged and there is zero overhead when tracer is not provided.
+- Container API (public): Added `using(apply, fn)` overload to create a child scope, apply overrides, run work, and always destroy the scope.
+- Typing (public types only, no runtime change):
+    - Improved `orchestrator.register` overloads to preserve tuple/object `inject` inference for `useClass`/`useFactory`, fixing TS2322 when registering classes with constructor dependencies.
+    - Added precise `orchestrator.start` overloads: `start()` and `start(regs: OrchestratorRegistration<unknown>[])`, enabling strictly-typed direct registration objects (including `useClass` + tuple `inject`) without any.
+- Docs/API: Aligned `docs/api.md` with the new options and overloads; added examples for tuple/object `inject` and clarified strict typing (no `any`).
+- Examples: Added `examples/web-server.ts` and `examples/worker.ts` demonstrating Lifecycle around an HTTP server and a periodic worker. New scripts: `npm run example:web`, `npm run example:worker`. Added `docs/examples.md` overview.
+- Tests: Added property-based orchestrator tests that generate random DAGs to verify topological start/stop order and rollback invariants. Consolidated into `tests/orchestrator.test.ts` (no separate files); implemented with a tiny internal seeded PRNG; no new dependencies.
+
+- Docs: Updated `ideas/ideas.md` roadmap item 16 to Done with implementation details and documented the one-test-file-per-source convention. No API changes.
+- Docs/API: Added TSDoc across core public APIs (container, orchestrator, ports, emitter) and aligned `docs/api.md` with source comments. No runtime changes.
+- Examples: Added `examples/web-server.ts` and `examples/worker.ts` demonstrating Lifecycle around an HTTP server and a periodic worker. New scripts: `npm run example:web`, `npm run example:worker`. Added `docs/examples.md` overview.
+- Typing: Improved `orchestrator.register` with overloads that preserve tuple/object `inject` inference for `useClass`/`useFactory`, fixing TS2322 when registering classes with constructor dependencies. Documented overloads in `docs/api.md` and added a test.
 
 ## 1.3.0 — 2025-10-01
 

@@ -48,16 +48,18 @@
     "test": "tsx --test tests\\**\\*.ts",
     "example:simple": "tsx examples\\simple.ts",
     "example:large": "tsx examples\\large\\app.ts",
+    "example:web": "tsx examples\\web-server.ts",
+    "example:worker": "tsx examples\\worker.ts",
     "check": "tsc -p tsconfig.json",
     "format": "eslint . --fix",
     "prepublishOnly": "npm run check && npm run format && npm run test && npm run build"
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^1.9.0",
-    "@types/node": "^24.6.1",
+    "@types/node": "^24.6.2",
     "eslint": "^9.36.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "vite": "^7.1.7"
+    "vite": "^7.1.8"
   }
 }

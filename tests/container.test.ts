@@ -186,6 +186,25 @@ test('Container.using runs in a child scope and destroys it after', async () => 
 	assert.equal(inst?.destroyed, true)
 })
 
+test('Container.using(apply, fn) registers overrides in a child scope and cleans up', async () => {
+	const T = createToken<string>('scoped:val')
+	const root = new Container()
+	// no root registration
+	const result = await root.using(
+		(scope) => {
+			scope.register(T, { useValue: 'scoped-value' })
+		},
+		async (scope) => {
+			const v = scope.resolve(T)
+			assert.equal(v, 'scoped-value')
+			return v
+		},
+	)
+	assert.equal(result, 'scoped-value')
+	// After using, scope is destroyed; root should still have no registration
+	assert.equal(root.get(T), undefined)
+})
+
 test('register with lock prevents re-registration for the same token', () => {
 	const T = createToken<number>('lockReg')
 	const c = new Container()

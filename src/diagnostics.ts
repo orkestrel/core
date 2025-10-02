@@ -56,6 +56,20 @@ export interface LifecycleErrorDetail {
 	error: Error
 }
 
+// Runtime guard for LifecycleErrorDetail (optional, lightweight)
+export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
+	if (typeof x !== 'object' || x === null) return false
+	const o = x as Record<string, unknown>
+	return (
+		typeof o.tokenDescription === 'string'
+		&& (o.phase === 'start' || o.phase === 'stop' || o.phase === 'destroy')
+		&& (o.context === 'normal' || o.context === 'rollback' || o.context === 'container')
+		&& typeof o.timedOut === 'boolean'
+		&& typeof o.durationMs === 'number' && Number.isFinite(o.durationMs as number)
+		&& o.error instanceof Error
+	)
+}
+
 export const D = {
 	registryNoDefault: (label: string) => makeError('ORK1001', `No ${label} instance registered for '<default>'`, HELP.registry),
 	registryNoNamed: (label: string, key: string) => makeError('ORK1002', `No ${label} instance registered for '${key}'`, HELP.registry),

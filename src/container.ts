@@ -2,11 +2,23 @@ import { Lifecycle } from './lifecycle.js'
 import { Registry } from './registry.js'
 import { AggregateLifecycleError, D } from './diagnostics.js'
 
+/**
+ * Unique runtime identifier for a capability (port) or service.
+ *
+ * Tokens are small branded objects with a symbol key and a human-readable description.
+ * They are frozen to prevent mutation and branded to harden runtime guards.
+ */
 export interface Token<_T> { readonly key: symbol, readonly description: string }
 
 // Private brand to harden token guards at runtime
 const TOKEN_BRAND: unique symbol = Symbol('token.brand')
 
+/**
+ * Create a new unique {@link Token} with the given description.
+ * @typeParam T - The value type associated with the token.
+ * @param description - Human-friendly identifier used in diagnostics.
+ * @returns A frozen, branded token.
+ */
 export function createToken<_T = unknown>(description: string): Token<_T> {
 	// Freeze and brand tokens to prevent mutation and spoofing
 	const tok = { key: Symbol(description), description, __brand: TOKEN_BRAND } as const
@@ -17,26 +29,37 @@ export function createToken<_T = unknown>(description: string): Token<_T> {
 // Provider type definitions
 // ---------------------------
 
+/** Provider that supplies a pre-constructed value. */
 export interface ValueProvider<T> { useValue: T }
 
-// Inject helpers
+/** Tuple form for inject definitions that mirrors positional parameters. */
 export type InjectTuple<A extends readonly unknown[]> = { [K in keyof A]: Token<A[K]> }
+/** Object form for inject definitions that mirrors a named dependency bag. */
 export type InjectObject<O extends Record<string, unknown>> = { [K in keyof O]: Token<O[K]> }
 
 // Factory providers
+/** Factory with no explicit dependencies (optionally receives the Container). */
 export type FactoryProviderNoDeps<T> = { useFactory: () => T } | { useFactory: (container: Container) => T }
+/** Factory with positional injection. */
 export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = { useFactory: (...args: A) => T, inject: InjectTuple<A> }
+/** Factory with named-object injection. */
 export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = { useFactory: (deps: O) => T, inject: InjectObject<O> }
+/** All factory provider shapes (synchronous only). */
 export type FactoryProvider<T> = FactoryProviderNoDeps<T> | FactoryProviderWithTuple<T, readonly unknown[]> | FactoryProviderWithObject<T, Record<string, unknown>>
 
 // Class providers
+/** Constructor with no explicit dependencies. */
 export type CtorNoDeps<T> = new () => T
+/** Constructor that receives the Container as the single parameter. */
 export type CtorWithContainer<T> = new (container: Container) => T
+/** Class provider without tuple injection. */
 export type ClassProviderNoDeps<T> = { useClass: CtorNoDeps<T> | CtorWithContainer<T> }
+/** Class provider with positional injection. */
 export type ClassProviderWithTuple<T, A extends readonly unknown[]> = { useClass: new (...args: A) => T, inject: InjectTuple<A> }
+/** All class provider shapes (synchronous only). */
 export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithTuple<T, readonly unknown[]>
 
-// Narrowable provider object types
+/** Union of all supported provider forms, including raw values. */
 export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
 
 // Safe hasOwn helper for type guards
@@ -74,13 +97,20 @@ function isToken(x: unknown): x is Token<unknown> {
 // Typing helpers for token maps
 // ---------------------------
 
+/** Internal helper record shape for token maps. */
 type TokenRecord = Record<string, Token<unknown>>
+/** Converts a token map into its resolved value map type. */
 export type TokensOf<T extends Record<string, unknown>> = { [K in keyof T & string]: Token<T[K]> }
 
 type ResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
 
 type OptionalResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
 
+/**
+ * Create a namespaced set of {@link Token}s based on a given shape.
+ * @param namespace - Namespace prefix used in token descriptions.
+ * @param shape - Object whose keys become token names and values define types.
+ */
 export function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): TokensOf<T> {
 	const out: Partial<Record<keyof T & string, Token<unknown>>> = {}
 	for (const key of Object.keys(shape) as (keyof T & string)[]) out[key] = createToken(`${namespace}:${key}`)
@@ -91,8 +121,17 @@ export function createTokens<T extends Record<string, unknown>>(namespace: strin
 // Container implementation
 // ---------------------------
 
+/** Options for {@link Container} construction. */
 export interface ContainerOptions { parent?: Container }
 
+/**
+ * Minimal, strongly-typed DI container.
+ *
+ * - Registers providers (value, factory, class) under Tokens.
+ * - Resolves single tokens or token maps, strictly (`resolve`) or optionally (`get`).
+ * - Supports child scopes and scoped work via `using`.
+ * - Destroys owned lifecycles on `destroy()`.
+ */
 export class Container {
 	private readonly registry = new Registry<Registration<unknown>>('provider')
 	private readonly parent?: Container
@@ -104,51 +143,73 @@ export class Container {
 	register<T, A extends readonly unknown[]>(token: Token<T>, provider: FactoryProviderWithTuple<T, A> | ClassProviderWithTuple<T, A>, lock?: boolean): this
 	register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O>, lock?: boolean): this
 	register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, lock?: boolean): this
+	/**
+	 * Register a provider under a token.
+	 * @param token - The unique token.
+	 * @param provider - The provider (value/factory/class) or raw value.
+	 * @param lock - When true, prevents re-registration for the same token.
+	 */
 	register<T>(token: Token<T>, provider: Provider<T>, lock?: boolean): this {
 		this.assertNotDestroyed()
 		this.registry.set(token.key, { token, provider } as Registration<T>, lock)
 		return this
 	}
 
+	/** Shorthand for registering a value provider. */
 	set<T>(token: Token<T>, value: T, lock?: boolean): void { this.register(token, { useValue: value }, lock) }
 
+	/** Returns true when a provider is available for the token (searches parents). */
 	has<T>(token: Token<T>): boolean {
 		return !!this.registry.get(token.key) || (this.parent?.has(token) ?? false)
 	}
 
 	resolve<T>(token: Token<T>): T
 	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
+	/** Strictly resolve a single token or a map of tokens, throwing if any are missing. */
 	resolve(tokenOrMap: Token<unknown> | TokenRecord): unknown {
 		if (isToken(tokenOrMap)) {
-			return this.resolveOne(tokenOrMap)
+			// strict single-token retrieval
+			const reg = this.lookup(tokenOrMap)
+			if (!reg) throw D.containerNoProvider(tokenOrMap.description)
+			return this.materialize(reg).value
 		}
-		const tokens = tokenOrMap
-		const out: Record<string, unknown> = {}
-		for (const key of Object.keys(tokens)) {
-			out[key] = this.resolveOne(tokens[key])
-		}
-		return out
+		// map retrieval (strict)
+		return this.retrievalMap(tokenOrMap, true)
 	}
 
 	get<T>(token: Token<T>): T | undefined
 	get<TMap extends TokenRecord>(tokens: TMap): OptionalResolvedMap<TMap>
+	/** Optionally resolve a single token or a map of tokens (missing entries return undefined). */
 	get(tokenOrMap: Token<unknown> | TokenRecord): unknown {
 		if (isToken(tokenOrMap)) {
-			return this.getOne(tokenOrMap)
+			// loose single-token retrieval
+			const reg = this.lookup(tokenOrMap)
+			return reg ? this.materialize(reg).value : undefined
 		}
-		const tokens = tokenOrMap
-		const out: Record<string, unknown> = {}
-		for (const key of Object.keys(tokens)) {
-			out[key] = this.getOne(tokens[key])
-		}
-		return out
+		// map retrieval (loose)
+		return this.retrievalMap(tokenOrMap, false)
 	}
 
+	/** Create a child container that inherits providers from this container. */
 	createChild(): Container { return new Container({ parent: this }) }
 
-	async using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T> {
+	// Overloads: using(fn) and using(apply, fn)
+	async using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>
+	async using<T>(apply: (scope: Container) => void, fn: (scope: Container) => Promise<T> | T): Promise<T>
+	/**
+	 * Run work inside an automatically destroyed child scope.
+	 * @param arg1 - Either the work function, or the apply function when two args are used.
+	 * @param arg2 - The work function when also providing an apply function.
+	 */
+	async using<T>(arg1: ((scope: Container) => void) | ((scope: Container) => Promise<T> | T), arg2?: (scope: Container) => Promise<T> | T): Promise<T> {
 		const scope = this.createChild()
 		try {
+			if (arg2) {
+				const apply = arg1 as (scope: Container) => void
+				apply(scope)
+				return await arg2(scope)
+			}
+			const fn = arg1 as (scope: Container) => Promise<T> | T
 			return await fn(scope)
 		}
 		finally {
@@ -156,6 +217,7 @@ export class Container {
 		}
 	}
 
+	/** Destroy owned lifecycles (stop if needed, then destroy). Idempotent. */
 	async destroy(): Promise<void> {
 		if (this.destroyed) return
 		this.destroyed = true
@@ -237,15 +299,20 @@ export class Container {
 
 	private assertNotDestroyed(): void { if (this.destroyed) throw D.containerDestroyed() }
 
-	private resolveOne<T>(token: Token<T>): T {
-		const reg = this.lookup(token)
-		if (!reg) throw D.containerNoProvider(token.description)
-		return this.materialize(reg).value
-	}
-
-	private getOne<T>(token: Token<T>): T | undefined {
-		const reg = this.lookup(token)
-		return reg ? this.materialize(reg).value : undefined
+	// Consolidated map retrieval for resolve()/get()
+	private retrievalMap(tokens: TokenRecord, strict: boolean): Record<string, unknown> {
+		const out: Record<string, unknown> = {}
+		for (const key of Object.keys(tokens)) {
+			const tk = tokens[key]
+			const reg = this.lookup(tk)
+			if (!reg) {
+				if (strict) throw D.containerNoProvider(tk.description)
+				out[key] = undefined
+				continue
+			}
+			out[key] = this.materialize(reg).value
+		}
+		return out
 	}
 
 	// Helpers to resolve inject shapes with strong typing
@@ -272,18 +339,25 @@ interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: R
 // Global container registry helper
 // ---------------------------
 
+/** Callable getter and manager for global Container instances. */
 export type ContainerGetter = {
 	(name?: string | symbol): Container
+	/** Register a named container; pass lock=true to prevent replacement. */
 	set(name: string | symbol, c: Container, lock?: boolean): void
+	/** Clear a named container; returns false when locked or missing; default is protected. */
 	clear(name?: string | symbol, force?: boolean): boolean
+	/** List registered container keys (includes the default symbol). */
 	list(): (string | symbol)[]
 
+	/** Resolve via the default or named container (strict). */
 	resolve<T>(token: Token<T>, name?: string | symbol): T
 	resolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
 
+	/** Get via the default or named container (optional). */
 	get<T>(token: Token<T>, name?: string | symbol): T | undefined
 	get<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): OptionalResolvedMap<TMap>
 
+	/** Run work in a child scope of the default or named container. */
 	using<T>(fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
 }
 
@@ -314,6 +388,12 @@ function containerUsing<T>(fn: (scope: Container) => Promise<T> | T, name?: stri
 	return c.using(fn)
 }
 
+/**
+ * Global container getter.
+ *
+ * The default container is created at module load and registered under a symbol key.
+ * You can register additional named containers via `container.set(name, instance, lock?)`.
+ */
 export const container = Object.assign(
 	(name?: string | symbol): Container => containerRegistry.resolve(name),
 	{

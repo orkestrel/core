@@ -6,7 +6,7 @@ import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnost
 import { Emitter } from './emitter.js'
 
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
-export interface LifecycleOptions { hookTimeoutMs?: number, onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean }
+export interface LifecycleOptions { hookTimeoutMs?: number, onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean, emitInitialState?: boolean }
 
 type EventMap = {
 	stateChange: [LifecycleState]
@@ -26,17 +26,21 @@ export abstract class Lifecycle {
 	constructor(opts: LifecycleOptions = {}) {
 		this.hookTimeoutMs = opts.hookTimeoutMs ?? 5000
 		this.onTransitionFilter = opts.onTransitionFilter ?? (() => true)
-		// defer initial state event
-		if (typeof queueMicrotask === 'function') {
-			queueMicrotask(() => this.emitter.emit('stateChange', this._state))
-		}
-		else {
-			setTimeout(() => this.emitter.emit('stateChange', this._state), 0)
+		// defer initial state event (opt-in by default)
+		if (opts.emitInitialState !== false) {
+			if (typeof queueMicrotask === 'function') {
+				queueMicrotask(() => this.emitter.emit('stateChange', this._state))
+			}
+			else {
+				setTimeout(() => this.emitter.emit('stateChange', this._state), 0)
+			}
 		}
 	}
 
 	get state(): LifecycleState { return this._state }
 	protected setState(next: LifecycleState): void {
+		// avoid emitting when state doesn't actually change
+		if (this._state === next) return
 		this._state = next
 		this.emitter.emit('stateChange', next)
 	}

@@ -1,118 +1,103 @@
-# Testing Recipes
+# Testing
 
-This guide shows how to test code that uses `@orkestrel/core`.
+Guidelines to keep tests fast, deterministic, and representative of real-world usage without adding heavy tooling.
 
-Note: The library is environment-agnostic. The examples below use Node’s built-in `node:test` runner, but you can adapt them to Vitest/Jest easily.
+## Principles
+- Prefer tiny, isolated scenarios that map directly to source behaviors.
+- Avoid mocks/fakes/spies in this core repo. Use real components and built-ins only. Consumers can use fakes/spies when testing their apps.
+- Keep timeouts small to make tests snappy and still representative. Favor deterministic assertions.
 
-## Unit testing with node:test
+## Patterns
 
+### Scoping with Container.using
+Run code within a child scope and ensure cleanup after execution.
 ```ts
-// example.spec.ts
-import { test } from 'node:test'
-import assert from 'node:assert/strict'
-import { Container, Orchestrator, Adapter, createToken } from '@orkestrel/core'
+import { Container } from '@orkestrel/core'
 
-class Service extends Adapter { protected async onStart() {} protected async onStop() {} }
-const Svc = createToken<Service>('Svc')
-
-test('service starts and stops', async () => {
-  const c = new Container()
-  const app = new Orchestrator(c)
-  app.register(Svc, { useFactory: () => new Service() })
-  await app.start()
-  assert.ok(c.resolve(Svc) instanceof Service)
-  await app.destroy()
+const root = new Container()
+const result = await root.using(async (scope) => {
+  // register overrides in the scoped container if needed
+  // use scope.resolve(...) inside the scope
+  return 42
 })
+// scope is destroyed here
 ```
 
-You can also use the `register(...)` helper to build arrays for `start([...])`:
-
+Apply overrides via an `apply` callback before running work:
 ```ts
-import { register } from '@orkestrel/core'
+import { Container, createToken } from '@orkestrel/core'
 
-await app.start([
-  register(Svc, { useFactory: () => new Service() })
-])
+const T = createToken<string>('test:val')
+const root = new Container()
+const out = await root.using(
+  (scope) => {
+    scope.register(T, { useValue: 'scoped' })
+  },
+  async (scope) => {
+    return scope.resolve(T)
+  },
+)
+// out === 'scoped'; scope was destroyed after the function
 ```
 
-## Aggregated error assertions
-
-When batch operations fail, the orchestrator throws `AggregateLifecycleError` with details.
-
+### Lifecycle expectations
+Assert transitions and errors using real Lifecycle-derived classes.
 ```ts
-import type { AggregateLifecycleError } from '@orkestrel/core'
+import { Lifecycle } from '@orkestrel/core'
+import { strict as assert } from 'node:assert'
+
+class Svc extends Lifecycle {
+  protected async onStart() { /* lightweight */ }
+  protected async onStop() { /* lightweight */ }
+}
+
+const s = new Svc({ hookTimeoutMs: 50 })
+await s.start()
+assert.equal(s.state, 'started')
+await s.stop()
+assert.equal(s.state, 'stopped')
+```
+
+### Orchestrator flows
+Use the Orchestrator to exercise start/stop/destroy ordering with small graphs.
+```ts
+import { Orchestrator, Container, register, createToken, Lifecycle } from '@orkestrel/core'
+
+interface Port { n(): number }
+const T = createToken<Port>('test:port')
+
+class Impl extends Lifecycle implements Port {
+  n() { return 1 }
+}
+
+const app = new Orchestrator(new Container())
+app.register(T, { useFactory: () => new Impl() })
+await app.start()
+await app.stop()
+await app.destroy()
+```
+
+## Deterministic timeouts
+- Keep hook and orchestrator timeouts low (e.g., 10–50ms) in tests.
+- Avoid external timer-mocking libraries; structure code to be deterministic with short timers.
+
+## Aggregated errors
+Catch `AggregateLifecycleError` when testing error paths and inspect `details` for per-component context.
+```ts
+import { AggregateLifecycleError } from '@orkestrel/core'
 
 try {
   await app.stop()
 } catch (e) {
-  const agg = e as AggregateLifecycleError
-  // details contain per-component telemetry
-  console.log(agg.details.map(d => [d.tokenDescription, d.phase, d.timedOut]))
+  if (e instanceof AggregateLifecycleError) {
+    // assert on e.details (phase, tokenDescription, timedOut, durationMs, error.message)
+  } else {
+    throw e
+  }
 }
 ```
 
-## Using default timeouts
-
-```ts
-const app = new Orchestrator(new Container(), { defaultTimeouts: { onStart: 2000, onStop: 2000 } })
-```
-
-## Test isolation tips
-- Prefer creating a fresh `Container`/`Orchestrator` per test to avoid cross-test state.
-- If using the global helpers (`container()`, `orchestrator()`), make sure to clear them in `afterEach`.
-- Keep adapters side-effect free on import; do work inside lifecycle hooks.
-
-## Fakes, mocks, and spies for external systems (for consumers)
-Use doubles only at boundaries with external dependencies (HTTP, DB, third‑party APIs). Keep core business logic and lifecycle tests close to real behavior.
-
-Patterns
-- Fake service (recommended): implement the port with an in‑memory class.
-- Spy (lightweight): wrap a method to capture calls while delegating to a real implementation.
-- Mock/stub (limited): return canned results when the external system is impractical to run in tests.
-
-Example: fake external email port
-```ts
-import { test } from 'node:test'
-import assert from 'node:assert/strict'
-import { Container, createPortTokens } from '@orkestrel/core'
-
-interface Email { send(to: string, subject: string, body: string): Promise<void> }
-const Ports = createPortTokens({ email: {} as Email })
-
-class FakeEmail implements Email {
-  sent: Array<{ to: string; subject: string; body: string }> = []
-  async send(to: string, subject: string, body: string) { this.sent.push({ to, subject, body }) }
-}
-
-test('sends a welcome email', async () => {
-  const c = new Container()
-  // override via useValue for this test
-  c.register(Ports.email, { useValue: new FakeEmail() })
-
-  const email = c.resolve(Ports.email) as FakeEmail
-  await email.send('me@example.com', 'Hi', 'Welcome!')
-  assert.equal(email.sent.length, 1)
-})
-```
-
-Example: simple spy around a logger
-```ts
-type Logger = { info: (msg: string) => void }
-const Ports = createPortTokens({ logger: {} as Logger })
-
-function withSpy<T extends object>(obj: T, onCall: (method: string, args: unknown[]) => void): T {
-  return new Proxy(obj, { get(target, p, r) {
-    const v = Reflect.get(target, p, r)
-    if (typeof v !== 'function') return v
-    return (...args: unknown[]) => { onCall(String(p), args); return (v as Function).apply(target, args) }
-  } })
-}
-```
-
-Tips
-- Prefer behavior assertions (outputs, state changes) over call counts.
-- Keep doubles small and local to the test; avoid global state.
-- Replace only external boundaries; keep internal collaborators real.
-
-Policy note
-- The core repository’s own tests do not use fakes, mocks, or spies. They rely on real components and built‑in primitives to ensure real‑world signal. This section is for consumers testing integrations with external systems.
+## Policy for the core repo
+- No mocks, fakes, or spies in tests here; use only built-ins and actual code paths.
+- Keep tests short and focused. Add happy-path + 1–2 edge cases for public behavior.
+- Aim for fast runs (seconds, not minutes) with `tsx --test` and `tsc --noEmit`.

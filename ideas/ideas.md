@@ -43,6 +43,13 @@ Success criteria (how we’ll know it’s working)
 
 —
 
+Testing file naming convention
+- Tests mirror source files one-to-one using the pattern: `tests/[source filename].test.ts`.
+- Do not create auxiliary test files with different names; instead, add new test cases to the existing test file for the corresponding source.
+- Example: tests for `src/orchestrator.ts` live in `tests/orchestrator.test.ts` (including property-based tests, edge cases, and helpers used only by tests).
+
+—
+
 Roadmap (prioritized)
 Legend: Complexity S/M/L; Reward High/Med/Low.
 Each item includes what/why/how, affected files, risk, and a success check.
@@ -82,6 +89,26 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Risk: Low.
 - Success: Consistent helper signatures; docs and changelog accurately describe the API; tests pass.
 - Status: Done (2025‑10‑01, v1.2.0)
+
+2b) Lifecycle API consolidation and simpler shutdown
+- Complexity: S/M, Reward: High
+- What:
+  - Unify orchestrator lifecycle methods:
+    - `start(regs?)` registers any provided components and starts all lifecycles in dependency order (replaces `startAll`).
+    - `stop()` stops started components in reverse dependency order (replaces `stopAll`).
+    - `destroy()` performs a single consolidated pass: stops components as needed, then destroys them, and finally destroys the container (replaces `destroyAll`).
+  - Diagnostics messages harmonized (examples):
+    - Start aggregation: ORK1013 “Errors during start”.
+    - Stop aggregation: ORK1014 “Errors during stop”.
+    - Destroy aggregation: ORK1017 “Errors during destroy”.
+- Why: A simpler, more intuitive lifecycle surface and a one‑call shutdown path reduce cognitive load and boilerplate in apps and examples.
+- How:
+  - Update orchestrator API and internal flow; remove legacy plural methods.
+  - Update docs and examples to use `start([...])` and a single `destroy()` for shutdown; clarify when `stop()` is appropriate.
+- Files: src/orchestrator.ts; docs/*; examples/*; tests/*.
+- Risk: Low/Med (method renames); migration is mechanical and supported by clear diagnostics.
+- Success: Examples and docs use `start()`/`stop()`/`destroy()`; semantics unchanged for ordering; aggregated error codes are stable and branded.
+- Status: Done (2025‑10‑01, v1.3.0)
 
 3) Uniform diagnostics: branded message templates + error codes (+ docs links)
 - Complexity: S/M, Reward: High
@@ -170,17 +197,17 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: src/container.ts; docs/testing.md; tests/*.
 - Risk: Low.
 - Success: Consumer tests are simpler via the overload; core tests remain free of fakes/mocks/spies and rely on real components and built‑ins only.
-- Status: Planned
+- Status: Done (2025‑10‑02) — added `Container.using(apply, fn)` overload, tests, and docs examples.
 
 9) Reduce duplication in Container map resolution
 - Complexity: S, Reward: Med
 - What: Factor shared map-walking logic for resolve()/get() overloads into one private helper.
 - Why: Smaller surface and fewer branches reduce future regressions.
-- How: Introduce `private resolveMap(tokens, strict: boolean)` and reuse in resolve()/get().
+- How: Introduce `private retrievalMap(tokens, strict: boolean)` and reuse in resolve()/get().
 - Files: src/container.ts.
 - Risk: Low.
 - Success: No behavior change; lines of code reduced; tests pass.
-- Status: Planned
+- Status: Done (2025‑10‑02)
 
 10) Lifecycle ergonomics and event hygiene
 - Complexity: S, Reward: Med
@@ -193,7 +220,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: src/lifecycle.ts; docs/start.md; docs/api.md.
 - Risk: Low; compatible default behavior.
 - Success: New tests show no duplicate created event; options covered in docs.
-- Status: Planned
+- Status: Done (2025‑10‑02)
 
 11) Orchestrator options: timeouts defaults, events, tracing hooks
 - Complexity: S/M, Reward: Med/High
@@ -205,7 +232,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: src/orchestrator.ts; docs/api.md; docs/tips.md.
 - Risk: Low.
 - Success: Debug snippet prints layers/timings with zero cost when disabled.
-- Status: Planned
+- Status: Done (2025‑10‑02)
 
 12) Concurrency control per layer (limit parallelism)
 - Complexity: M, Reward: Med
@@ -215,7 +242,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: src/orchestrator.ts (option + usage); src/internal/limit.ts (new small helper).
 - Risk: Med (new execution behavior paths); default remains unlimited.
 - Success: Tests verify cap is respected; no API break by default.
-- Status: Planned
+- Status: Done (2025‑10‑02)
 
 13) Events for telemetry (polish)
 - Complexity: S, Reward: Med
@@ -225,7 +252,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: src/orchestrator.ts; docs/patterns.md; docs/tips.md.
 - Risk: Low.
 - Success: Users can plug in telemetry in minutes.
-- Status: Planned
+- Status: Done (2025‑10‑02) — added a "Telemetry events (practical logging)" section to docs/tips.md with examples; OrchestratorOptions already exposes strong types for events.
 
 14) Docs: FAQ + Troubleshooting
 - Complexity: S/M, Reward: Med
@@ -235,7 +262,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: docs/faq.md; README.md; docs/tips.md.
 - Risk: None.
 - Success: Clear guidance exists for top 5 failure modes.
-- Status: Planned
+- Status: Done (2025‑10‑02) — added docs/faq.md and linked it from README quick links.
 
 15) Testing: fast and deterministic (no coverage tooling)
 - Complexity: S, Reward: High
@@ -251,17 +278,17 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: tests/*.test.ts (minor tuning where helpful); docs/testing.md; docs/contribute.md (policy note).
 - Risk: Low; behavior stays the same.
 - Success: Tests finish quickly and deterministically and do not use fakes/mocks/spies.
-- Status: Planned
+- Status: Done (2025‑10‑02) — added docs/testing.md with policy and examples; existing tests already conform and run fast.
 
 16) Property-based tests for topology and rollback (internal generators)
 - Complexity: M/L, Reward: Med/High
 - What: Generate random DAGs, register lifecycles, assert topo constraints and rollback invariants.
 - Why: Increases confidence in the orchestrator under many shapes.
 - How: Implement a tiny internal, seeded PRNG and DAG generator in tests (no fast-check). Bound size/iterations to keep runtime low.
-- Files: tests/orchestrator.test.ts (new, using only node:test + internal helpers).
+- Files: tests/orchestrator.test.ts (using only node:test + internal helpers).
 - Risk: Med (test complexity); keep runtime limited.
 - Success: Properties stable across seeds; no flakes; no extra deps.
-- Status: Planned
+- Status: Done (2025‑10‑02) — property-based tests consolidated into `tests/orchestrator.test.ts` using a small seeded LCG; validates topological start/stop order and rollback stops; no new dependencies.
 
 17) API reference via TSDoc (no generator dependency)
 - Complexity: M, Reward: Med
@@ -271,7 +298,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: src/*; docs/api.md; scripts/extract-api.ts (optional, internal).
 - Risk: Low/Med (manual discipline or small script to assist).
 - Success: API docs reflect code truth; links from README.
-- Status: Planned
+- Status: Done (2025‑10‑02) — added TSDoc across core public APIs (container, orchestrator, ports, emitter) and aligned docs/api.md; no generator dependency and no runtime/API changes.
 
 18) Examples: “Web adapter” and “Worker adapter” patterns
 - Complexity: M/L, Reward: Med
@@ -291,7 +318,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Files: src/errors.ts (guards) or new src/telemetry.ts; docs/tips.md.
 - Risk: Low/Med.
 - Success: Guards available without impacting core bundle size; no new deps.
-- Status: Planned
+- Status: Done (2025‑10‑02) — added `isLifecycleErrorDetail` in diagnostics, tests, and docs mention.
 
 20) Tokens: symbol-only (major)
 - Complexity: M, Reward: Med/High
@@ -304,6 +331,8 @@ Each item includes what/why/how, affected files, risk, and a success check.
   - Diagnostics: format with `token.description ?? String(token)`.
   - Tests: remove references to `token.key`; ensure error message assertions still pass (descriptions unchanged when using `createToken`).
   - Docs: update API references and patterns to reflect symbol tokens; add a brief migration guide.
+  - Implementation note: once tokens are plain symbols, consider typing internal maps (like the orchestrator `nodes` map) by the `Token` directly instead of `token.key` to simplify lookups and types.
+  - Follow-up suggestion: Consider typing the orchestrator `nodes` map by the token itself rather than `token.key` (symbol) if you later migrate to symbol tokens. Today’s structure is perfectly fine; this only matters if you pursue the “symbol-only tokens” item later.
 - Files: src/container.ts; src/orchestrator.ts; src/ports.ts (if any token helpers live there); src/index.ts; tests/*; docs/*.
 - Risk: Med/High (breaking change to public Token type). Behavior remains the same; compile-time and a few message fallbacks change. Requires a major version bump.
 - Success: All tests pass; messages remain crisp; public API and docs reflect symbol tokens with a short migration guide.
@@ -313,7 +342,7 @@ Each item includes what/why/how, affected files, risk, and a success check.
 
 Notes grounding the plan (from current repo/docs)
 - Container/Token/Registry are well-factored; branding/freezing tokens is low‑risk safety. Helper setters are consistent (`set(name, value, lock?)`) and rely on TypeScript types; no runtime validation in helpers. `Registry` remains simple (no validators).
-- Orchestrator already guards async providers and orders by deps; tracing hooks and concurrency caps increase control without changing defaults.
+- Orchestrator already guards async providers and orders by deps; tracing hooks and concurrency caps increase control without changing defaults. Lifecycle API is now unified to `start()`/`stop()`/`destroy()` with a one‑call shutdown path.
 - Lifecycle semantics are strong; small event hygiene tweaks improve signal/noise.
 - Auto‑wiring is explicit and opt‑in via a single `inject` option on providers (planned); there are no decorators and no extra helper surface.
 - Many instances are modeled via the Manager pattern; we avoid container‑level transients and multi‑binding.

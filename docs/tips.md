@@ -14,6 +14,43 @@
 - Default `Lifecycle` hook timeout is 5000ms; you can override per component (via `LifecycleOptions` or orchestrator timeouts) or set orchestrator defaults.
 - See Providers & Lifetimes for ownership details and async provider guard behavior.
 
+## Tracing orchestrations (debug)
+Enable the orchestrator tracer to see dependency layers and per-phase outcomes. Zero cost when disabled.
+
+Example:
+```ts
+const app = new Orchestrator(new Container(), {
+  tracer: {
+    onLayers: ({ layers }) => console.log('[layers]', layers),
+    onPhase: ({ phase, layer, outcomes }) => console.log(`[${phase}] layer=${layer}`, outcomes),
+  },
+})
+```
+Outputs look like:
+- onLayers: `[ [ 'Feature:A' ], [ 'Feature:B', 'Feature:C' ] ]`
+- onPhase: `{ phase: 'start', layer: 0, outcomes: [ { token: 'Feature:A', ok: true, durationMs: 2.1 } ] }`
+
+## Telemetry events (practical logging)
+Hook Orchestrator `events` to emit your own logs/metrics. Callbacks run per-component and include durations and rich error details.
+
+Example:
+```ts
+const app = new Orchestrator(new Container(), {
+  events: {
+    onComponentStart: ({ token, durationMs }) => console.info('[start]', token.description, `${durationMs.toFixed(1)}ms`),
+    onComponentStop: ({ token, durationMs }) => console.info('[stop]', token.description, `${durationMs.toFixed(1)}ms`),
+    onComponentDestroy: ({ token, durationMs }) => console.info('[destroy]', token.description, `${durationMs.toFixed(1)}ms`),
+    onComponentError: (d) => {
+      const timeoutNote = d.timedOut ? ' (timed out)' : ''
+      console.error(`[error] ${d.tokenDescription} during ${d.phase}${timeoutNote} after ${d.durationMs}ms:`, d.error.message)
+    },
+  },
+})
+```
+Tips:
+- Prefer structured logs: include `phase`, `token`, `durationMs`, and a `timedOut` flag.
+- Aggregate errors from `stop()`/`destroy()` arrive as a single `AggregateLifecycleError`; iterate `e.details` for per-component context.
+
 ## Diagnostics (simple and actionable)
 - All framework errors use a stable, prefixed format: `[Orkestrel][ORK####] Message…`.
 - Each error may include a concise help link. Follow it for a short fix guide.
@@ -25,6 +62,7 @@
   - ORK1016 Errors during container destroy
   - ORK1020 Invalid lifecycle transition (called start/stop/destroy out of order)
   - ORK1021 Lifecycle hook timeout (hook took longer than allowed)
+- Optional guard: `isLifecycleErrorDetail(x)` validates a telemetry detail shape at runtime (no external deps), useful in pipelines or log processors.
 
 Quick example: catching aggregated errors
 ```ts

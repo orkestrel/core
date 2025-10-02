@@ -51,3 +51,20 @@ Next steps
 - Read Concepts: `docs/concepts.md`
 - Browse Patterns: `docs/patterns.md`
 - Full API reference: `docs/api.md`
+
+## Lifecycle options (quick)
+- hookTimeoutMs (default 5000): max time for each hook (`onStart`, `onStop`, `onDestroy`) and `onTransition`.
+- onTransitionFilter(from, to, hook): decide whether to run `onTransition` for a given phase.
+- emitInitialState (default true): when false, suppresses the initial deferred `stateChange('created')` event.
+
+Example:
+```ts
+class Service extends Lifecycle {
+  protected async onStart() { /* ... */ }
+  protected async onStop() { /* ... */ }
+}
+
+const s = new Service({ hookTimeoutMs: 200, emitInitialState: false, onTransitionFilter: (_f, _t, hook) => hook === 'start' })
+s.on('stateChange', s => console.log('state:', s))
+await s.start()
+```

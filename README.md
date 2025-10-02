@@ -14,6 +14,8 @@ Quick links
 - Patterns: [docs/patterns.md](docs/patterns.md)
 - Providers & Lifetimes: [docs/providers-and-lifetimes.md](docs/providers-and-lifetimes.md)
 - Tips: [docs/tips.md](docs/tips.md)
+- Testing: [docs/testing.md](docs/testing.md)
+- FAQ & Troubleshooting: [docs/faq.md](docs/faq.md)
 - Ecosystems: [docs/ecosystems.md](docs/ecosystems.md)
 - Examples: [docs/examples.md](docs/examples.md)
 - API Reference: [docs/api.md](docs/api.md)

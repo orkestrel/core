@@ -2,6 +2,8 @@
 
 This is the comprehensive reference for `@orkestrel/core`. It documents every exported type, function, class, and helper with signatures and examples.
 
+Note: This document is kept in sync with TSDoc comments in the source files (see `src/*.ts`). Messages and error codes are stable and referenced throughout.
+
 Exports are re-exported from [src/index.ts](../src/index.ts):
 - diagnostics
 - lifecycle
@@ -27,6 +29,9 @@ Source: [src/diagnostics.ts](../src/diagnostics.ts)
 
 Messages
 - All messages are formatted as `[Orkestrel][ORK####] ...` and include an optional `helpUrl`.
+
+Guards
+- `isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail` — a tiny runtime guard to validate aggregated lifecycle error telemetry entries without external dependencies.
 
 ### class LifecycleError extends Error
 - constructor(message: string, cause?: unknown, code?: string, helpUrl?: string)
@@ -71,6 +76,7 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
 ### interface LifecycleOptions
 - `hookTimeoutMs?: number` — default 5000
 - `onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean`
+- `emitInitialState?: boolean` — default true; when false, suppresses the initial deferred `stateChange('created')` emission
 
 ### class Lifecycle
 - constructor(opts?: LifecycleOptions)
@@ -89,6 +95,9 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
   - `InvalidTransitionError` on illegal state transitions
   - `TimeoutError` if a hook exceeds configured timeout (applies to both the primary hook and `onTransition`)
   - Wraps hook errors in `LifecycleError`
+
+Event hygiene
+- `stateChange` is not emitted when the state doesn’t actually change (e.g., `create()` from `created` won’t emit a duplicate `created`).
 
 Hook timing
 - For each public method (`create`, `start`, `stop`, `destroy`):
@@ -188,6 +197,7 @@ These types ensure that your `inject` shape matches the parameter types of your 
   - `get<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap: TMap[K] extends Token<infer U> ? U | undefined : never }`
   - `createChild(): Container`
   - `using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>`
+  - `using<T>(apply: (scope: Container) => void, fn: (scope: Container) => Promise<T> | T): Promise<T>` — create a child scope, apply overrides in `apply(scope)`, run `fn(scope)`, and always destroy the scope.
   - `destroy(): Promise<void>`
 
 Lifecycle ownership semantics
@@ -233,6 +243,10 @@ Source: [src/orchestrator.ts](../src/orchestrator.ts)
 ### interface OrchestratorOptions
 - `defaultTimeouts?: { onStart?: number; onStop?: number; onDestroy?: number }`
 - `events?: { onComponentStart?, onComponentStop?, onComponentDestroy?, onComponentError? }`
+- `tracer?: { onLayers?: (payload: { layers: string[][] }) => void; onPhase?: (payload: { phase: 'start'|'stop'|'destroy', layer: number, outcomes: { token: string, ok: boolean, durationMs: number, timedOut?: boolean }[] }) => void }`
+- `concurrency?: number` — optional per-layer concurrency cap; when set, start/stop/destroy in each layer run at most this many tasks in parallel. Default: unlimited.
+
+See also: Tips → [Telemetry events (practical logging)](./tips.md#telemetry-events-practical-logging) for usage examples and recommended logging fields.
 
 ### class Orchestrator
 - constructor(container?: Container)
@@ -240,15 +254,30 @@ Source: [src/orchestrator.ts](../src/orchestrator.ts)
 - constructor(container: Container, options?: OrchestratorOptions)
 - Methods:
   - `getContainer(): Container`
-  - `register<T>(...)`
-  - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>` — registers any provided components and starts all lifecycles in dependency order; aggregates errors with code ORK1013
+  - `register<T>(...): OrchestratorRegistration<T>` — registers a component with optional dependencies and timeouts
+  - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>` — registers any provided components and starts lifecycles in dependency order; aggregates errors with code ORK1013
   - `stop(): Promise<void>` — stops all started components in reverse dependency order; aggregates errors with code ORK1014
   - `destroy(): Promise<void>` — stops any started components as needed, then destroys all lifecycles in reverse dependency order; aggregates errors with code ORK1017; finally destroys the container
 
 ### helper: register
-- Overloads:
-  - `register<T>(token: Token<T>, provider: Provider<T>): OrchestratorRegistration<T>`
-  - `register<T>(token: Token<T>, provider: Provider<T>, options: { dependencies?: Token<unknown>[] | Record<string, Token<unknown>>, timeouts?: { onStart?: number, onStop?: number, onDestroy?: number } }): OrchestratorRegistration<T>`
+Overloads (preserve inject typing):
+- Tuple inject (useClass or useFactory)
+  - `register<T, A extends readonly unknown[]>(token: Token<T>, provider: { useClass: new (...args: A) => T, inject: InjectTuple<A> } | { useFactory: (...args: A) => T, inject: InjectTuple<A> }, options?: { dependencies?, timeouts? }): OrchestratorRegistration<T>`
+- Object inject (useFactory)
+  - `register<T, O extends Record<string, unknown>>(token: Token<T>, provider: { useFactory: (deps: O) => T, inject: InjectObject<O> }, options?: { dependencies?, timeouts? }): OrchestratorRegistration<T>`
+- No-deps/value forms
+  - `register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, options?: { dependencies?, timeouts? }): OrchestratorRegistration<T>`
+
+Examples
+- Tuple inject with a class:
+  ```ts
+  class Service { constructor(private readonly log: Logger, private readonly cfg: Cfg) {} }
+  register(TService, { useClass: Service, inject: [TLogger, TCfg] }, { dependencies: [TLogger, TCfg] })
+  ```
+- Object inject with a factory:
+  ```ts
+  register(TService, { useFactory: ({ log, cfg }: { log: Logger, cfg: Cfg }) => new Service(log, cfg), inject: { log: TLogger, cfg: TCfg } }, { dependencies: [TLogger, TCfg] })
+  ```
 
 ### Inject vs Dependencies
 - `inject` is part of the provider and tells the Container how to supply constructor/factory arguments by resolving tokens.

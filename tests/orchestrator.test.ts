@@ -451,3 +451,327 @@ test('destroy() aggregates stop and destroy errors', async () => {
 		return true
 	})
 })
+
+test('tracer emits layers and per-phase outcomes', async () => {
+	class A extends Adapter {}
+	class B extends Adapter {}
+	const TA = createToken<A>('Tracer:A')
+	const TB = createToken<B>('Tracer:B')
+	const layersSeen: string[][][] = []
+	const phases: { phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: { token: string, ok: boolean }[] }[] = []
+	const app = new Orchestrator(new Container(), {
+		tracer: {
+			onLayers: (payload) => { layersSeen.push(payload.layers) },
+			onPhase: (payload) => {
+				phases.push({ phase: payload.phase, layer: payload.layer, outcomes: payload.outcomes.map(o => ({ token: o.token, ok: o.ok })) })
+			},
+		},
+	})
+	await app.start([
+		register(TA, { useFactory: () => new A() }),
+		register(TB, { useFactory: () => new B() }, { dependencies: [TA] }),
+	])
+	// layers should be emitted once
+	assert.ok(layersSeen.length >= 1)
+	assert.ok(layersSeen[0].some(layer => layer.includes('Tracer:A')))
+	assert.ok(layersSeen[0].some(layer => layer.includes('Tracer:B')))
+	// start phases should include both layers 0 and 1
+	const startLayers = phases.filter(p => p.phase === 'start').map(p => p.layer)
+	assert.ok(startLayers.includes(0) && startLayers.includes(1))
+	// outcomes should mark ok
+	assert.ok(phases.filter(p => p.phase === 'start').every(p => p.outcomes.every(o => o.ok)))
+	await app.destroy()
+	// during destroy, we should see stop and destroy phases as well
+	const sawStop = phases.some(p => p.phase === 'stop')
+	const sawDestroy = phases.some(p => p.phase === 'destroy')
+	assert.ok(sawStop && sawDestroy)
+})
+
+// New: guard ensures no onPhase emission for empty-outcome layers
+test('tracer does not emit onPhase for layers with no outcomes', async () => {
+	interface APort { a: true }
+	interface BPort { b: true }
+	const A = createToken<APort>('test:A')
+	const B = createToken<BPort>('test:B')
+
+	class BImpl extends Adapter implements BPort { b = true as const }
+
+	const phases: Array<{ phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: { token: string, ok: boolean, durationMs: number, timedOut?: boolean }[] }> = []
+
+	const app = new Orchestrator(new Container(), {
+		tracer: {
+			onLayers: () => {},
+			onPhase: p => phases.push(p),
+		},
+	})
+
+	// Layer 0: A only (non-Lifecycle) -> no outcomes
+	app.register(A, { useValue: { a: true } })
+	// Layer 1: B depends on A (Lifecycle) -> outcomes present
+	app.register(B, { useFactory: () => new BImpl() }, [A])
+
+	await app.start()
+	try {
+		assert.equal(phases.length > 0, true)
+		const startPhases = phases.filter(p => p.phase === 'start')
+		// Should have only one start phase entry for layer 1 (layer 0 had no outcomes)
+		assert.equal(startPhases.length, 1)
+		assert.equal(startPhases[0]?.layer, 1)
+		assert.equal(Array.isArray(startPhases[0]?.outcomes), true)
+		assert.equal((startPhases[0]?.outcomes?.length ?? 0) > 0, true)
+	}
+	finally {
+		await app.destroy()
+	}
+})
+
+test('per-layer concurrency limit caps start parallelism', async () => {
+	class ConcurrencyProbe extends Adapter {
+		static activeStart = 0; static peakStart = 0
+		constructor(private readonly delayMs: number) { super() }
+		protected async onStart() {
+			ConcurrencyProbe.activeStart++
+			ConcurrencyProbe.peakStart = Math.max(ConcurrencyProbe.peakStart, ConcurrencyProbe.activeStart)
+			await new Promise(r => setTimeout(r, this.delayMs))
+			ConcurrencyProbe.activeStart--
+		}
+	}
+	ConcurrencyProbe.activeStart = 0
+	ConcurrencyProbe.peakStart = 0
+	const T1 = createToken<ConcurrencyProbe>('CC1')
+	const T2 = createToken<ConcurrencyProbe>('CC2')
+	const T3 = createToken<ConcurrencyProbe>('CC3')
+	const T4 = createToken<ConcurrencyProbe>('CC4')
+	const app = new Orchestrator(new Container(), { concurrency: 2 })
+	await app.start([
+		register(T1, { useFactory: () => new ConcurrencyProbe(20) }),
+		register(T2, { useFactory: () => new ConcurrencyProbe(20) }),
+		register(T3, { useFactory: () => new ConcurrencyProbe(20) }),
+		register(T4, { useFactory: () => new ConcurrencyProbe(20) }),
+	])
+	assert.ok(ConcurrencyProbe.peakStart <= 2)
+	await app.destroy()
+})
+
+test('per-layer concurrency limit caps stop and destroy parallelism', async () => {
+	class ConcurrencyProbe extends Adapter {
+		static activeStop = 0; static peakStop = 0
+		static activeDestroy = 0; static peakDestroy = 0
+		constructor(private readonly delayMs: number) { super() }
+		protected async onStop() {
+			ConcurrencyProbe.activeStop++
+			ConcurrencyProbe.peakStop = Math.max(ConcurrencyProbe.peakStop, ConcurrencyProbe.activeStop)
+			await new Promise(r => setTimeout(r, this.delayMs))
+			ConcurrencyProbe.activeStop--
+		}
+
+		protected async onDestroy() {
+			ConcurrencyProbe.activeDestroy++
+			ConcurrencyProbe.peakDestroy = Math.max(ConcurrencyProbe.peakDestroy, ConcurrencyProbe.activeDestroy)
+			await new Promise(r => setTimeout(r, this.delayMs))
+			ConcurrencyProbe.activeDestroy--
+		}
+	}
+	ConcurrencyProbe.activeStop = 0
+	ConcurrencyProbe.peakStop = 0
+	ConcurrencyProbe.activeDestroy = 0
+	ConcurrencyProbe.peakDestroy = 0
+	const T1 = createToken<ConcurrencyProbe>('CD1')
+	const T2 = createToken<ConcurrencyProbe>('CD2')
+	const T3 = createToken<ConcurrencyProbe>('CD3')
+	const T4 = createToken<ConcurrencyProbe>('CD4')
+	const app = new Orchestrator(new Container(), { concurrency: 2 })
+	await app.start([
+		register(T1, { useFactory: () => new ConcurrencyProbe(20) }),
+		register(T2, { useFactory: () => new ConcurrencyProbe(20) }),
+		register(T3, { useFactory: () => new ConcurrencyProbe(20) }),
+		register(T4, { useFactory: () => new ConcurrencyProbe(20) }),
+	])
+	await app.stop().catch(() => {})
+	assert.ok(ConcurrencyProbe.peakStop <= 2)
+	// restart to get to destroy phase (start components again then destroy)
+	await app.start().catch(() => {})
+	await app.destroy().catch(() => {})
+	assert.ok(ConcurrencyProbe.peakDestroy <= 2)
+})
+
+// ---------------------------
+// Property-based tests (random DAGs)
+// ---------------------------
+
+// Tiny seeded PRNG (LCG) for deterministic runs without deps
+function makeRng(seed: number) {
+	let s = seed >>> 0
+	return {
+		nextU32() {
+			s = (s * 1664525 + 1013904223) >>> 0
+			return s
+		},
+		next() { return (this.nextU32() & 0xffffffff) / 0x100000000 },
+		rangeInt(min: number, max: number) { // inclusive min, inclusive max
+			const r = this.next()
+			return Math.floor(min + r * (max - min + 1))
+		},
+		chance(p: number) { return this.next() < p },
+		shuffle<T>(arr: T[]): T[] {
+			for (let i = arr.length - 1; i > 0; i--) {
+				const j = this.rangeInt(0, i)
+				const t = arr[i]
+				arr[i] = arr[j]
+				arr[j] = t
+			}
+			return arr
+		},
+	}
+}
+
+// Build a random DAG with N nodes. We add edges i->j only for i<j to ensure acyclic.
+function buildRandomDag(rng: ReturnType<typeof makeRng>) {
+	const n = rng.rangeInt(3, 8)
+	const nodes = Array.from({ length: n }, (_, i) => i)
+	const edges: Array<[number, number]> = []
+	for (let i = 0; i < n; i++) {
+		for (let j = i + 1; j < n; j++) {
+			// Edge probability tuned to keep graphs moderately connected but quick
+			if (rng.chance(0.3)) edges.push([i, j])
+		}
+	}
+	// Shuffle a label mapping so the token names don't always align with indices
+	const labels = rng.shuffle(nodes.slice())
+	return { n, edges, labels }
+}
+
+// Simple component that records start/stop order
+function makeRecorder() {
+	let counter = 0
+	class Recorder extends Adapter {
+		public startedAt: number | null = null
+		public stoppedAt: number | null = null
+		protected async onStart(): Promise<void> { this.startedAt = counter++ }
+		protected async onStop(): Promise<void> { this.stoppedAt = counter++ }
+	}
+	return { Recorder, getCounter: () => counter }
+}
+
+// Failing component for rollback scenarios
+class FailingOnStart extends Adapter {
+	protected async onStart(): Promise<void> {
+		throw new Error('fail-start')
+	}
+}
+
+function topoChecks(started: number[], stopped: number[], edges: Array<[number, number]>) {
+	// For every edge u->v, started[u] < started[v]
+	for (const [u, v] of edges) {
+		assert.ok(started[u] < started[v], `start order violated for edge ${u}->${v}: ${started[u]} !< ${started[v]}`)
+	}
+	// For every edge u->v, stopped[v] < stopped[u] (reverse order)
+	for (const [u, v] of edges) {
+		assert.ok(stopped[v] < stopped[u], `stop order violated for edge ${u}->${v}: ${stopped[v]} !< ${stopped[u]}`)
+	}
+}
+
+test('property: random DAGs respect topological start/stop order', async () => {
+	const seeds = [1, 2, 3, 123456, 987654321]
+	for (const seed of seeds) {
+		const rng = makeRng(seed)
+		for (let iter = 0; iter < 5; iter++) {
+			const { n, edges, labels } = buildRandomDag(rng)
+			const { Recorder } = makeRecorder()
+			const tokens = Array.from({ length: n }, (_, i) => createToken<InstanceType<typeof Recorder>>(`N${labels[i]}`))
+			const instances = Array.from({ length: n }, () => new Recorder())
+			const c = new Container()
+			const app = new Orchestrator(c)
+			// Register with dependencies derived from edges
+			const depsFor = (idx: number) => edges.filter(([_, v]) => v === idx).map(([u]) => tokens[u])
+			for (let i = 0; i < n; i++) app.register(tokens[i], { useValue: instances[i] }, depsFor(i))
+			await app.start()
+			const started = instances.map(x => x.startedAt as number)
+			await app.stop()
+			const stopped = instances.map(x => x.stoppedAt as number)
+			topoChecks(started, stopped, edges)
+			await app.destroy()
+		}
+	}
+})
+
+// On a failure during start, all previously started components must be stopped (rolled back)
+test('property: rollback stops all previously started components on failure', async () => {
+	const rng = makeRng(42)
+	for (let iter = 0; iter < 10; iter++) {
+		const { n, edges } = buildRandomDag(rng)
+		const { Recorder } = makeRecorder()
+		const tokens = Array.from({ length: n }, (_, i) => createToken<Adapter>(`X${i}`))
+		const instances: Adapter[] = Array.from({ length: n }, () => new Recorder())
+		// Ensure at least one edge exists; if not, add a simple edge 0->1 when possible
+		let edgeList: Array<[number, number]> = edges.slice()
+		if (edgeList.length === 0) {
+			if (n >= 2) edgeList = [[0, 1]]
+			else continue // degenerate graph; skip iteration
+		}
+		// Pick a concrete edge and force the target node to fail on start
+		const pick = rng.rangeInt(0, edgeList.length - 1)
+		const chosen = edgeList[pick]
+		if (!chosen) continue // safety guard
+		const [_, v] = chosen
+		instances[v] = new FailingOnStart()
+		const c = new Container()
+		const app = new Orchestrator(c)
+		const depsFor = (idx: number) => edgeList.filter(([_, dst]) => dst === idx).map(([src]) => tokens[src])
+		for (let i = 0; i < n; i++) app.register(tokens[i], { useValue: instances[i] }, depsFor(i))
+		let err: unknown
+		try {
+			await app.start()
+		}
+		catch (e) { err = e }
+		assert.ok(err instanceof Error, 'start should fail')
+		// Every Recorder that started must have been stopped by rollback
+		for (let i = 0; i < n; i++) {
+			const inst = instances[i]
+			if (inst instanceof Recorder) {
+				const started = (inst.startedAt as number) ?? null
+				if (started !== null) {
+					assert.notEqual(inst.stoppedAt, null, `node ${i} started but was not stopped during rollback`)
+				}
+			}
+		}
+		// cleanup (no-op if destroy already happened)
+		await app.destroy().catch(() => {})
+	}
+})
+
+test('register helper supports useClass with tuple inject', async () => {
+	interface LPort { info(msg: string): void }
+	const TLOG = createToken<LPort>('Reg:LOG')
+	const TCFG = createToken<{ n: number }>('Reg:CFG')
+	class L implements LPort { info(_m: string) {} }
+	class WithDeps extends Adapter {
+		constructor(public readonly l: LPort, public readonly cfg: { n: number }) { super() }
+	}
+	const c = new Container()
+	const app = new Orchestrator(c)
+	await app.start([
+		register(TLOG, { useClass: L }),
+		register(TCFG, { useValue: { n: 1 } }),
+		register(createToken<WithDeps>('Reg:WITH'), { useClass: WithDeps, inject: [TLOG, TCFG] }, { dependencies: [TLOG, TCFG] }),
+	])
+	await app.destroy()
+})
+
+test('start accepts direct useClass with tuple inject in registration object', async () => {
+	interface LPort { info(msg: string): void }
+	const TLOG = createToken<LPort>('Start:LOG')
+	const TCFG = createToken<{ n: number }>('Start:CFG')
+	class L implements LPort { info(_m: string) {} }
+	class WithDeps extends Adapter {
+		constructor(public readonly l: LPort, public readonly cfg: { n: number }) { super() }
+	}
+	const c = new Container()
+	const app = new Orchestrator(c)
+	await app.start([
+		{ token: TLOG, provider: { useClass: L } },
+		{ token: TCFG, provider: { useValue: { n: 2 } } },
+		{ token: createToken<WithDeps>('Start:WITH'), provider: { useClass: WithDeps, inject: [TLOG, TCFG] }, dependencies: [TLOG, TCFG] },
+	])
+	await app.destroy()
+})

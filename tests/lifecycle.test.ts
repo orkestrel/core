@@ -86,3 +86,30 @@ test('onTransition timeout is treated like the main hook and surfaces as Timeout
 	await assert.rejects(() => lc.start(), /timed out/)
 	assert.equal(lc.state, 'created')
 })
+
+test('stateChange is not emitted twice for created->created on create()', async () => {
+	const events: LifecycleState[] = []
+	class L extends Lifecycle { protected async onCreate(): Promise<void> { /* no-op */ } }
+	const lc = new L({ hookTimeoutMs: 20 })
+	lc.on('stateChange', s => events.push(s))
+	// allow initial microtask to flush
+	await new Promise(r => setTimeout(r, 0))
+	assert.deepEqual(events, ['created'])
+	await lc.create()
+	// no new event for created->created
+	await new Promise(r => setTimeout(r, 0))
+	assert.deepEqual(events, ['created'])
+})
+
+test('emitInitialState=false suppresses the initial stateChange event', async () => {
+	const events: LifecycleState[] = []
+	class L extends Lifecycle { protected async onStart(): Promise<void> { /* no-op */ } }
+	const lc = new L({ hookTimeoutMs: 20, emitInitialState: false })
+	lc.on('stateChange', s => events.push(s))
+	// initial should not fire
+	await new Promise(r => setTimeout(r, 0))
+	assert.deepEqual(events, [])
+	await lc.start()
+	await new Promise(r => setTimeout(r, 0))
+	assert.deepEqual(events, ['started'])
+})

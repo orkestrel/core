@@ -8,9 +8,10 @@ Contents
 - Events for telemetry
 - Explicit dependencies
 - Explicit injection (no decorators)
+- Inject vs Dependencies (what’s the difference?)
 - Request/Job scopes
 - Manager pattern (many instances/transients)
-- Fine-grained control (register + startAll)
+- Fine-grained control (register + start)
 - Helpers vs explicit DI
 - Locking providers (guard your wiring)
 
@@ -27,7 +28,7 @@ const app = new Orchestrator(c)
 
 const regs: OrchestratorRegistration<unknown>[] = [
   { token: Ports.logger, provider: { useFactory: () => new Logger() } },
-  { token: Ports.email, provider: { useFactory: c => new Email(c.resolve(Ports.logger)) }, dependencies: [Ports.logger] },
+  { token: Ports.email, provider: { useFactory: cc => new Email(cc.resolve(Ports.logger)) }, dependencies: [Ports.logger] },
 ]
 await app.start(regs)
 ```
@@ -44,7 +45,7 @@ await app.start([
   register(Ports.logger, { useFactory: () => new Logger() }),
   register(
     Ports.email,
-    { useFactory: c => new Email(c.resolve(Ports.logger)) },
+    { useFactory: cc => new Email(cc.resolve(Ports.logger)) },
     { dependencies: { log: Ports.logger }, timeouts: { onStart: 5000 } }
   ),
 ])
@@ -54,7 +55,7 @@ Inline form (equivalent):
 ```ts
 await app.start([
   { token: Ports.logger, provider: { useFactory: () => new Logger() } },
-  { token: Ports.email, provider: { useFactory: c => new Email(c.resolve(Ports.logger)) }, dependencies: [Ports.logger], timeouts: { onStart: 5000 } },
+  { token: Ports.email, provider: { useFactory: cc => new Email(cc.resolve(Ports.logger)) }, dependencies: [Ports.logger], timeouts: { onStart: 5000 } },
 ])
 ```
 
@@ -119,7 +120,7 @@ container().register(Ports.bus, {
   inject: [Ports.config, Ports.logger],
 })
 
-// Class that takes the Container explicitly
+// Class that takes the Container explicitly (arity-based)
 class NeedsContainer {
   constructor(private readonly c: Container) {}
   get logger() { return this.c.resolve(Ports.logger) }
@@ -130,6 +131,16 @@ container().register(Ports.needsContainer, { useClass: NeedsContainer })
 Notes
 - Injection is opt-in and explicit. There are no decorators.
 - Providers remain strictly synchronous; perform async work in lifecycle hooks.
+
+## Inject vs Dependencies (what’s the difference?)
+- inject (on the provider) tells the Container HOW to pass dependencies into your factory/constructor. It resolves the listed tokens and provides them as arguments.
+- dependencies (on the orchestrator registration) tells the Orchestrator WHICH other tokens must be started first. It affects lifecycle order and error rollback, but is never passed as arguments.
+
+Guidance
+- If your provider needs other tokens to construct, use `inject` for compile-time safety and ergonomics.
+- If your component has a lifecycle and must start after certain tokens, list them in `dependencies` for deterministic startup/teardown.
+- These are complementary: it’s common to use both for the same component (inject for construction, dependencies for lifecycle order).
+- The orchestrator does not infer `dependencies` from `inject`. Declare lifecycle edges explicitly.
 
 ## Request/Job Scopes
 Source: [src/container.ts](../src/container.ts)
@@ -177,14 +188,14 @@ Guidance
 - Concurrency: prefer batching or a small limiter inside the manager (keep core orchestrator simple by default).
 - Telemetry: inject logger/metrics ports and add useful context (child id, timings) inside the manager.
 
-## Fine-grained control (register + startAll)
+## Fine-grained control (register + start)
 Source: [src/orchestrator.ts](../src/orchestrator.ts)
 - Use when you need incremental wiring or custom ordering for tests.
 
 ```ts
 app.register(Ports.logger, { useFactory: () => new Logger() })
-app.register(Ports.email, { useFactory: c => new Email(c.resolve(Ports.logger)) }, [Ports.logger])
-await app.startAll()
+app.register(Ports.email, { useClass: Email, inject: [Ports.logger] }, [Ports.logger])
+await app.start()
 ```
 
 ## Helpers vs Explicit DI

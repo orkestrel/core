@@ -19,10 +19,9 @@ test('service starts and stops', async () => {
   const c = new Container()
   const app = new Orchestrator(c)
   app.register(Svc, { useFactory: () => new Service() })
-  await app.startAll()
+  await app.start()
   assert.ok(c.resolve(Svc) instanceof Service)
-  await app.stopAll()
-  await app.destroyAll()
+  await app.destroy()
 })
 ```
 
@@ -32,7 +31,7 @@ You can also use the `register(...)` helper to build arrays for `start([...])`:
 import { register } from '@orkestrel/core'
 
 await app.start([
-    register(Svc, { useFactory: () => new Service() })
+  register(Svc, { useFactory: () => new Service() })
 ])
 ```
 
@@ -44,7 +43,7 @@ When batch operations fail, the orchestrator throws `AggregateLifecycleError` wi
 import type { AggregateLifecycleError } from '@orkestrel/core'
 
 try {
-  await app.stopAll()
+  await app.stop()
 } catch (e) {
   const agg = e as AggregateLifecycleError
   // details contain per-component telemetry

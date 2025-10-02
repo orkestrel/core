@@ -20,7 +20,7 @@ Source: [src/diagnostics.ts](../src/diagnostics.ts)
 
 ### Codes
 - ORK1001–ORK1006 Registry/Container errors
-- ORK1007–ORK1016 Orchestrator/Container aggregate and guard errors
+- ORK1007–ORK1017 Orchestrator/Container aggregate and guard errors
 - ORK1020 Lifecycle invalid transition
 - ORK1021 Lifecycle hook timeout
 - ORK1099 Internal invariant
@@ -241,15 +241,19 @@ Source: [src/orchestrator.ts](../src/orchestrator.ts)
 - Methods:
   - `getContainer(): Container`
   - `register<T>(...)`
-  - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>`
-  - `startAll(): Promise<void>`
-  - `stopAll(): Promise<void>`
-  - `destroyAll(): Promise<void>`
+  - `start(regs: OrchestratorRegistration<unknown>[]): Promise<void>` — registers any provided components and starts all lifecycles in dependency order; aggregates errors with code ORK1013
+  - `stop(): Promise<void>` — stops all started components in reverse dependency order; aggregates errors with code ORK1014
+  - `destroy(): Promise<void>` — stops any started components as needed, then destroys all lifecycles in reverse dependency order; aggregates errors with code ORK1017; finally destroys the container
 
 ### helper: register
 - Overloads:
   - `register<T>(token: Token<T>, provider: Provider<T>): OrchestratorRegistration<T>`
   - `register<T>(token: Token<T>, provider: Provider<T>, options: { dependencies?: Token<unknown>[] | Record<string, Token<unknown>>, timeouts?: { onStart?: number, onStop?: number, onDestroy?: number } }): OrchestratorRegistration<T>`
+
+### Inject vs Dependencies
+- `inject` is part of the provider and tells the Container how to supply constructor/factory arguments by resolving tokens.
+- `dependencies` is part of the orchestrator registration and tells the Orchestrator which tokens must be started before this one. It influences lifecycle ordering and rollback, not function parameters.
+- These are complementary; you will often use both. The orchestrator doesn’t infer `dependencies` from `inject`.
 
 ### global helper: orchestrator
 Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)

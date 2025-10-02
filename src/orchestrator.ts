@@ -55,7 +55,8 @@ export class Orchestrator {
 		this.layers = null
 	}
 
-	async start(regs: OrchestratorRegistration<unknown>[]): Promise<void> {
+	async start(regs: OrchestratorRegistration<unknown>[] = []): Promise<void> {
+		// Register any provided components first
 		for (const e of regs) {
 			const deps = e.dependencies ?? []
 			if (this.nodes.has(e.token.key)) throw D.duplicateRegistration(e.token.description)
@@ -64,7 +65,64 @@ export class Orchestrator {
 			this.container.register(e.token, guarded)
 		}
 		this.layers = null
-		await this.startAll()
+		// Start all components in dependency order (previously startAll)
+		const layers = this.topoLayers()
+		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
+		for (const layer of layers) {
+			const tasks: { token: Token<unknown>, lc: Lifecycle, timeoutMs?: number, promise: Promise<{ ok: true, durationMs: number } | { ok: false, durationMs: number, error: Error, timedOut: boolean }> }[] = []
+			for (const tk of layer) {
+				const inst = this.container.get(tk)
+				if (inst instanceof Lifecycle && inst.state === 'created') {
+					const timeoutMs = this.getTimeout(tk, 'start')
+					tasks.push({ token: tk, lc: inst, timeoutMs, promise: this.runPhase(inst, 'start', timeoutMs) })
+				}
+				else if (inst instanceof Lifecycle && inst.state === 'started') {
+					startedOrder.push({ token: tk, lc: inst })
+				}
+			}
+			const results = await Promise.all(tasks.map(t => t.promise.then(r => ({ t, r }))))
+			const failures: LifecycleErrorDetail[] = []
+			const successes: { token: Token<unknown>, lc: Lifecycle, durationMs: number }[] = []
+			for (const { t, r } of results) {
+				if (r.ok) {
+					successes.push({ token: t.token, lc: t.lc, durationMs: r.durationMs })
+					this.events?.onComponentStart?.({ token: t.token, durationMs: r.durationMs })
+				}
+				else {
+					const detail = D.makeDetail(t.token, 'start', 'normal', r)
+					failures.push(detail)
+					this.events?.onComponentError?.(detail)
+				}
+			}
+			if (failures.length > 0) {
+				const toStop = [...startedOrder, ...successes].reverse()
+				const rollbackErrors: LifecycleErrorDetail[] = []
+				for (const batch of this.groupByLayerOrder(toStop.map(x => x.token))) {
+					const stopTasks: Promise<LifecycleErrorDetail | undefined>[] = []
+					for (const tk of batch) {
+						const lc2 = this.container.get(tk)
+						if (lc2 instanceof Lifecycle && lc2.state === 'started') {
+							const timeoutMs = this.getTimeout(tk, 'stop')
+							stopTasks.push(this.runPhase(lc2, 'stop', timeoutMs).then((r) => {
+								if (!r.ok) {
+									const d = D.makeDetail(tk, 'stop', 'rollback', r)
+									this.events?.onComponentError?.(d)
+									return d
+								}
+								else {
+									this.events?.onComponentStop?.({ token: tk, durationMs: r.durationMs })
+								}
+							}))
+						}
+					}
+					const settled = await Promise.all(stopTasks)
+					for (const d of settled) if (d) rollbackErrors.push(d)
+				}
+				const agg = D.startAggregate()
+				throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, [...failures, ...rollbackErrors])
+			}
+			for (const s of successes) startedOrder.push({ token: s.token, lc: s.lc })
+		}
 	}
 
 	private now(): number {
@@ -176,66 +234,6 @@ export class Orchestrator {
 		return fromNode ?? fromDefault
 	}
 
-	async startAll(): Promise<void> {
-		const layers = this.topoLayers()
-		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
-		for (const layer of layers) {
-			const tasks: { token: Token<unknown>, lc: Lifecycle, timeoutMs?: number, promise: Promise<{ ok: true, durationMs: number } | { ok: false, durationMs: number, error: Error, timedOut: boolean }> }[] = []
-			for (const tk of layer) {
-				const inst = this.container.get(tk)
-				if (inst instanceof Lifecycle && inst.state === 'created') {
-					const timeoutMs = this.getTimeout(tk, 'start')
-					tasks.push({ token: tk, lc: inst, timeoutMs, promise: this.runPhase(inst, 'start', timeoutMs) })
-				}
-				else if (inst instanceof Lifecycle && inst.state === 'started') {
-					startedOrder.push({ token: tk, lc: inst })
-				}
-			}
-			const results = await Promise.all(tasks.map(t => t.promise.then(r => ({ t, r }))))
-			const failures: LifecycleErrorDetail[] = []
-			const successes: { token: Token<unknown>, lc: Lifecycle, durationMs: number }[] = []
-			for (const { t, r } of results) {
-				if (r.ok) {
-					successes.push({ token: t.token, lc: t.lc, durationMs: r.durationMs })
-					this.events?.onComponentStart?.({ token: t.token, durationMs: r.durationMs })
-				}
-				else {
-					const detail = D.makeDetail(t.token, 'start', 'normal', r)
-					failures.push(detail)
-					this.events?.onComponentError?.(detail)
-				}
-			}
-			if (failures.length > 0) {
-				const toStop = [...startedOrder, ...successes].reverse()
-				const rollbackErrors: LifecycleErrorDetail[] = []
-				for (const batch of this.groupByLayerOrder(toStop.map(x => x.token))) {
-					const stopTasks: Promise<LifecycleErrorDetail | undefined>[] = []
-					for (const tk of batch) {
-						const lc2 = this.container.get(tk)
-						if (lc2 instanceof Lifecycle && lc2.state === 'started') {
-							const timeoutMs = this.getTimeout(tk, 'stop')
-							stopTasks.push(this.runPhase(lc2, 'stop', timeoutMs).then((r) => {
-								if (!r.ok) {
-									const d = D.makeDetail(tk, 'stop', 'rollback', r)
-									this.events?.onComponentError?.(d)
-									return d
-								}
-								else {
-									this.events?.onComponentStop?.({ token: tk, durationMs: r.durationMs })
-								}
-							}))
-						}
-					}
-					const settled = await Promise.all(stopTasks)
-					for (const d of settled) if (d) rollbackErrors.push(d)
-				}
-				const agg = D.startAllAggregate()
-				throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, [...failures, ...rollbackErrors])
-			}
-			for (const s of successes) startedOrder.push({ token: s.token, lc: s.lc })
-		}
-	}
-
 	private groupByLayerOrder(tokens: Token<unknown>[]): Token<unknown>[][] {
 		const layerIndex = new Map<symbol, number>()
 		const layers = this.topoLayers()
@@ -251,7 +249,7 @@ export class Orchestrator {
 		return Array.from(groups.entries()).sort((a, b) => b[0] - a[0]).map(([, arr]) => arr)
 	}
 
-	async stopAll(): Promise<void> {
+	async stop(): Promise<void> {
 		const layers = this.topoLayers().slice().reverse()
 		const errors: LifecycleErrorDetail[] = []
 		for (const layer of layers) {
@@ -275,34 +273,56 @@ export class Orchestrator {
 			for (const d of settled) if (d) errors.push(d)
 		}
 		if (errors.length) {
-			const agg = D.stopAllAggregate()
+			const agg = D.stopAggregate()
 			throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
 		}
 	}
 
-	async destroyAll(): Promise<void> {
+	// Consolidated destroy: single pass — stop if started, then destroy; finally destroy container
+	async destroy(): Promise<void> {
 		const layers = this.topoLayers().slice().reverse()
 		const errors: LifecycleErrorDetail[] = []
 		for (const layer of layers) {
-			const tasks: Promise<LifecycleErrorDetail | undefined>[] = []
+			const tasks: Promise<LifecycleErrorDetail[] | undefined>[] = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
-				if (inst instanceof Lifecycle && inst.state !== 'destroyed') {
-					const timeoutMs = this.getTimeout(tk, 'destroy')
-					tasks.push(this.runPhase(inst, 'destroy', timeoutMs).then((r) => {
+				if (!(inst instanceof Lifecycle)) continue
+				if (inst.state === 'destroyed') continue
+				const stopTimeout = this.getTimeout(tk, 'stop')
+				const destroyTimeout = this.getTimeout(tk, 'destroy')
+				tasks.push((async () => {
+					const localErrors: LifecycleErrorDetail[] = []
+					// Stop if needed
+					if (inst.state === 'started') {
+						const r = await this.runPhase(inst, 'stop', stopTimeout)
 						if (r.ok) {
-							this.events?.onComponentDestroy?.({ token: tk, durationMs: r.durationMs })
-							return undefined
+							this.events?.onComponentStop?.({ token: tk, durationMs: r.durationMs })
 						}
-						const d = D.makeDetail(tk, 'destroy', 'normal', r)
-						this.events?.onComponentError?.(d)
-						return d
-					}))
-				}
+						else {
+							const d = D.makeDetail(tk, 'stop', 'normal', r)
+							this.events?.onComponentError?.(d)
+							localErrors.push(d)
+						}
+					}
+					// Destroy if not already destroyed
+					if (inst.state !== 'destroyed') {
+						const r2 = await this.runPhase(inst, 'destroy', destroyTimeout)
+						if (r2.ok) {
+							this.events?.onComponentDestroy?.({ token: tk, durationMs: r2.durationMs })
+						}
+						else {
+							const d2 = D.makeDetail(tk, 'destroy', 'normal', r2)
+							this.events?.onComponentError?.(d2)
+							localErrors.push(d2)
+						}
+					}
+					return localErrors.length ? localErrors : undefined
+				})())
 			}
 			const settled = await Promise.all(tasks)
-			for (const d of settled) if (d) errors.push(d)
+			for (const arr of settled) if (arr) errors.push(...arr)
 		}
+		// Finally, destroy the container and collect its errors
 		try {
 			await this.container.destroy()
 		}
@@ -315,7 +335,7 @@ export class Orchestrator {
 			}
 		}
 		if (errors.length) {
-			const agg = D.destroyAllAggregate()
+			const agg = D.destroyAggregate()
 			throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
 		}
 	}

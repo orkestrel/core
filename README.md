@@ -52,8 +52,8 @@ await orchestrator().start([
 4) Use and cleanup
 ```ts
 await container().resolve(Ports.email).send('me@example.com', 'Hi', 'Welcome!')
-await orchestrator().stopAll()
-await orchestrator().destroyAll()
+// Single-call shutdown: destroy() will stop components as needed, then destroy
+await orchestrator().destroy()
 ```
 
 ## Mental model (at a glance)

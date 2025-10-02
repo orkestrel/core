@@ -21,7 +21,7 @@
   - ORK1008 Unknown dependency (you referenced a token that wasn’t registered)
   - ORK1009 Cycle detected (A depends on B depends on A)
   - ORK1010/1011/1012 Async provider guard (keep async in lifecycle hooks, not providers)
-  - ORK1013/1014/1015 Aggregated start/stop/destroy errors
+  - ORK1013/1014/1017 Aggregated start/stop/destroy errors
   - ORK1016 Errors during container destroy
   - ORK1020 Invalid lifecycle transition (called start/stop/destroy out of order)
   - ORK1021 Lifecycle hook timeout (hook took longer than allowed)
@@ -29,7 +29,7 @@
 Quick example: catching aggregated errors
 ```ts
 try {
-  await app.stopAll()
+  await app.stop()
 } catch (e) {
   if (e instanceof AggregateLifecycleError) {
     for (const d of e.details) {

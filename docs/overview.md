@@ -22,6 +22,16 @@ Defaults and helpers
 Resolve vs Get
 - `resolve(token | map)` is strict and throws if a token is missing; `get(token | map)` is optional and returns `undefined` for missing tokens.
 
+Inject vs Dependencies (at a glance)
+- `inject` (provider-level) tells the Container how to pass constructor/factory arguments by resolving tokens.
+- `dependencies` (orchestrator-level) tells the Orchestrator which tokens must start first; it affects lifecycle ordering and rollback.
+- They’re complementary; use both for the same component when needed. The orchestrator doesn’t infer `dependencies` from `inject`.
+
+Diagnostics & Errors
+- All framework errors include stable codes like `[Orkestrel][ORK####] Message…` and often a short help link.
+- Aggregated lifecycle failures throw an `AggregateLifecycleError` with per-component details.
+- See: API diagnostics section and Tips → Diagnostics.
+
 Startup
 - See [Start](./start.md) for the canonical boot pattern, and [Patterns](./patterns.md) for alternatives and when to use them.
 

@@ -1,4 +1,4 @@
-import { Lifecycle, container, orchestrator, type Container as IContainer, type OrchestratorRegistration } from '@orkestrel/core'
+import { Lifecycle, container, orchestrator, type OrchestratorRegistration } from '@orkestrel/core'
 import { Ports, type LoggerPort, type EmailPort, type ClockPort, type AppConfig } from './infra/ports.js'
 import { userRegistrations, createDemoUser } from './modules/user.js'
 
@@ -36,9 +36,9 @@ class ConsoleEmail extends Lifecycle implements EmailPort {
 // Prefer start([...]) at the app entry: declare infra + module registrations
 const infra: OrchestratorRegistration<unknown>[] = [
 	{ token: Ports.config, provider: { useValue: { appName: 'Acme', supportEmail: 'support@acme.test' } satisfies AppConfig } },
-	{ token: Ports.clock, provider: { useFactory: () => new SystemClock() } },
-	{ token: Ports.logger, provider: { useFactory: () => new ConsoleLogger() } },
-	{ token: Ports.email, provider: { useFactory: (c: IContainer) => new ConsoleEmail(c.resolve(Ports.logger)) }, dependencies: [Ports.logger] },
+	{ token: Ports.clock, provider: { useClass: SystemClock } },
+	{ token: Ports.logger, provider: { useClass: ConsoleLogger } },
+	{ token: Ports.email, provider: { useClass: ConsoleEmail, inject: [Ports.logger] }, dependencies: [Ports.logger] },
 ]
 
 const regs = [...infra, ...userRegistrations()]
@@ -57,6 +57,5 @@ try {
 	await createDemoUser(t => container().resolve(t))
 }
 finally {
-	await orchestrator().stopAll()
-	await orchestrator().destroyAll()
+	await orchestrator().destroy()
 }

@@ -1,6 +1,6 @@
 {
   "name": "@orkestrel/core",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire implementations via a tiny DI container, and drive lifecycles deterministically with an orchestrator.",
   "type": "module",
   "main": "dist/index.js",

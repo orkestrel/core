@@ -17,6 +17,7 @@ export type OrkCode
 		| 'ORK1014' // Orchestrator: Errors during stopAll
 		| 'ORK1015' // Orchestrator: Errors during destroyAll
 		| 'ORK1016' // Container: Errors during container destroy
+		| 'ORK1017' // Orchestrator: Errors during destroy (consolidated stop+destroy)
 		| 'ORK1020' // Lifecycle: invalid transition
 		| 'ORK1021' // Lifecycle: hook timed out
 		| 'ORK1099' // Internal invariant
@@ -72,10 +73,10 @@ export const D = {
 	asyncUseFactoryAsync: (tokenDesc: string) => makeError('ORK1011', `Async providers are not supported: useFactory for token '${tokenDesc}' is an async function. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, HELP.providers),
 	asyncUseFactoryPromise: (tokenDesc: string) => makeError('ORK1012', `Async providers are not supported: useFactory for token '${tokenDesc}' returned a Promise. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, HELP.providers),
 
-	startAllAggregate: () => ({ code: 'ORK1013' as const, message: formatMessage('ORK1013', 'Errors during startAll'), helpUrl: HELP.errors }),
-	stopAllAggregate: () => ({ code: 'ORK1014' as const, message: formatMessage('ORK1014', 'Errors during stopAll'), helpUrl: HELP.errors }),
-	destroyAllAggregate: () => ({ code: 'ORK1015' as const, message: formatMessage('ORK1015', 'Errors during destroyAll'), helpUrl: HELP.errors }),
+	startAggregate: () => ({ code: 'ORK1013' as const, message: formatMessage('ORK1013', 'Errors during start'), helpUrl: HELP.errors }),
+	stopAggregate: () => ({ code: 'ORK1014' as const, message: formatMessage('ORK1014', 'Errors during stop'), helpUrl: HELP.errors }),
 	containerDestroyAggregate: () => ({ code: 'ORK1016' as const, message: formatMessage('ORK1016', 'Errors during container destroy'), helpUrl: HELP.errors }),
+	destroyAggregate: () => ({ code: 'ORK1017' as const, message: formatMessage('ORK1017', 'Errors during destroy'), helpUrl: HELP.errors }),
 
 	invariantMissingNode: () => makeError('ORK1099', 'Invariant: missing node entry'),
 

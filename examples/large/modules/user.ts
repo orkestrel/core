@@ -1,4 +1,4 @@
-import type { OrchestratorRegistration, Container } from '@orkestrel/core'
+import type { OrchestratorRegistration } from '@orkestrel/core'
 import { type EmailPort, type LoggerPort, type UserServicePort, Ports } from '../infra/ports.js'
 
 class DefaultUserService implements UserServicePort {
@@ -20,7 +20,7 @@ export function userRegistrations(): OrchestratorRegistration<unknown>[] {
 	return [
 		{
 			token: Ports.userService,
-			provider: { useFactory: (c: Container) => new DefaultUserService(c.resolve(Ports.email), c.resolve(Ports.logger)) },
+			provider: { useClass: DefaultUserService, inject: [Ports.email, Ports.logger] },
 			dependencies: [Ports.email, Ports.logger],
 		},
 	]

@@ -18,8 +18,7 @@ test('createPortTokens creates a base token set and extendPorts merges new token
 	])
 	const email = orch.getContainer().resolve(Base.email)
 	assert.equal(typeof email.send, 'function')
-	await orch.stopAll()
-	await orch.destroyAll()
+	await orch.destroy()
 })
 
 test('extendPorts (single-arg) creates tokens from shape', () => {

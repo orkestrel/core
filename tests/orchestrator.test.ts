@@ -78,11 +78,11 @@ test('orchestrator starts components in topological order', async () => {
 	orch.register(A, { useValue: a })
 	orch.register(B, { useValue: b }, [A])
 	orch.register(C, { useValue: c }, [B])
-	await orch.startAll()
+	await orch.start()
 	assert.equal(a.startedAt, 0)
 	assert.equal(b.startedAt, 1)
 	assert.equal(c.startedAt, 2)
-	await orch.stopAll()
+	await orch.stop()
 	assert.ok((c.stoppedAt as number) < (b.stoppedAt as number))
 	assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
 })
@@ -96,7 +96,7 @@ test('orchestrator detects cycles', async () => {
 	const orch = new Orchestrator(new Container())
 	orch.register(A, { useValue: a }, [B])
 	orch.register(B, { useValue: b }, [A])
-	await assert.rejects(() => orch.startAll(), (err: unknown) => {
+	await assert.rejects(() => orch.start(), (err: unknown) => {
 		assert.ok(err instanceof Error)
 		assert.match((err as Error).message, /Cycle detected/)
 		// diagnostics prefix + code
@@ -121,7 +121,7 @@ test('orchestrator aggregates start errors', async () => {
 	const orch = new Orchestrator(new Container())
 	orch.register(GOOD, { useValue: good })
 	orch.register(BAD, { useValue: bad }, [GOOD])
-	await assert.rejects(async () => orch.startAll(), /Errors during startAll/)
+	await assert.rejects(async () => orch.start(), /Errors during start/)
 	assert.notEqual(good.startedAt, null)
 })
 
@@ -131,7 +131,7 @@ test('unknown dependency throws with context', async () => {
 	const a = new TestComponent('A')
 	const orch = new Orchestrator(new Container())
 	orch.register(A, { useValue: a }, [B])
-	await assert.rejects(() => orch.startAll(), (err: unknown) => {
+	await assert.rejects(() => orch.start(), (err: unknown) => {
 		assert.ok(err instanceof Error)
 		assert.match((err as Error).message, /Unknown dependency B required by A/)
 		assert.match((err as Error).message, /\[Orkestrel]\[ORK1008]/)
@@ -141,21 +141,21 @@ test('unknown dependency throws with context', async () => {
 	})
 })
 
-test('destroyAll aggregates errors from components and container', async () => {
+test('destroy aggregates errors from components and container', async () => {
 	const BAD = createToken<FailingDestroyComponent>('BAD')
 	const good = new TestComponent('GOOD')
 	const GOOD = createToken<TestComponent>('GOOD')
 	const orch = new Orchestrator(new Container())
 	orch.register(GOOD, { useValue: good })
 	orch.register(BAD, { useValue: new FailingDestroyComponent() })
-	await orch.startAll()
-	await orch.stopAll()
-	await assert.rejects(() => orch.destroyAll(), (err: unknown) => {
+	await orch.start()
+	await orch.stop()
+	await assert.rejects(() => orch.destroy(), (err: unknown) => {
 		assert.ok(err instanceof Error)
-		assert.match((err as Error).message, /Errors during destroyAll/)
-		assert.match((err as Error).message, /\[Orkestrel]\[ORK1015]/)
+		assert.match((err as Error).message, /Errors during destroy/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1017]/)
 		type WithDiag = Error & { code?: string }
-		assert.equal((err as WithDiag).code, 'ORK1015')
+		assert.equal((err as WithDiag).code, 'ORK1017')
 		return true
 	})
 })
@@ -176,7 +176,7 @@ test('orchestrator() helper supports default symbol and named string keys', asyn
 	assert.equal(orchestrator.clear('other', true), true)
 })
 
-test('startAll rollback stops previously started components on failure', async () => {
+test('start rollback stops previously started components on failure', async () => {
 	const A = createToken<Track>('A')
 	const B = createToken<Track>('B')
 	const X = createToken<FailingStartComponent>('X')
@@ -188,7 +188,7 @@ test('startAll rollback stops previously started components on failure', async (
 	orch.register(X, { useValue: new FailingStartComponent() }, [A])
 	let err: unknown
 	try {
-		await orch.startAll()
+		await orch.start()
 	}
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
@@ -208,7 +208,7 @@ test('per-lifecycle onStart timeout triggers failure with telemetry', async () =
 	}
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
-	assert.match((err as Error).message, /Errors during startAll/)
+	assert.match((err as Error).message, /Errors during start/)
 	assert.match((err as Error).message, /\[Orkestrel]\[ORK1013]/)
 	type WithDiag = Error & { code?: string }
 	assert.equal((err as WithDiag).code, 'ORK1013')
@@ -225,11 +225,11 @@ test('per-lifecycle onStop timeout triggers failure with telemetry', async () =>
 	await orch.start([{ token: SLOW_STOP, provider: { useFactory: () => new SlowStop(30) }, dependencies: [], timeouts: { onStop: 10 } }])
 	let err: unknown
 	try {
-		await orch.stopAll()
+		await orch.stop()
 	}
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
-	assert.match((err as Error).message, /Errors during stopAll/)
+	assert.match((err as Error).message, /Errors during stop/)
 	assert.match((err as Error).message, /\[Orkestrel]\[ORK1014]/)
 	type WithDiag2 = Error & { code?: string }
 	assert.equal((err as WithDiag2).code, 'ORK1014')
@@ -239,16 +239,16 @@ test('per-lifecycle onStop timeout triggers failure with telemetry', async () =>
 	assert.ok(details.some(d => d.error instanceof TimeoutError))
 })
 
-test('stopAll aggregates multiple stop failures', async () => {
+test('stop aggregates multiple stop failures', async () => {
 	const F1 = createToken<FailingStop>('F1')
 	const F2 = createToken<FailingStop>('F2')
 	const orch = new Orchestrator(new Container())
 	orch.register(F1, { useFactory: () => new FailingStop() })
 	orch.register(F2, { useFactory: () => new FailingStop() })
-	await orch.startAll()
-	await assert.rejects(() => orch.stopAll(), (err: unknown) => {
+	await orch.start()
+	await assert.rejects(() => orch.stop(), (err: unknown) => {
 		assert.ok(err instanceof Error)
-		assert.match((err as Error).message, /Errors during stopAll/)
+		assert.match((err as Error).message, /Errors during stop/)
 		assert.match((err as Error).message, /\[Orkestrel]\[ORK1014]/)
 		type WithDiag3 = Error & { code?: string }
 		assert.equal((err as WithDiag3).code, 'ORK1014')
@@ -297,8 +297,7 @@ test('register helper wires dependencies correctly', async () => {
 	// Ensure both are started and retrievable
 	assert.ok(c.get(TA) instanceof A)
 	assert.ok(c.get(TB) instanceof B)
-	await app.stopAll()
-	await app.destroyAll()
+	await app.destroy()
 })
 
 test('defaultTimeouts on orchestrator apply when register omits timeouts', async () => {
@@ -313,17 +312,17 @@ test('defaultTimeouts on orchestrator apply when register omits timeouts', async
 	await app.start([register(T, { useFactory: () => new SlowS() })])
 	let err: unknown
 	try {
-		await app.stopAll()
+		await app.stop()
 	}
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
-	assert.match((err as Error).message, /Errors during stopAll/)
+	assert.match((err as Error).message, /Errors during stop/)
 	const details = (err as AggregateLifecycleError).details
 	assert.ok(Array.isArray(details))
 	assert.ok(details.some(d => d.tokenDescription === 'SlowS' && d.phase === 'stop' && d.timedOut))
 	assert.ok(details.some(d => d.error instanceof TimeoutError))
 	// cleanup destroy to avoid dangling lifecycles
-	await app.destroyAll().catch(() => {})
+	await app.destroy().catch(() => {})
 })
 
 test('events callbacks are invoked for start/stop/destroy and errors', async () => {
@@ -355,13 +354,13 @@ test('events callbacks are invoked for start/stop/destroy and errors', async () 
 	assert.ok(events.starts.includes('OK') && events.starts.includes('BAD'))
 	let err: unknown
 	try {
-		await app.stopAll()
+		await app.stop()
 	}
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
 	assert.ok(events.stops.includes('OK'))
 	assert.ok(events.errors.some(e => e.startsWith('BAD:stop')))
-	await app.destroyAll().catch(() => {})
+	await app.destroy().catch(() => {})
 	// destroy callbacks should include both
 	assert.ok(events.destroys.includes('OK') && events.destroys.includes('BAD'))
 })
@@ -386,8 +385,7 @@ test('register supports dependencies map and dedup/self-filter', async () => {
 	assert.ok(a instanceof Cmp && b instanceof Cmp)
 	// Ensure dependency ordering: A starts before B
 	assert.ok((a.startedAt as number) < (b.startedAt as number))
-	await app.stopAll()
-	await app.destroyAll()
+	await app.destroy()
 })
 
 test('register options allow per-registration onStart timeout', async () => {
@@ -401,5 +399,55 @@ test('register options allow per-registration onStart timeout', async () => {
 	}
 	catch (e) { err = e }
 	assert.ok(err instanceof Error)
-	assert.match((err as Error).message, /Errors during startAll/)
+	assert.match((err as Error).message, /Errors during start/)
+})
+
+test('destroy() stops then destroys in one pass', async () => {
+	class T extends Adapter {
+		public started = false
+		public stopped = false
+		protected async onStart() { this.started = true }
+		protected async onStop() { this.stopped = true }
+	}
+	const A = createToken<T>('T:A')
+	const B = createToken<T>('T:B')
+	const c = new Container()
+	const app = new Orchestrator(c)
+	await app.start([
+		register(A, { useFactory: () => new T() }),
+		register(B, { useFactory: () => new T() }, { dependencies: [A] }),
+	])
+	const a = c.get(A) as T
+	const b = c.get(B) as T
+	assert.ok(a && b)
+	assert.equal(a.started, true)
+	assert.equal(b.started, true)
+	await app.destroy()
+	assert.equal(a.stopped, true)
+	assert.equal(b.stopped, true)
+	assert.equal(a.state, 'destroyed')
+	assert.equal(b.state, 'destroyed')
+})
+
+test('destroy() aggregates stop and destroy errors', async () => {
+	class FailBoth extends Adapter {
+		protected async onStop() { throw new Error('stop-bad') }
+		protected async onDestroy() { throw new Error('destroy-bad') }
+	}
+	const FB = createToken<FailBoth>('FB')
+	const app = new Orchestrator(new Container())
+	await app.start([register(FB, { useFactory: () => new FailBoth() })])
+	await assert.rejects(() => app.destroy(), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Errors during destroy/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1017]/)
+		type WithDiag = Error & { code?: string }
+		assert.equal((err as WithDiag).code, 'ORK1017')
+		const details = (err as AggregateLifecycleError).details
+		assert.ok(Array.isArray(details))
+		// Should include both stop and destroy failures for the same token
+		assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'stop'))
+		assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'destroy'))
+		return true
+	})
 })

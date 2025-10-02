@@ -21,5 +21,4 @@ const email = container().resolve(Ports.email)
 await email.send('me@example.com', 'Hello', 'Welcome to Orkestrel')
 
 // Clean up
-await orchestrator().stopAll()
-await orchestrator().destroyAll()
+await orchestrator().destroy()

@@ -6,6 +6,38 @@ All notable API changes to @orkestrel/core.
 
 - Placeholder for upcoming changes.
 
+## 1.3.0 — 2025-10-01
+
+Lifecycle API consolidation and simpler shutdown.
+
+Highlights
+- Orchestrator lifecycle methods unified
+  - `start(regs?)` now registers any provided components and starts all lifecycles in dependency order (previously via `startAll`).
+  - `stop()` replaces `stopAll()` and stops started components in reverse dependency order.
+  - `destroy()` replaces `destroyAll()` and performs a single consolidated pass: stops components as needed, then destroys them, and finally destroys the container.
+- Diagnostics messages harmonized
+  - Start aggregation: ORK1013 “Errors during start”.
+  - Stop aggregation: ORK1014 “Errors during stop”.
+  - Destroy aggregation: ORK1017 “Errors during destroy”.
+- Docs and examples updated
+  - Examples now use `start([...])` for boot and a single `destroy()` for shutdown.
+  - Guidance added on when to use `stop()` vs `destroy()`.
+
+Migration
+- Replace method calls:
+  - `startAll()` ➜ `start()`
+  - `stopAll()` ➜ `stop()`
+  - `destroyAll()` ➜ `destroy()`
+- For shutdown, call just `destroy()`; you no longer need to call `stop()` first.
+- If you assert on error messages in tests, update expectations to the new messages (codes unchanged):
+  - “Errors during startAll” ➜ “Errors during start” (ORK1013)
+  - “Errors during stopAll” ➜ “Errors during stop” (ORK1014)
+  - “Errors during destroyAll” ➜ “Errors during destroy” (ORK1017)
+
+Notes
+- Topological start order and reverse-order stop/destroy semantics remain unchanged.
+- Per-component and default timeouts still apply per phase.
+
 ## 1.2.1 — 2025-10-01
 
 This patch refines typing and documentation for a better developer experience without breaking APIs.

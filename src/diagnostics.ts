@@ -70,6 +70,11 @@ export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
 	)
 }
 
+// Helper to format token symbols consistently
+export function tokenDescription(token: symbol): string {
+	return (token.description && typeof token.description === 'string') ? token.description : String(token)
+}
+
 export const D = {
 	registryNoDefault: (label: string) => makeError('ORK1001', `No ${label} instance registered for '<default>'`, HELP.registry),
 	registryNoNamed: (label: string, key: string) => makeError('ORK1002', `No ${label} instance registered for '${key}'`, HELP.registry),
@@ -100,12 +105,12 @@ export const D = {
 
 	// Detail factory to keep uniform shape across callers
 	makeDetail: (
-		token: { description: string },
+		tokenDescription: string,
 		phase: LifecyclePhase,
 		context: LifecycleContext,
 		res: { durationMs: number, error: Error, timedOut?: boolean },
 	): LifecycleErrorDetail => ({
-		tokenDescription: token.description,
+		tokenDescription,
 		phase,
 		context,
 		timedOut: res.timedOut ?? false,
@@ -149,7 +154,7 @@ export class AggregateLifecycleError extends LifecycleError {
 			}
 			return e
 		})
-		super(info.message, details[0]?.error, info.code as OrkCode | undefined, (info as DiagnosticInfo).helpUrl)
+		super(info.message, details[0]?.error, (info as DiagnosticInfo).code as OrkCode | undefined, (info as DiagnosticInfo).helpUrl)
 		this.name = 'AggregateLifecycleError'
 		this.details = details
 		this.errors = details.map(d => d.error)

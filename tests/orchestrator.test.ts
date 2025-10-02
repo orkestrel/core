@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { AggregateLifecycleError, Provider } from '@orkestrel/core'
-import { Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError, register } from '@orkestrel/core'
+import { Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError, register, tokenDescription } from '@orkestrel/core'
 
 class TestComponent extends Adapter {
 	public readonly name: string
@@ -341,9 +341,9 @@ test('events callbacks are invoked for start/stop/destroy and errors', async () 
 	const events: { starts: string[], stops: string[], destroys: string[], errors: string[] } = { starts: [], stops: [], destroys: [], errors: [] }
 	const app = new Orchestrator(new Container(), {
 		events: {
-			onComponentStart: ({ token }) => events.starts.push(token.description),
-			onComponentStop: ({ token }) => events.stops.push(token.description),
-			onComponentDestroy: ({ token }) => events.destroys.push(token.description),
+			onComponentStart: ({ token }) => events.starts.push(tokenDescription(token)),
+			onComponentStop: ({ token }) => events.stops.push(tokenDescription(token)),
+			onComponentDestroy: ({ token }) => events.destroys.push(tokenDescription(token)),
 			onComponentError: d => events.errors.push(`${d.tokenDescription}:${d.phase}`),
 		},
 	})

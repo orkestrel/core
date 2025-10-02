@@ -33,6 +33,9 @@ Messages
 Guards
 - `isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail` — a tiny runtime guard to validate aggregated lifecycle error telemetry entries without external dependencies.
 
+Utilities
+- `tokenDescription(token: symbol): string` — returns a human-friendly token description (uses `token.description` when available, falls back to `String(token)`).
+
 ### class LifecycleError extends Error
 - constructor(message: string, cause?: unknown, code?: string, helpUrl?: string)
 - Properties: `name = 'LifecycleError'`, `cause?`, `code?`, `helpUrl?`
@@ -135,10 +138,10 @@ Source: [src/adapter.ts](../src/adapter.ts)
 Source: [src/container.ts](../src/container.ts)
 
 ### type Token<T>
-- `{ readonly key: symbol; readonly description: string }`
+- `symbol` (with an optional description when created via `Symbol(description)`)
 
 ### function createToken<T = unknown>(description: string): Token<T>
-- Creates a unique token with a human-readable description (frozen and branded internally).
+- Creates a unique symbol token with the given human-readable description.
 
 ### type TokensOf<T>
 - Mapped type for sets returned by `createTokens`/`createPortTokens`.
@@ -192,9 +195,9 @@ These types ensure that your `inject` shape matches the parameter types of your 
   - `set<T>(token: Token<T>, value: T, lock?: boolean): void` — lock prevents overwriting the value provider.
   - `has<T>(token: Token<T>): boolean`
   - `resolve<T>(token: Token<T>): T`
-  - `resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap: TMap[K] extends Token<infer U> ? U : never }`
+  - `resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }`
   - `get<T>(token: Token<T>): T | undefined`
-  - `get<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap: TMap[K] extends Token<infer U> ? U | undefined : never }`
+  - `get<TMap extends Record<string, Token<unknown>>>(tokens: TMap): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }`
   - `createChild(): Container`
   - `using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>`
   - `using<T>(apply: (scope: Container) => void, fn: (scope: Container) => Promise<T> | T): Promise<T>` — create a child scope, apply overrides in `apply(scope)`, run `fn(scope)`, and always destroy the scope.
@@ -218,10 +221,10 @@ export type ContainerGetter = {
   list(): (string | symbol)[]
 
   resolve<T>(token: Token<T>, name?: string | symbol): T
-  resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { /* ... */ }
+  resolve<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { /* mapped values */ }
 
   get<T>(token: Token<T>, name?: string | symbol): T | undefined
-  get<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { /* ... */ }
+  get<TMap extends Record<string, Token<unknown>>>(tokens: TMap, name?: string | symbol): { /* mapped values (optional) */ }
 
   using<T>(fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
 }

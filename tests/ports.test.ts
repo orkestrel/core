@@ -26,7 +26,7 @@ test('extendPorts (single-arg) creates tokens from shape', () => {
 	// Minimal shape checks
 	assert.ok(Only.email)
 	assert.equal(typeof Only.email.description, 'string')
-	assert.equal(typeof Only.email.key, 'symbol')
+	assert.equal(typeof Only.email, 'symbol')
 })
 
 test('extendPorts duplicate key throws', () => {
@@ -37,5 +37,5 @@ test('extendPorts duplicate key throws', () => {
 test('createPortToken produces unique token', () => {
 	const T1 = createPortToken<EmailPort>('emailCustom')
 	const T2 = createPortToken<EmailPort>('emailCustom')
-	assert.notEqual(T1.key, T2.key)
+	assert.notEqual(T1, T2)
 })

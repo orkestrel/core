@@ -25,8 +25,8 @@ test('AggregateLifecycleError aggregates errors and exposes first cause', () => 
 })
 
 test('isLifecycleErrorDetail returns true for valid details', () => {
-	const e1 = D.makeDetail({ description: 'A' }, 'start', 'normal', { durationMs: 5, error: new Error('x'), timedOut: false })
-	const e2 = D.makeDetail({ description: 'B' }, 'stop', 'rollback', { durationMs: 1, error: new Error('y'), timedOut: true })
+	const e1 = D.makeDetail('A', 'start', 'normal', { durationMs: 5, error: new Error('x'), timedOut: false })
+	const e2 = D.makeDetail('B', 'stop', 'rollback', { durationMs: 1, error: new Error('y'), timedOut: true })
 	assert.equal(isLifecycleErrorDetail(e1), true)
 	assert.equal(isLifecycleErrorDetail(e2), true)
 })

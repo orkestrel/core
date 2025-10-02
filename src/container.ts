@@ -1,28 +1,22 @@
 import { Lifecycle } from './lifecycle.js'
 import { Registry } from './registry.js'
-import { AggregateLifecycleError, D } from './diagnostics.js'
+import { AggregateLifecycleError, D, tokenDescription } from './diagnostics.js'
 
 /**
  * Unique runtime identifier for a capability (port) or service.
  *
- * Tokens are small branded objects with a symbol key and a human-readable description.
- * They are frozen to prevent mutation and branded to harden runtime guards.
+ * Tokens are plain symbols with an optional description (from Symbol(description)).
  */
-export interface Token<_T> { readonly key: symbol, readonly description: string }
-
-// Private brand to harden token guards at runtime
-const TOKEN_BRAND: unique symbol = Symbol('token.brand')
+export type Token<T> = symbol & { readonly __t?: T }
 
 /**
  * Create a new unique {@link Token} with the given description.
  * @typeParam T - The value type associated with the token.
  * @param description - Human-friendly identifier used in diagnostics.
- * @returns A frozen, branded token.
+ * @returns A unique symbol token.
  */
 export function createToken<_T = unknown>(description: string): Token<_T> {
-	// Freeze and brand tokens to prevent mutation and spoofing
-	const tok = { key: Symbol(description), description, __brand: TOKEN_BRAND } as const
-	return Object.freeze(tok) as unknown as Token<_T>
+	return Symbol(description) as Token<_T>
 }
 
 // ---------------------------
@@ -77,20 +71,6 @@ export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
 
 export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
 	return typeof p === 'object' && p !== null && hasOwn(p, 'useClass')
-}
-
-// Runtime token guard
-function isToken(x: unknown): x is Token<unknown> {
-	if (typeof x !== 'object' || x === null) return false
-	if (!hasOwn(x, 'key')) return false
-	const key = (x as Record<string, unknown>).key
-	if (typeof key !== 'symbol') return false
-	if (!hasOwn(x, 'description')) return false
-	const desc = (x as Record<string, unknown>).description
-	if (typeof desc !== 'string') return false
-	if (!hasOwn(x, '__brand')) return false
-	const brand = (x as Record<string, unknown>).__brand
-	return brand === TOKEN_BRAND
 }
 
 // ---------------------------
@@ -151,7 +131,7 @@ export class Container {
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, lock?: boolean): this {
 		this.assertNotDestroyed()
-		this.registry.set(token.key, { token, provider } as Registration<T>, lock)
+		this.registry.set(token, { token, provider } as Registration<T>, lock)
 		return this
 	}
 
@@ -160,17 +140,17 @@ export class Container {
 
 	/** Returns true when a provider is available for the token (searches parents). */
 	has<T>(token: Token<T>): boolean {
-		return !!this.registry.get(token.key) || (this.parent?.has(token) ?? false)
+		return !!this.registry.get(token) || (this.parent?.has(token) ?? false)
 	}
 
 	resolve<T>(token: Token<T>): T
 	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
 	/** Strictly resolve a single token or a map of tokens, throwing if any are missing. */
 	resolve(tokenOrMap: Token<unknown> | TokenRecord): unknown {
-		if (isToken(tokenOrMap)) {
+		if (typeof tokenOrMap === 'symbol') {
 			// strict single-token retrieval
 			const reg = this.lookup(tokenOrMap)
-			if (!reg) throw D.containerNoProvider(tokenOrMap.description)
+			if (!reg) throw D.containerNoProvider(tokenDescription(tokenOrMap))
 			return this.materialize(reg).value
 		}
 		// map retrieval (strict)
@@ -181,7 +161,7 @@ export class Container {
 	get<TMap extends TokenRecord>(tokens: TMap): OptionalResolvedMap<TMap>
 	/** Optionally resolve a single token or a map of tokens (missing entries return undefined). */
 	get(tokenOrMap: Token<unknown> | TokenRecord): unknown {
-		if (isToken(tokenOrMap)) {
+		if (typeof tokenOrMap === 'symbol') {
 			// loose single-token retrieval
 			const reg = this.lookup(tokenOrMap)
 			return reg ? this.materialize(reg).value : undefined
@@ -246,7 +226,7 @@ export class Container {
 	// ---------------------------
 
 	private lookup<T>(token: Token<T>): Registration<T> | undefined {
-		return (this.registry.get(token.key) as Registration<T> | undefined) ?? this.parent?.lookup(token)
+		return (this.registry.get(token) as Registration<T> | undefined) ?? this.parent?.lookup(token)
 	}
 
 	private materialize<T>(reg: Registration<T>): ResolvedProvider<T> {
@@ -306,7 +286,7 @@ export class Container {
 			const tk = tokens[key]
 			const reg = this.lookup(tk)
 			if (!reg) {
-				if (strict) throw D.containerNoProvider(tk.description)
+				if (strict) throw D.containerNoProvider(tokenDescription(tk))
 				out[key] = undefined
 				continue
 			}
@@ -367,7 +347,7 @@ function containerResolve<T>(token: Token<T>, name?: string | symbol): T
 function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
 function containerResolve(tokenOrMap: Token<unknown> | TokenRecord, name?: string | symbol): unknown {
 	const c = containerRegistry.resolve(name)
-	if (isToken(tokenOrMap)) {
+	if (typeof tokenOrMap === 'symbol') {
 		return c.resolve(tokenOrMap)
 	}
 	return c.resolve(tokenOrMap)
@@ -377,7 +357,7 @@ function containerGet<T>(token: Token<T>, name?: string | symbol): T | undefined
 function containerGet<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): OptionalResolvedMap<TMap>
 function containerGet(tokenOrMap: Token<unknown> | TokenRecord, name?: string | symbol): unknown {
 	const c = containerRegistry.resolve(name)
-	if (isToken(tokenOrMap)) {
+	if (typeof tokenOrMap === 'symbol') {
 		return c.get(tokenOrMap)
 	}
 	return c.get(tokenOrMap)

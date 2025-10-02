@@ -63,19 +63,18 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Risk: None.
 - Success: A new user can run an example in under a minute without leaving README.
 
-2) Safer tokens and error polish
+2) Error polish and diagnostics links
 - Complexity: S, Reward: Med/High
 - What:
   - Tweak Registry.resolve() error message quoting.
-  - Freeze tokens returned by createToken() to prevent accidental mutation.
-  - Add an internal brand to tokens to harden type guards.
-- Why: Crisper errors and safer tokens reduce confusion and bugs.
+  - Ensure consistent diagnostics formatting and docs links across modules.
+- Why: Crisper errors reduce confusion and speed up troubleshooting.
 - How:
-  - In src/registry.ts, simplify template: `No ${label} instance registered for '${String(key)}'`.
-  - In src/container.ts createToken(), return `Object.freeze({ key: Symbol(description), description, __brand: TOKEN_BRAND })` with a private TOKEN_BRAND symbol; update isToken() check.
-- Files: src/registry.ts, src/container.ts.
-- Risk: Very low, token is still structural but now branded; no external API break.
-- Success: Tests still green; token guard rejects spoofed plain objects; error reads cleanly.
+  - In src/registry.ts, use template: `No ${label} instance registered for '${String(key)}'`.
+  - Centralize message formatting via diagnostics helpers where appropriate.
+- Files: src/registry.ts; src/diagnostics.ts.
+- Risk: Very low.
+- Success: Tests still green; error messages read cleanly.
 - Status: Done (2025‑10‑01, v1.2.0)
 
 2a) Helper/Registry ergonomics (consistency and safety)
@@ -320,28 +319,23 @@ Each item includes what/why/how, affected files, risk, and a success check.
 - Success: Guards available without impacting core bundle size; no new deps.
 - Status: Done (2025‑10‑02) — added `isLifecycleErrorDetail` in diagnostics, tests, and docs mention.
 
-20) Tokens: symbol-only (major)
-- Complexity: M, Reward: Med/High
-- What: Make tokens plain symbols instead of wrapper objects. Replace `Token<T> = { key: symbol, description: string }` with `Token<T> = symbol`. `createToken(desc)` returns `Symbol(desc)`. Use `token.description ?? String(token)` in diagnostics.
-- Why: Simpler runtime and mental model; no freeze/brand; overload discrimination becomes trivial (`typeof x === 'symbol'`). Aligns with common DI patterns and reduces indirection.
+20) Tokens: symbol-only (baseline)
+- Complexity: S, Reward: Med/High
+- What: Tokens are plain symbols (`Token<T> = symbol`) created with `Symbol(description)`. Use `token.description ?? String(token)` for human-friendly diagnostics.
+- Why: Simple runtime and mental model; aligns with common DI patterns; easy discrimination (`typeof x === 'symbol'`).
 - How:
-  - Types: change `export interface Token<T>` to `export type Token<T> = symbol` (or equivalent), update helpers and public exports.
-  - Container: use the token itself as the registry key; replace `token.key` with `token`. Update `isToken` to a `typeof x === 'symbol'` check.
-  - Orchestrator: store tokens directly in the node graph; switch lookups and diagnostics to use symbol descriptions.
-  - Diagnostics: format with `token.description ?? String(token)`.
-  - Tests: remove references to `token.key`; ensure error message assertions still pass (descriptions unchanged when using `createToken`).
-  - Docs: update API references and patterns to reflect symbol tokens; add a brief migration guide.
-  - Implementation note: once tokens are plain symbols, consider typing internal maps (like the orchestrator `nodes` map) by the `Token` directly instead of `token.key` to simplify lookups and types.
-  - Follow-up suggestion: Consider typing the orchestrator `nodes` map by the token itself rather than `token.key` (symbol) if you later migrate to symbol tokens. Today’s structure is perfectly fine; this only matters if you pursue the “symbol-only tokens” item later.
-- Files: src/container.ts; src/orchestrator.ts; src/ports.ts (if any token helpers live there); src/index.ts; tests/*; docs/*.
-- Risk: Med/High (breaking change to public Token type). Behavior remains the same; compile-time and a few message fallbacks change. Requires a major version bump.
-- Success: All tests pass; messages remain crisp; public API and docs reflect symbol tokens with a short migration guide.
-- Status: Planned (Major)
+  - `createToken(desc)` returns a unique `symbol` with the provided description.
+  - The container uses the symbol itself as the registry key and supports resolving token maps with precise typing.
+  - Diagnostics use `tokenDescription(symbol)` to produce readable labels.
+- Files: src/container.ts; src/orchestrator.ts; src/ports.ts; docs/*; tests/*.
+- Risk: Low (design baseline; no migration).
+- Success: All tests pass; docs and API reference describe tokens as symbols; examples use `createToken` and `createPortTokens` consistently.
+- Status: Done (2025‑10‑02)
 
 —
 
 Notes grounding the plan (from current repo/docs)
-- Container/Token/Registry are well-factored; branding/freezing tokens is low‑risk safety. Helper setters are consistent (`set(name, value, lock?)`) and rely on TypeScript types; no runtime validation in helpers. `Registry` remains simple (no validators).
+- Container/Token/Registry are well‑factored. Helper setters are consistent (`set(name, value, lock?)`) and rely on TypeScript types; no runtime validation in helpers. `Registry` remains simple (no validators).
 - Orchestrator already guards async providers and orders by deps; tracing hooks and concurrency caps increase control without changing defaults. Lifecycle API is now unified to `start()`/`stop()`/`destroy()` with a one‑call shutdown path.
 - Lifecycle semantics are strong; small event hygiene tweaks improve signal/noise.
 - Auto‑wiring is explicit and opt‑in via a single `inject` option on providers (planned); there are no decorators and no extra helper surface.

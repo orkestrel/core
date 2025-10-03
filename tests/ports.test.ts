@@ -39,3 +39,17 @@ test('createPortToken produces unique token', () => {
 	const T2 = createPortToken<EmailPort>('emailCustom')
 	assert.notEqual(T1, T2)
 })
+
+test('extendPorts returns frozen, read-only token map', () => {
+	const Base = createPortTokens({ email: {} as EmailPort })
+	const Extended = extendPorts(Base, { featureFlag: {} as FeatureFlagPort })
+	assert.equal(Object.isFrozen(Extended), true)
+	// runtime immutability: cannot overwrite an existing entry on a frozen object via Reflect
+	const setOk = Reflect.set(Extended, 'featureFlag', createPortToken<FeatureFlagPort>('ff2'))
+	assert.equal(setOk, false)
+	// direct assignment should throw in strict mode
+	assert.throws(() => {
+		// @ts-expect-error Extended is read-only; cannot assign
+		Extended['featureFlag'] = createPortToken<FeatureFlagPort>('ff3')
+	}, TypeError)
+})

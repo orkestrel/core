@@ -22,7 +22,7 @@ import type {
 	OrchestratorStartResult,
 	LifecycleContext,
 } from './types.js'
-import { isFactoryProvider, isValueProvider, isPromiseLike, isAsyncFunction } from './types.js'
+import { isFactoryProvider, isValueProvider, isPromiseLike, isAsyncFunction, isFactoryProviderWithObject, isFactoryProviderWithTuple, isFactoryProviderNoDeps, isZeroArg } from './types.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
 import { Registry } from './registry.js'
@@ -81,9 +81,9 @@ export class Orchestrator {
 	 * Throws on duplicate registrations or async provider shapes.
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
-		if (this.nodes.has(token as Token<unknown>)) throw D.duplicateRegistration(tokenDescription(token))
-		const normalized = this.normalizeDependencies(token as Token<unknown>, dependencies)
-		this.nodes.set(token as Token<unknown>, { token: token as Token<unknown>, dependencies: normalized, timeouts })
+		if (this.nodes.has(token)) throw D.duplicateRegistration(tokenDescription(token))
+		const normalized = this.normalizeDependencies(token, dependencies)
+		this.nodes.set(token, { token, dependencies: normalized, timeouts })
 		const guarded = this.guardProvider(token, provider)
 		this.container.register(token, guarded)
 		this.layers = null
@@ -97,9 +97,9 @@ export class Orchestrator {
 	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
 		// Register any provided components first
 		for (const e of regs) {
-			const deps = this.normalizeDependencies(e.token as Token<unknown>, e.dependencies ?? [])
-			if (this.nodes.has(e.token as Token<unknown>)) throw D.duplicateRegistration(tokenDescription(e.token))
-			this.nodes.set(e.token as Token<unknown>, { token: e.token as Token<unknown>, dependencies: deps, timeouts: e.timeouts })
+			const deps = this.normalizeDependencies(e.token, e.dependencies ?? [])
+			if (this.nodes.has(e.token)) throw D.duplicateRegistration(tokenDescription(e.token))
+			this.nodes.set(e.token, { token: e.token, dependencies: deps, timeouts: e.timeouts })
 			const guarded = this.guardProvider(e.token, e.provider)
 			this.container.register(e.token, guarded)
 		}
@@ -242,10 +242,24 @@ export class Orchestrator {
 		}
 		if (isFactoryProvider(provider)) {
 			const desc = tokenDescription(token)
-			// Wrap any useFactory variant to assert sync-only behavior
-			const anyFactory: (...args: readonly unknown[]) => unknown = (provider as { useFactory: (...args: readonly unknown[]) => unknown }).useFactory
-			const wrapped = wrapFactory(anyFactory as (...args: readonly unknown[]) => unknown, desc)
-			return { ...(provider as object), useFactory: wrapped } as Provider<T>
+			// Wrap useFactory variant to assert sync-only behavior while preserving original signatures
+			if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) {
+				const wrapped = wrapFactory(provider.useFactory, desc)
+				return { useFactory: wrapped, inject: provider.inject }
+			}
+			if (isFactoryProviderWithObject<T>(provider)) {
+				const wrapped = wrapFactory(provider.useFactory, desc)
+				return { useFactory: wrapped, inject: provider.inject }
+			}
+			if (isFactoryProviderNoDeps<T>(provider)) {
+				const uf = provider.useFactory
+				if (isZeroArg(uf)) {
+					const wrapped = wrapFactory(uf, desc)
+					return { useFactory: wrapped }
+				}
+				const wrapped = wrapFactory(uf, desc)
+				return { useFactory: wrapped }
+			}
 		}
 		return provider
 	}

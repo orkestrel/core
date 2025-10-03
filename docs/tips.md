@@ -14,6 +14,23 @@
 - Default `Lifecycle` hook timeout is 5000ms; you can override per component (via `LifecycleOptions` or orchestrator timeouts) or set orchestrator defaults.
 - See Providers & Lifetimes for ownership details and async provider guard behavior.
 
+## Type Safety Conventions
+
+A few guidelines we follow across the codebase to keep types precise and stable:
+
+- Tokens
+  - Create tokens with `createToken<T>(description)` or `createPortToken<T>(name)` to preserve the branded `Token<T>` type.
+  - For groups, prefer `createPortTokens(shape)` which returns a strongly-typed map (`TokensOf<T>`). Avoid manual symbol casts.
+- Provider guards
+  - Providers must be synchronous at registration time: `useValue` must not be a `Promise`, and `useFactory` must not be `async` or return a `Promise`.
+  - Move async work into `Lifecycle.onStart()` (and cleanup into `onStop`/`onDestroy`). This keeps dependency graphs deterministic and types simple.
+- Extending ports safely
+  - Use `extendPorts(base, ext)` to add new ports. Duplicate keys are rejected.
+  - The returned object is frozen and typed as read-only (immutability by default). Treat token maps as configuration, not a mutable registry.
+- Narrowing over casting
+  - Prefer type guards (`isValueProvider`, `isFactoryProviderWithTuple/Object/NoDeps`, `isToken`) to incrementally narrow union types rather than casting.
+  - Avoid `any` and avoid assertions that change the original intent of types—let generics and overloads do the inference.
+
 ## Tracing orchestrations (debug)
 Enable the orchestrator tracer to see dependency layers and per-phase outcomes. Zero cost when disabled.
 

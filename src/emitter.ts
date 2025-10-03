@@ -3,11 +3,13 @@
  *
  * Listener errors are swallowed to avoid breaking emit loops.
  */
+import type { Listener } from './types.js'
+
 export class Emitter {
-	private listeners: Map<string, Set<(...args: unknown[]) => void>> = new Map()
+	private listeners: Map<string, Set<Listener>> = new Map()
 
 	/** Subscribe to an event. */
-	on(event: string, fn: (...args: unknown[]) => void): this {
+	on(event: string, fn: Listener): this {
 		if (!this.listeners.has(event)) {
 			this.listeners.set(event, new Set())
 		}
@@ -16,7 +18,7 @@ export class Emitter {
 	}
 
 	/** Unsubscribe a specific listener from an event. */
-	off(event: string, fn: (...args: unknown[]) => void): this {
+	off(event: string, fn: Listener): this {
 		this.listeners.get(event)?.delete(fn)
 		return this
 	}

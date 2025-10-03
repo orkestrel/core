@@ -775,3 +775,62 @@ test('start accepts direct useClass with tuple inject in registration object', a
 	])
 	await app.destroy()
 })
+
+test('tracer start outcomes include failures', async () => {
+	class Good extends Adapter { protected async onStart() {} }
+	class Bad extends Adapter {
+		protected async onStart() {
+			throw new Error('fail-start')
+		}
+	}
+	const TG = createToken<Good>('TraceFail:GOOD')
+	const TB = createToken<Bad>('TraceFail:BAD')
+	const phases: { phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: { token: string, ok: boolean, timedOut?: boolean }[] }[] = []
+	const app = new Orchestrator(new Container(), { tracer: { onLayers: () => {}, onPhase: p => phases.push(p) } })
+	let err: unknown
+	try {
+		await app.start([
+			register(TG, { useFactory: () => new Good() }),
+			register(TB, { useFactory: () => new Bad() }, { dependencies: [TG] }),
+		])
+	}
+	catch (e) { err = e }
+	assert.ok(err instanceof Error)
+	const startPhases = phases.filter(p => p.phase === 'start')
+	assert.ok(startPhases.length >= 1)
+	const allStartOutcomes = startPhases.flatMap(p => p.outcomes)
+	assert.ok(allStartOutcomes.some(o => o.token === 'TraceFail:GOOD' && o.ok))
+	assert.ok(allStartOutcomes.some(o => o.token === 'TraceFail:BAD' && !o.ok))
+	await app.destroy().catch(() => {})
+})
+
+test('events callbacks errors are isolated and do not disrupt orchestration', async () => {
+	class Ok extends Adapter { protected async onStart() {} protected async onStop() {} }
+	class BadStop extends Adapter {
+		protected async onStart() {} protected async onStop() {
+			throw new Error('bad-stop')
+		}
+	}
+	const TOK = createToken<Ok>('EvtIso:OK')
+	const TBAD = createToken<BadStop>('EvtIso:BADSTOP')
+	const events = {
+		onComponentStart: () => { throw new Error('listener-fail-start') },
+		onComponentError: () => { throw new Error('listener-fail-error') },
+	}
+	const app = new Orchestrator(new Container(), { events })
+	// Start should succeed despite onComponentStart throwing
+	await app.start([
+		register(TOK, { useFactory: () => new Ok() }),
+		register(TBAD, { useFactory: () => new BadStop() }),
+	])
+	let stopErr: unknown
+	try {
+		await app.stop()
+	}
+	catch (e) { stopErr = e }
+	assert.ok(stopErr instanceof Error)
+	// Ensure the stop error is the orchestrator aggregate, not an event listener error masking it
+	type WithDiag = Error & { code?: string }
+	assert.equal((stopErr as WithDiag).code, 'ORK1014')
+	await app.destroy().catch(() => {})
+})

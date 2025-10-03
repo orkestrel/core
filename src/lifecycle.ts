@@ -4,24 +4,13 @@
 
 import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnostics.js'
 import { Emitter } from './emitter.js'
-
-export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
-export interface LifecycleOptions { hookTimeoutMs?: number, onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean, emitInitialState?: boolean }
-
-type EventMap = {
-	stateChange: [LifecycleState]
-	create: []
-	start: []
-	stop: []
-	destroy: []
-	error: [LifecycleError]
-}
+import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook } from './types.js'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
 	private readonly hookTimeoutMs: number
 	private readonly emitter = new Emitter()
-	private readonly onTransitionFilter: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean
+	private readonly onTransitionFilter: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean
 
 	constructor(opts: LifecycleOptions = {}) {
 		this.hookTimeoutMs = opts.hookTimeoutMs ?? 5000
@@ -45,12 +34,12 @@ export abstract class Lifecycle {
 		this.emitter.emit('stateChange', next)
 	}
 
-	on<T extends keyof EventMap>(evt: T, fn: (...args: EventMap[T]) => void): this {
+	on<T extends keyof LifecycleEventMap>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
 		this.emitter.on(evt as string, fn as unknown as (...args: unknown[]) => void)
 		return this
 	}
 
-	off<T extends keyof EventMap>(evt: T, fn: (...args: EventMap[T]) => void): this {
+	off<T extends keyof LifecycleEventMap>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
 		this.emitter.off(evt as string, fn as unknown as (...args: unknown[]) => void)
 		return this
 	}
@@ -63,7 +52,7 @@ export abstract class Lifecycle {
 		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
 	}
 
-	private async runHook(hookName: 'create' | 'start' | 'stop' | 'destroy', hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
+	private async runHook(hookName: LifecycleHook, hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
 		let timeoutId: ReturnType<typeof setTimeout> | undefined
 		const timeout = new Promise<never>((_, reject) => {
 			timeoutId = setTimeout(() => reject(new TimeoutError(hookName, this.hookTimeoutMs)), this.hookTimeoutMs)
@@ -80,7 +69,7 @@ export abstract class Lifecycle {
 		}
 		catch (err) {
 			clearTimeout(timeoutId)
-			const wrapped = err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, err)
+			const wrapped = err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, { cause: err })
 			this.emitter.emit('error', wrapped)
 			return Promise.reject(wrapped)
 		}
@@ -112,5 +101,5 @@ export abstract class Lifecycle {
 	protected async onStart(): Promise<void> {}
 	protected async onStop(): Promise<void> {}
 	protected async onDestroy(): Promise<void> {}
-	protected async onTransition(_from: LifecycleState, _to: LifecycleState, _hook: 'create' | 'start' | 'stop' | 'destroy'): Promise<void> {}
+	protected async onTransition(_from: LifecycleState, _to: LifecycleState, _hook: LifecycleHook): Promise<void> {}
 }

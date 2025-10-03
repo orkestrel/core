@@ -1,63 +1,37 @@
-import type { Provider, Token, ValueProvider, FactoryProviderNoDeps, ClassProviderNoDeps, FactoryProviderWithTuple, ClassProviderWithTuple, FactoryProviderWithObject } from './container.js'
-import { Container, isFactoryProvider, isValueProvider, container } from './container.js'
+import type {
+	ClassProviderNoDeps,
+	ClassProviderWithTuple,
+	FactoryProviderNoDeps,
+	FactoryProviderWithObject,
+	FactoryProviderWithTuple,
+	Provider,
+	Token,
+	ValueProvider,
+	PhaseTimeouts,
+	Task,
+	PhaseResult,
+	Outcome,
+	DestroyJobResult,
+	OrchestratorRegistration,
+	OrchestratorOptions,
+	NodeEntry,
+	RegisterOptions,
+	OrchestratorGetter,
+	LifecycleErrorDetail,
+	LifecyclePhase,
+	OrchestratorStartResult,
+	LifecycleContext,
+} from './types.js'
+import { isFactoryProvider, isValueProvider, isPromiseLike, isAsyncFunction } from './types.js'
+import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
 import { Registry } from './registry.js'
-import { D, type LifecycleErrorDetail, type LifecyclePhase, AggregateLifecycleError, TimeoutError, tokenDescription } from './diagnostics.js'
-
-// ---------------------------
-// Internal types for clarity
-// ---------------------------
-
-/** Per-phase timeouts in milliseconds. */
-type PhaseTimeouts = { onStart?: number, onStop?: number, onDestroy?: number }
-
-type Task<T> = () => Promise<T>
-
-type PhaseResultOk = { ok: true, durationMs: number }
-
-type PhaseResultErr = { ok: false, durationMs: number, error: Error, timedOut: boolean }
-
-type PhaseResult = PhaseResultOk | PhaseResultErr
-
-type Outcome = Readonly<{ token: string, ok: boolean, durationMs: number, timedOut?: boolean }>
-
-type DestroyJobResult = { stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] }
-
-/**
- * Registration descriptor used by {@link Orchestrator.start} and {@link Orchestrator.register}.
- */
-export interface OrchestratorRegistration<T> {
-	token: Token<T>
-	provider: Provider<T>
-	/** Optional explicit dependencies for this registration; affects start/stop ordering and rollback. */
-	dependencies?: readonly Token<unknown>[]
-	/** Optional per-phase timeouts in milliseconds. */
-	timeouts?: PhaseTimeouts
-}
-
-/**
- * Options for configuring orchestrator behavior and telemetry.
- */
-export interface OrchestratorOptions {
-	/** Default per-phase timeouts in milliseconds (overridden by per-registration timeouts). */
-	defaultTimeouts?: PhaseTimeouts
-	/** Event callbacks for practical logging/metrics. */
-	events?: {
-		onComponentStart?: (info: { token: Token<unknown>, durationMs: number }) => void
-		onComponentStop?: (info: { token: Token<unknown>, durationMs: number }) => void
-		onComponentDestroy?: (info: { token: Token<unknown>, durationMs: number }) => void
-		onComponentError?: (detail: LifecycleErrorDetail) => void
-	}
-	/** Debug tracing hooks; zero-cost when unset. */
-	tracer?: {
-		onLayers?: (payload: { layers: string[][] }) => void
-		onPhase?: (payload: { phase: LifecyclePhase, layer: number, outcomes: Outcome[] }) => void
-	}
-	/** Per-layer concurrency cap; default unlimited. */
-	concurrency?: number
-}
-
-interface NodeEntry { token: Token<unknown>, dependencies: readonly Token<unknown>[], timeouts?: PhaseTimeouts }
+import {
+	AggregateLifecycleError,
+	D,
+	TimeoutError,
+	tokenDescription,
+} from './diagnostics.js'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
@@ -107,8 +81,9 @@ export class Orchestrator {
 	 * Throws on duplicate registrations or async provider shapes.
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
-		if (this.nodes.has(token)) throw D.duplicateRegistration(tokenDescription(token))
-		this.nodes.set(token as Token<unknown>, { token: token as Token<unknown>, dependencies, timeouts })
+		if (this.nodes.has(token as Token<unknown>)) throw D.duplicateRegistration(tokenDescription(token))
+		const normalized = this.normalizeDependencies(token as Token<unknown>, dependencies)
+		this.nodes.set(token as Token<unknown>, { token: token as Token<unknown>, dependencies: normalized, timeouts })
 		const guarded = this.guardProvider(token, provider)
 		this.container.register(token, guarded)
 		this.layers = null
@@ -122,8 +97,8 @@ export class Orchestrator {
 	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
 		// Register any provided components first
 		for (const e of regs) {
-			const deps = e.dependencies ?? []
-			if (this.nodes.has(e.token)) throw D.duplicateRegistration(tokenDescription(e.token))
+			const deps = this.normalizeDependencies(e.token as Token<unknown>, e.dependencies ?? [])
+			if (this.nodes.has(e.token as Token<unknown>)) throw D.duplicateRegistration(tokenDescription(e.token))
 			this.nodes.set(e.token as Token<unknown>, { token: e.token as Token<unknown>, dependencies: deps, timeouts: e.timeouts })
 			const guarded = this.guardProvider(e.token, e.provider)
 			this.container.register(e.token, guarded)
@@ -134,7 +109,7 @@ export class Orchestrator {
 		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
 		for (let i = 0; i < layers.length; i++) {
 			const layer = layers[i]
-			type StartResult = { token: Token<unknown>, lc: Lifecycle, result: PhaseResult }
+			type StartResult = OrchestratorStartResult
 			const jobs: Array<Task<StartResult>> = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
@@ -146,18 +121,18 @@ export class Orchestrator {
 					startedOrder.push({ token: tk, lc: inst })
 				}
 			}
-			const results = await this.runLayerWithTracing('start', i, jobs, ({ token: tkn, result: r }) => r.ok ? { token: tokenDescription(tkn), ok: true, durationMs: r.durationMs } : undefined)
+			const results = await this.runLayerWithTracing('start', i, jobs, ({ token: tkn, result: r }) => ({ token: tokenDescription(tkn), ok: r.ok, durationMs: r.durationMs, timedOut: r.ok ? undefined : r.timedOut }))
 			const failures: LifecycleErrorDetail[] = []
 			const successes: { token: Token<unknown>, lc: Lifecycle, durationMs: number }[] = []
 			for (const { token: tkn, lc, result: r } of results) {
 				if (r.ok) {
 					successes.push({ token: tkn, lc, durationMs: r.durationMs })
-					this.events?.onComponentStart?.({ token: tkn, durationMs: r.durationMs })
+					this.safeCall(this.events?.onComponentStart, { token: tkn, durationMs: r.durationMs })
 				}
 				else {
 					const detail = D.makeDetail(tokenDescription(tkn), 'start', 'normal', r)
 					failures.push(detail)
-					this.events?.onComponentError?.(detail)
+					this.safeCall(this.events?.onComponentError, detail)
 				}
 			}
 			if (failures.length > 0) {
@@ -234,8 +209,8 @@ export class Orchestrator {
 				if (r.errors) errors.push(...r.errors)
 			}
 			const layerIdx = forwardLayers.length - 1 - i
-			if (stopOutcomes.length) this.tracer?.onPhase?.({ phase: 'stop', layer: layerIdx, outcomes: stopOutcomes })
-			if (destroyOutcomes.length) this.tracer?.onPhase?.({ phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes })
+			if (stopOutcomes.length) this.safeCall(this.tracer?.onPhase, { phase: 'stop', layer: layerIdx, outcomes: stopOutcomes })
+			if (destroyOutcomes.length) this.safeCall(this.tracer?.onPhase, { phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes })
 		}
 		try {
 			await this.container.destroy()
@@ -262,58 +237,66 @@ export class Orchestrator {
 	private guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
 		if (isValueProvider(provider)) {
 			const v = provider.useValue
-			if (isPromiseLike(v)) {
-				throw D.asyncUseValuePromise(tokenDescription(token))
-			}
+			if (isPromiseLike(v)) throw D.asyncUseValuePromise(tokenDescription(token))
 			return provider
 		}
 		if (isFactoryProvider(provider)) {
-			const orig: (...args: unknown[]) => T = provider.useFactory as unknown as (...args: unknown[]) => T
-			if (orig.constructor && orig.constructor.name === 'AsyncFunction') {
-				throw D.asyncUseFactoryAsync(tokenDescription(token))
-			}
-			const wrapped: (...args: unknown[]) => T = (...args: unknown[]) => {
-				const res = orig(...args)
-				if (isPromiseLike(res)) {
-					throw D.asyncUseFactoryPromise(tokenDescription(token))
-				}
-				return res as T
-			}
-			return { ...provider, useFactory: wrapped }
+			const desc = tokenDescription(token)
+			// Wrap any useFactory variant to assert sync-only behavior
+			const anyFactory: (...args: readonly unknown[]) => unknown = (provider as { useFactory: (...args: readonly unknown[]) => unknown }).useFactory
+			const wrapped = wrapFactory(anyFactory as (...args: readonly unknown[]) => unknown, desc)
+			return { ...(provider as object), useFactory: wrapped } as Provider<T>
 		}
 		return provider
 	}
 
-	// Topology helpers used by start/stop/destroy
+	// Kahn-style O(V + E) layering with deterministic ordering
 	private topoLayers(): Token<unknown>[][] {
 		if (this.layers) return this.layers
 		const nodes = Array.from(this.nodes.values())
+		// Validate dependencies exist
+		const present = new Set<Token<unknown>>(nodes.map(n => n.token))
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
-				if (!this.nodes.has(d)) throw D.unknownDependency(tokenDescription(d), tokenDescription(n.token))
+				if (!present.has(d)) throw D.unknownDependency(tokenDescription(d), tokenDescription(n.token))
 			}
 		}
+		// Build indegree and adjacency (dependents) preserving insertion order
+		const indeg = new Map<Token<unknown>, number>()
+		const adj = new Map<Token<unknown>, Token<unknown>[]>()
+		for (const n of nodes) {
+			indeg.set(n.token, 0)
+			adj.set(n.token, [])
+		}
+		for (const n of nodes) {
+			for (const d of n.dependencies) {
+				indeg.set(n.token, (indeg.get(n.token) ?? 0) + 1)
+				adj.get(d)!.push(n.token)
+			}
+		}
+		// Initial frontier in insertion order
+		let frontier: Token<unknown>[] = nodes.filter(n => (indeg.get(n.token) ?? 0) === 0).map(n => n.token)
 		const layers: Token<unknown>[][] = []
-		const removed = new Set<Token<unknown>>()
-		let progressed = true
-		while (removed.size < this.nodes.size && progressed) {
-			progressed = false
-			const frontier: NodeEntry[] = []
-			for (const n of nodes) {
-				if (removed.has(n.token)) continue
-				const hasUnresolvedDeps = n.dependencies.some(d => !removed.has(d))
-				if (!hasUnresolvedDeps) frontier.push(n)
+		while (frontier.length) {
+			layers.push(frontier)
+			const next: Token<unknown>[] = []
+			for (const tk of frontier) {
+				const dependents = adj.get(tk)
+				if (!dependents) continue
+				for (const dep of dependents) {
+					const v = (indeg.get(dep) ?? 0) - 1
+					indeg.set(dep, v)
+					if (v === 0) next.push(dep)
+				}
 			}
-			if (frontier.length > 0) {
-				layers.push(frontier.map(n => n.token))
-				for (const n of frontier) removed.add(n.token)
-				progressed = true
-			}
+			frontier = next
 		}
-		if (removed.size !== this.nodes.size) throw D.cycleDetected()
+		// Check for cycles
+		const totalResolved = layers.reduce((a, b) => a + b.length, 0)
+		if (totalResolved !== nodes.length) throw D.cycleDetected()
 		this.layers = layers
-		// tracing: emit computed layers once
-		this.tracer?.onLayers?.({ layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
+		// tracing: emit computed layers once (guarded)
+		this.safeCall(this.tracer?.onLayers, { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
 		return layers
 	}
 
@@ -385,7 +368,7 @@ export class Orchestrator {
 	}
 
 	// Concurrency helpers used by start/stop/destroy
-	private async runLimited<T>(tasks: readonly Task<T>[]): Promise<T[]> {
+	private async runLimited<T>(tasks: ReadonlyArray<Task<T>>): Promise<T[]> {
 		const c = this.concurrency
 		const n = typeof c === 'number' && c > 0 ? Math.floor(c) : 0
 		if (n === 0 || n >= tasks.length) return Promise.all(tasks.map(fn => fn()))
@@ -402,32 +385,32 @@ export class Orchestrator {
 		return results
 	}
 
-	private async runLayerWithTracing<J>(phase: LifecyclePhase, layerIdxForward: number, jobs: readonly Task<J>[], toOutcome: (j: J) => Outcome | undefined): Promise<J[]> {
+	private async runLayerWithTracing<J>(phase: LifecyclePhase, layerIdxForward: number, jobs: ReadonlyArray<Task<J>>, toOutcome: (j: J) => Outcome | undefined): Promise<J[]> {
 		const results = await this.runLimited(jobs)
 		const outcomes: Outcome[] = []
 		for (const r of results) {
 			const out = toOutcome(r)
 			if (out) outcomes.push(out)
 		}
-		if (outcomes.length) this.tracer?.onPhase?.({ phase, layer: layerIdxForward, outcomes })
+		if (outcomes.length) this.safeCall(this.tracer?.onPhase, { phase, layer: layerIdxForward, outcomes })
 		return results
 	}
 
 	// Stop helper shared by stop() and rollback in start()
-	private async stopToken(tk: Token<unknown>, inst: Lifecycle, timeout: number | undefined, context: 'normal' | 'rollback'): Promise<{ outcome: Outcome, error?: LifecycleErrorDetail }> {
+	private async stopToken(tk: Token<unknown>, inst: Lifecycle, timeout: number | undefined, context: LifecycleContext): Promise<{ outcome: Outcome, error?: LifecycleErrorDetail }> {
 		const r = await this.runPhase(inst, 'stop', timeout)
 		if (r.ok) {
-			this.events?.onComponentStop?.({ token: tk, durationMs: r.durationMs })
+			this.safeCall(this.events?.onComponentStop, { token: tk, durationMs: r.durationMs })
 			return { outcome: { token: tokenDescription(tk), ok: true, durationMs: r.durationMs } }
 		}
 		const d = D.makeDetail(tokenDescription(tk), 'stop', context, r)
-		this.events?.onComponentError?.(d)
+		this.safeCall(this.events?.onComponentError, d)
 		return { outcome: { token: tokenDescription(tk), ok: false, durationMs: r.durationMs, timedOut: r.timedOut }, error: d }
 	}
 
 	// Destroy helper sits immediately before destroy()
 	private async destroyToken(tk: Token<unknown>, inst: Lifecycle, stopTimeout: number | undefined, destroyTimeout: number | undefined): Promise<DestroyJobResult> {
-		const out: DestroyJobResult = {}
+		const out: { stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] } = {}
 		const localErrors: LifecycleErrorDetail[] = []
 		if (inst.state === 'started') {
 			const stopped = await this.stopToken(tk, inst, stopTimeout, 'normal')
@@ -437,12 +420,12 @@ export class Orchestrator {
 		if (inst.state !== 'destroyed') {
 			const r2 = await this.runPhase(inst, 'destroy', destroyTimeout)
 			if (r2.ok) {
-				this.events?.onComponentDestroy?.({ token: tk, durationMs: r2.durationMs })
+				this.safeCall(this.events?.onComponentDestroy, { token: tk, durationMs: r2.durationMs })
 				out.destroyOutcome = { token: tokenDescription(tk), ok: true, durationMs: r2.durationMs }
 			}
 			else {
 				const d2 = D.makeDetail(tokenDescription(tk), 'destroy', 'normal', r2)
-				this.events?.onComponentError?.(d2)
+				this.safeCall(this.events?.onComponentError, d2)
 				out.destroyOutcome = { token: tokenDescription(tk), ok: false, durationMs: r2.durationMs, timedOut: r2.timedOut }
 				localErrors.push(d2)
 			}
@@ -450,13 +433,28 @@ export class Orchestrator {
 		if (localErrors.length) out.errors = localErrors
 		return out
 	}
-}
 
-export type OrchestratorGetter = {
-	(name?: string | symbol): Orchestrator
-	set(name: string | symbol, o: Orchestrator, lock?: boolean): void
-	clear(name?: string | symbol, force?: boolean): boolean
-	list(): (string | symbol)[]
+	// ---- small utility helpers (typed and side-effect-safe) ----
+	/** Guarded single-argument callback invocation to isolate orchestration from telemetry errors. */
+	private safeCall<T>(fn: ((payload: T) => void) | undefined, payload: T): void {
+		if (!fn) return
+		try {
+			fn(payload)
+		}
+		catch { /* swallow */ }
+	}
+
+	/** Dedupe dependencies and remove self-dependency while preserving order. */
+	private normalizeDependencies(token: Token<unknown>, dependencies: ReadonlyArray<Token<unknown>>): Token<unknown>[] {
+		const seen = new Set<Token<unknown>>()
+		const out: Token<unknown>[] = []
+		for (const d of dependencies) {
+			if (!d || d === token || seen.has(d)) continue
+			seen.add(d)
+			out.push(d)
+		}
+		return out
+	}
 }
 
 const orchestratorRegistry = new Registry<Orchestrator>('orchestrator', new Orchestrator(container()))
@@ -485,11 +483,6 @@ function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>)
 	return out
 }
 
-export interface RegisterOptions {
-	dependencies?: Token<unknown>[] | Record<string, Token<unknown>>
-	timeouts?: PhaseTimeouts
-}
-
 // Overloads to preserve inject inference for tuple/object providers
 export function register<T, A extends readonly unknown[]>(token: Token<T>, provider: ClassProviderWithTuple<T, A> | FactoryProviderWithTuple<T, A>, options?: RegisterOptions): OrchestratorRegistration<T>
 export function register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O>, options?: RegisterOptions): OrchestratorRegistration<T>
@@ -500,6 +493,16 @@ export function register<T>(token: Token<T>, provider: Provider<T>, options: Reg
 	return { token, provider, dependencies, timeouts: options.timeouts }
 }
 
-function isPromiseLike(x: unknown): x is PromiseLike<unknown> {
-	return typeof x === 'object' && x !== null && 'then' in (x as { then?: unknown }) && typeof (x as { then?: unknown }).then === 'function'
+/* ---------------------------
+   Provider guard helpers (strict, eslint-safe)
+--------------------------- */
+
+function wrapFactory<A extends readonly unknown[], R>(fn: (...args: A) => R, tokenDesc: string): (...args: A) => R {
+	// disallow async functions immediately
+	if (isAsyncFunction(fn)) throw D.asyncUseFactoryAsync(tokenDesc)
+	return (...args: A): R => {
+		const out = fn(...args)
+		if (isPromiseLike(out)) throw D.asyncUseFactoryPromise(tokenDesc)
+		return out
+	}
 }

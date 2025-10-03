@@ -1,28 +1,6 @@
 // Centralized diagnostics: codes, templates, and helpers
 
-export type OrkCode
-	= | 'ORK1001' // Registry: no default instance
-		| 'ORK1002' // Registry: no named instance
-		| 'ORK1003' // Registry: cannot replace default
-		| 'ORK1004' // Registry: cannot replace locked
-		| 'ORK1005' // Container: already destroyed
-		| 'ORK1006' // Container: no provider for token
-		| 'ORK1007' // Orchestrator: duplicate registration
-		| 'ORK1008' // Orchestrator: unknown dependency
-		| 'ORK1009' // Orchestrator: cycle detected
-		| 'ORK1010' // Orchestrator: async useValue
-		| 'ORK1011' // Orchestrator: async useFactory (async function)
-		| 'ORK1012' // Orchestrator: async useFactory (returned Promise)
-		| 'ORK1013' // Orchestrator: Errors during startAll
-		| 'ORK1014' // Orchestrator: Errors during stopAll
-		| 'ORK1015' // Orchestrator: Errors during destroyAll
-		| 'ORK1016' // Container: Errors during container destroy
-		| 'ORK1017' // Orchestrator: Errors during destroy (consolidated stop+destroy)
-		| 'ORK1020' // Lifecycle: invalid transition
-		| 'ORK1021' // Lifecycle: hook timed out
-		| 'ORK1099' // Internal invariant
-
-export interface DiagnosticInfo { code: OrkCode, message: string, helpUrl?: string }
+import type { OrkCode, DiagnosticInfo, LifecycleErrorDetail, LifecyclePhase, LifecycleHook, LifecycleContext, LifecycleState } from './types.js'
 
 export function formatMessage(code: OrkCode, message: string): string {
 	return `[Orkestrel][${code}] ${message}`
@@ -44,35 +22,9 @@ export const HELP = {
 	lifecycle: 'https://github.com/orkestrel/core/blob/main/docs/api.md#lifecycle',
 }
 
-// Lifecycle telemetry types (centralized)
-export type LifecyclePhase = 'start' | 'stop' | 'destroy'
-export type LifecycleContext = 'normal' | 'rollback' | 'container'
-export interface LifecycleErrorDetail {
-	tokenDescription: string
-	phase: LifecyclePhase
-	context: LifecycleContext
-	timedOut: boolean
-	durationMs: number
-	error: Error
-}
-
-// Runtime guard for LifecycleErrorDetail (optional, lightweight)
-export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
-	if (typeof x !== 'object' || x === null) return false
-	const o = x as Record<string, unknown>
-	return (
-		typeof o.tokenDescription === 'string'
-		&& (o.phase === 'start' || o.phase === 'stop' || o.phase === 'destroy')
-		&& (o.context === 'normal' || o.context === 'rollback' || o.context === 'container')
-		&& typeof o.timedOut === 'boolean'
-		&& typeof o.durationMs === 'number' && Number.isFinite(o.durationMs as number)
-		&& o.error instanceof Error
-	)
-}
-
 // Helper to format token symbols consistently
 export function tokenDescription(token: symbol): string {
-	return (token.description && typeof token.description === 'string') ? token.description : String(token)
+	return token.description ?? String(token)
 }
 
 export const D = {
@@ -100,8 +52,8 @@ export const D = {
 	invariantMissingNode: () => makeError('ORK1099', 'Invariant: missing node entry'),
 
 	// Lifecycle diagnostics
-	invalidTransition: (from: string, to: string) => makeError('ORK1020', `Invalid lifecycle transition from '${from}' to '${to}'`, HELP.lifecycle),
-	hookTimeout: (hook: string, ms: number) => makeError('ORK1021', `Lifecycle hook '${hook}' timed out after ${ms}ms`, HELP.lifecycle),
+	invalidTransition: (from: LifecycleState, to: LifecycleState) => makeError('ORK1020', `Invalid lifecycle transition from '${from}' to '${to}'`, HELP.lifecycle),
+	hookTimeout: (hook: LifecycleHook, ms: number) => makeError('ORK1021', `Lifecycle hook '${hook}' timed out after ${ms}ms`, HELP.lifecycle),
 
 	// Detail factory to keep uniform shape across callers
 	makeDetail: (
@@ -121,25 +73,27 @@ export const D = {
 
 // Error classes consolidated under diagnostics
 export class LifecycleError extends Error {
-	constructor(message: string, public readonly cause?: unknown, public readonly code?: OrkCode, public readonly helpUrl?: string) {
+	public readonly cause?: unknown
+	constructor(message: string, options?: { cause?: unknown }) {
 		super(message)
 		this.name = 'LifecycleError'
+		if (options && 'cause' in options) (this as unknown as { cause?: unknown }).cause = options.cause
 		Object.setPrototypeOf(this, new.target.prototype)
 	}
 }
 
 export class InvalidTransitionError extends LifecycleError {
-	constructor(public readonly from: string, public readonly to: string) {
+	constructor(public readonly from: LifecycleState, public readonly to: LifecycleState) {
 		const base = D.invalidTransition(from, to) as Error & { code?: OrkCode, helpUrl?: string }
-		super(base.message, undefined, base.code, base.helpUrl)
+		super(base.message)
 		this.name = 'InvalidTransitionError'
 	}
 }
 
 export class TimeoutError extends LifecycleError {
-	constructor(public readonly hook: string, public readonly ms: number) {
+	constructor(public readonly hook: LifecycleHook, public readonly ms: number) {
 		const base = D.hookTimeout(hook, ms) as Error & { code?: OrkCode, helpUrl?: string }
-		super(base.message, undefined, base.code, base.helpUrl)
+		super(base.message)
 		this.name = 'TimeoutError'
 	}
 }
@@ -147,6 +101,8 @@ export class TimeoutError extends LifecycleError {
 export class AggregateLifecycleError extends LifecycleError {
 	public readonly errors: Error[]
 	public readonly details: LifecycleErrorDetail[]
+	public readonly code?: OrkCode
+	public readonly helpUrl?: string
 	constructor(info: { code?: OrkCode, message: string, helpUrl?: string } | DiagnosticInfo, detailsOrErrors: LifecycleErrorDetail[] | Error[]) {
 		const details: LifecycleErrorDetail[] = detailsOrErrors.map((e: LifecycleErrorDetail | Error): LifecycleErrorDetail => {
 			if (e instanceof Error) {
@@ -154,9 +110,11 @@ export class AggregateLifecycleError extends LifecycleError {
 			}
 			return e
 		})
-		super(info.message, details[0]?.error, (info as DiagnosticInfo).code as OrkCode | undefined, (info as DiagnosticInfo).helpUrl)
+		super(info.message, { cause: details[0]?.error })
 		this.name = 'AggregateLifecycleError'
 		this.details = details
 		this.errors = details.map(d => d.error)
+		this.code = (info as DiagnosticInfo).code
+		this.helpUrl = (info as DiagnosticInfo).helpUrl
 	}
 }

@@ -1,5 +1,5 @@
-import type { Token } from './container.js'
-import { createTokens } from './container.js'
+import type { Token, TokensOf } from './types.js'
+import { createTokens } from './types.js'
 
 /**
  * Create a set of Port tokens based on a shape.
@@ -8,8 +8,8 @@ import { createTokens } from './container.js'
  * @param shape - Object whose keys are port names and values define their TypeScript interface shapes.
  * @param namespace - Optional namespace used in token descriptions (default: 'ports').
  */
-export function createPortTokens<T extends Record<string, unknown>>(shape: T, namespace = 'ports'): { [K in keyof T]: Token<T[K]> } {
-	return createTokens(namespace, shape as Record<string, unknown>) as { [K in keyof T]: Token<T[K]> }
+export function createPortTokens<T extends Record<string, unknown>>(shape: T, namespace = 'ports'): TokensOf<T> {
+	return createTokens(namespace, shape as Record<string, unknown>) as TokensOf<T>
 }
 
 /**
@@ -19,12 +19,12 @@ export function createPortTokens<T extends Record<string, unknown>>(shape: T, na
  * @overload
  * Extend from scratch using only an extension shape.
  */
-export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): { [K in keyof Ext]: Token<Ext[K]> }
+export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): TokensOf<Ext>
 /**
  * @overload
  * Extend an existing base token set with an extension shape.
  */
-export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Base & { [K in keyof Ext]: Token<Ext[K]> }
+export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Base & TokensOf<Ext>
 export function extendPorts(...args: unknown[]): unknown {
 	const base: Record<string, Token<unknown>> = (args.length === 2 ? (args[0] as Record<string, Token<unknown>>) : {})
 	const extShape: Record<string, unknown> = (args.length === 2 ? (args[1] as Record<string, unknown>) : (args[0] as Record<string, unknown>))

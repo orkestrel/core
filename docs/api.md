@@ -5,14 +5,11 @@ This is the comprehensive reference for `@orkestrel/core`. It documents every ex
 Note: This document is kept in sync with TSDoc comments in the source files (see `src/*.ts`). Messages and error codes are stable and referenced throughout.
 
 Exports are re-exported from [src/index.ts](../src/index.ts):
-- diagnostics
 - lifecycle
 - adapter
 - container
 - orchestrator
 - ports
-- emitter
-- registry
 
 ---
 
@@ -85,7 +82,6 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
 - constructor(opts?: LifecycleOptions)
 - readonly state: LifecycleState
 - Events emitted: `stateChange(LifecycleState)`, `create()`, `start()`, `stop()`, `destroy()`, `error(LifecycleError)`
-- Methods:
   - `on(evt, fn)` / `off(evt, fn)` — subscribe/unsubscribe to events
   - `create(): Promise<void>`
   - `start(): Promise<void>`
@@ -120,6 +116,16 @@ class EmailService extends Lifecycle {
   }
 }
 ```
+
+Error classes and utilities (used by Lifecycle and Orchestrator)
+- `class LifecycleError extends Error`
+- `class InvalidTransitionError extends LifecycleError`
+- `class TimeoutError extends LifecycleError`
+- `class AggregateLifecycleError extends LifecycleError`
+- `type LifecyclePhase = 'start' | 'stop' | 'destroy'`
+- `type LifecycleContext = 'normal' | 'rollback' | 'container'`
+- `interface LifecycleErrorDetail { tokenDescription: string; phase: LifecyclePhase; context: LifecycleContext; timedOut: boolean; durationMs: number; error: Error }`
+- `function tokenDescription(token: symbol): string`
 
 ---
 
@@ -208,7 +214,7 @@ Lifecycle ownership semantics
 - Instances supplied via value/bare value are treated as externally owned and are not destroyed by `container.destroy()`.
 
 ### global helper: container
-Source: [src/container.ts](../src/container.ts), [src/registry.ts](../src/registry.ts)
+Source: [src/container.ts](../src/container.ts)
 
 A getter/setter for globally accessible Container instances (a default is created at module load).
 
@@ -249,8 +255,6 @@ Source: [src/orchestrator.ts](../src/orchestrator.ts)
 - `tracer?: { onLayers?: (payload: { layers: string[][] }) => void; onPhase?: (payload: { phase: 'start'|'stop'|'destroy', layer: number, outcomes: { token: string, ok: boolean, durationMs: number, timedOut?: boolean }[] }) => void }`
 - `concurrency?: number` — optional per-layer concurrency cap; when set, start/stop/destroy in each layer run at most this many tasks in parallel. Default: unlimited.
 
-See also: Tips → [Telemetry events (practical logging)](./tips.md#telemetry-events-practical-logging) for usage examples and recommended logging fields.
-
 ### class Orchestrator
 - constructor(container?: Container)
 - constructor(options?: OrchestratorOptions)
@@ -265,7 +269,7 @@ See also: Tips → [Telemetry events (practical logging)](./tips.md#telemetry-ev
 ### helper: register
 Overloads (preserve inject typing):
 - Tuple inject (useClass or useFactory)
-  - `register<T, A extends readonly unknown[]>(token: Token<T>, provider: { useClass: new (...args: A) => T, inject: InjectTuple<A> } | { useFactory: (...args: A) => T, inject: InjectTuple<A> }, options?: { dependencies?, timeouts? }): OrchestratorRegistration<T>`
+  - `register<T, A extends readonly unknown[]>(token: Token<T>, provider: { useClass: new (...args: A) => T, inject: InjectTuple[A] } | { useFactory: (...args: A) => T, inject: InjectTuple[A] }, options?: { dependencies?, timeouts? }): OrchestratorRegistration<T>`
 - Object inject (useFactory)
   - `register<T, O extends Record<string, unknown>>(token: Token<T>, provider: { useFactory: (deps: O) => T, inject: InjectObject<O> }, options?: { dependencies?, timeouts? }): OrchestratorRegistration<T>`
 - No-deps/value forms
@@ -288,7 +292,7 @@ Examples
 - These are complementary; you will often use both. The orchestrator doesn’t infer `dependencies` from `inject`.
 
 ### global helper: orchestrator
-Source: [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)
+Source: [src/orchestrator.ts](../src/orchestrator.ts)
 
 A getter/setter for globally accessible Orchestrator instances (a default is created at module load).
 
@@ -325,37 +329,3 @@ Notes
 
 ### function createPortToken<T>(name: string): Token<T>
 - Convenience creator for a single port token.
-
----
-
-## emitter
-
-Source: [src/emitter.ts](../src/emitter.ts)
-
-### class Emitter
-A minimal event emitter used internally by `Lifecycle`.
-- Methods:
-  - `on(event: string, fn: (...args: unknown[]) => void): this`
-  - `off(event: string, fn: (...args: unknown[]) => void): this`
-  - `emit(event: string, ...args: unknown[]): void`
-  - `removeAllListeners(): void`
-
----
-
-## registry
-
-Source: [src/registry.ts](../src/registry.ts)
-
-### class Registry<T>
-Helper used by the global instance helpers.
-- constructor(label: string, defaultValue?: T, defaultKey?: symbol)
-- Methods:
-  - `get(name?: string | symbol): T | undefined`
-  - `resolve(name?: string | symbol): T`
-  - `set(nameOrKey: string | symbol, value: T, lock?: boolean): void`
-  - `clear(name?: string | symbol, force?: boolean): boolean`
-  - `list(): (string | symbol)[]`
-
-Behavior
-- The default entry is protected: it cannot be replaced or cleared.
-- Named entries can be locked via `set(name, value, true)`; locked entries cannot be replaced and `clear(name)` returns `false` unless `force: true` is passed.

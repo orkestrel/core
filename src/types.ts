@@ -6,6 +6,82 @@ import type { Lifecycle } from './lifecycle.js'
 import type { Orchestrator } from './orchestrator.js'
 
 // ---------------------------
+// Ports: Emitter (used by Lifecycle)
+// ---------------------------
+
+export type EmitterListener = (...args: unknown[]) => void
+
+export interface EmitterPort {
+	on(event: string, fn: EmitterListener): this
+	off(event: string, fn: EmitterListener): this
+	emit(event: string, ...args: unknown[]): void
+	removeAllListeners(): void
+}
+
+// ---------------------------
+// Ports: Event (topic-based pub/sub)
+// ---------------------------
+
+export type EventHandler<T> = (payload: T) => void | Promise<void>
+
+export interface EventPort<EMap extends Record<string, unknown> = Record<string, unknown>> {
+	publish<E extends keyof EMap & string>(topic: E, payload: EMap[E]): Promise<void>
+	subscribe<E extends keyof EMap & string>(topic: E, handler: EventHandler<EMap[E]>): Promise<() => void | Promise<void>>
+	topics(): ReadonlyArray<string>
+}
+
+export interface EventAdapterOptions {
+	readonly onError?: (err: unknown, topic: string) => void
+	readonly sequential?: boolean
+}
+
+// ---------------------------
+// Ports: Layer (topological layering)
+// ---------------------------
+
+export interface LayerNode<T = unknown> {
+	readonly token: Token<T>
+	readonly dependencies: readonly Token<unknown>[]
+}
+
+export interface LayerPort {
+	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][]
+	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][]
+}
+
+// ---------------------------
+// Ports: Queue
+// ---------------------------
+
+export interface QueuePort<T> {
+	enqueue(item: T): Promise<void>
+	dequeue(): Promise<T | undefined>
+	size(): Promise<number>
+	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: { readonly concurrency?: number }): Promise<ReadonlyArray<R>>
+}
+
+export interface QueueAdapterOptions {
+	readonly capacity?: number
+}
+
+// ---------------------------
+// Ports: Registry
+// ---------------------------
+
+export interface RegistryPort<T> {
+	get(name?: string | symbol): T | undefined
+	resolve(name?: string | symbol): T
+	set(name: string | symbol, value: T, lock?: boolean): void
+	clear(name?: string | symbol, force?: boolean): boolean
+	list(): ReadonlyArray<string | symbol>
+}
+
+export interface RegistryAdapterOptions<T> {
+	readonly label?: string
+	readonly default?: { readonly key?: symbol, readonly value: T }
+}
+
+// ---------------------------
 // Tokens
 // ---------------------------
 
@@ -126,9 +202,6 @@ export function isPromiseLike<T = unknown>(x: unknown): x is PromiseLike<T> {
 	return typeof maybeThen === 'function'
 }
 
-// Common listener type for internal emitters
-export type Listener = (...args: unknown[]) => void
-
 // ---------------------------
 // Diagnostics and lifecycle types (shared)
 // ---------------------------
@@ -185,7 +258,13 @@ export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
 
 // Lifecycle public types
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
-export interface LifecycleOptions { hookTimeoutMs?: number, onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean, emitInitialState?: boolean }
+export interface LifecycleOptions {
+	hookTimeoutMs?: number
+	onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean
+	emitInitialState?: boolean
+	// Emitter remains injectable
+	emitter?: EmitterPort
+}
 export type LifecycleEventMap = {
 	stateChange: [LifecycleState]
 	create: []
@@ -266,6 +345,8 @@ export interface OrchestratorOptions {
 		onPhase?: (payload: { phase: LifecyclePhase, layer: number, outcomes: Outcome[] }) => void
 	}
 	readonly concurrency?: number
+	readonly layer?: LayerPort
+	readonly queue?: QueuePort<unknown>
 }
 
 export type OrchestratorGetter = {

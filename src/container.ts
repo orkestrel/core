@@ -1,5 +1,5 @@
 import { Lifecycle } from './lifecycle.js'
-import { Registry } from './registry.js'
+import { RegistryAdapter } from './adapters/registry.js'
 import { AggregateLifecycleError, D, tokenDescription } from './diagnostics.js'
 import type {
 	Token,
@@ -42,7 +42,7 @@ import {
  * - Destroys owned lifecycles on `destroy()`.
  */
 export class Container {
-	private readonly registry = new Registry<Registration<unknown>>('provider')
+	private readonly registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider' })
 	private readonly parent?: Container
 	private destroyed = false
 
@@ -240,7 +240,7 @@ export class Container {
 // Global container registry helper
 // ---------------------------
 
-const containerRegistry = new Registry<Container>('container', new Container())
+const containerRegistry = new RegistryAdapter<Container>({ label: 'container', default: { value: new Container() } })
 
 function containerResolve<T>(token: Token<T>, name?: string | symbol): T
 function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
@@ -299,7 +299,7 @@ export const container = Object.assign(
 			containerRegistry.set(name, c, lock)
 		},
 		clear(name?: string | symbol, force?: boolean) { return containerRegistry.clear(name, force) },
-		list() { return containerRegistry.list() },
+		list() { return [...containerRegistry.list()] },
 
 		resolve: containerResolve,
 		get: containerGet,

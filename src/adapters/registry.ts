@@ -1,43 +1,42 @@
-import { D } from './diagnostics.js'
+import { D } from '../diagnostics.js'
+import type { RegistryPort, RegistryAdapterOptions } from '../types.js'
 
-export class Registry<T> {
+export class RegistryAdapter<T> implements RegistryPort<T> {
 	private readonly store = new Map<string | symbol, T>()
 	private readonly locked = new Set<string | symbol>()
 	private readonly label: string
 	private readonly defaultKey?: symbol
 
-	constructor(label: string, defaultValue?: T, defaultKey?: symbol) {
-		this.label = label
-		if (defaultValue !== undefined) {
-			this.defaultKey = defaultKey ?? Symbol(`${label}.default`)
-			this.store.set(this.defaultKey, defaultValue)
+	constructor(options: RegistryAdapterOptions<T> = {}) {
+		this.label = options.label ?? 'registry'
+		if (options.default) {
+			this.defaultKey = options.default.key ?? Symbol(`${this.label}.default`)
+			this.store.set(this.defaultKey, options.default.value)
 		}
 	}
 
-	// Non-throwing lookup: returns undefined if missing
 	get(name?: string | symbol): T | undefined {
 		const key = name ?? this.defaultKey
 		return key === undefined ? undefined : this.store.get(key)
 	}
 
-	// Strict lookup: throws if missing
 	resolve(name?: string | symbol): T {
 		const key = name ?? this.defaultKey
 		if (key === undefined) throw D.registryNoDefault(this.label)
 		const v = this.store.get(key)
-		if (!v) throw D.registryNoNamed(this.label, String(key))
+		if (v === undefined) throw D.registryNoNamed(this.label, String(key))
 		return v
 	}
 
-	set(nameOrKey: string | symbol, value: T, lock = false): void {
-		if (this.defaultKey !== undefined && nameOrKey === this.defaultKey) {
+	set(name: string | symbol, value: T, lock = false): void {
+		if (this.defaultKey !== undefined && name === this.defaultKey) {
 			throw D.registryCannotReplaceDefault(this.label)
 		}
-		if (this.locked.has(nameOrKey)) {
-			throw D.registryCannotReplaceLocked(this.label, String(nameOrKey))
+		if (this.locked.has(name)) {
+			throw D.registryCannotReplaceLocked(this.label, String(name))
 		}
-		this.store.set(nameOrKey, value)
-		if (lock) this.locked.add(nameOrKey)
+		this.store.set(name, value)
+		if (lock) this.locked.add(name)
 	}
 
 	clear(name?: string | symbol, force = false): boolean {
@@ -50,5 +49,5 @@ export class Registry<T> {
 		return this.store.delete(key)
 	}
 
-	list(): (string | symbol)[] { return Array.from(this.store.keys()) }
+	list(): ReadonlyArray<string | symbol> { return Array.from(this.store.keys()) }
 }

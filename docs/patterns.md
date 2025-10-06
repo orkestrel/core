@@ -5,7 +5,7 @@ Opinionated ways to compose apps with Orkestrel, staying explicit and predictabl
 Contents
 - Startup pattern: start([...])
 - Timeouts defaults
-- Events for telemetry
+- Events for logging
 - Explicit dependencies
 - Explicit injection (no decorators)
 - Inject vs Dependencies (what’s the difference?)
@@ -66,8 +66,8 @@ await app.start([
 const app = new Orchestrator(c, { defaultTimeouts: { onStart: 5000, onStop: 2000, onDestroy: 2000 } })
 ```
 
-## Events for telemetry
-- Provide `events` callbacks on the orchestrator to centralize logging/metrics:
+## Events for logging
+- Provide `events` callbacks on the orchestrator to centralize logging:
 
 ```ts
 const app = new Orchestrator(c, {
@@ -186,7 +186,7 @@ class WorkerManager extends Adapter {
 Guidance
 - Per‑child DI: create a child container per worker when you need overrides or container‑owned disposables; destroy the child scope in `onDestroy`.
 - Concurrency: prefer batching or a small limiter inside the manager (keep core orchestrator simple by default).
-- Telemetry: inject logger/metrics ports and add useful context (child id, timings) inside the manager.
+- Logging: add useful context (child id, timings) inside the manager.
 
 ## Fine-grained control (register + start)
 Source: [src/orchestrator.ts](../src/orchestrator.ts)
@@ -199,7 +199,7 @@ await app.start()
 ```
 
 ## Helpers vs Explicit DI
-Source: [src/container.ts](../src/container.ts), [src/orchestrator.ts](../src/orchestrator.ts), [src/registry.ts](../src/registry.ts)
+Source: [src/container.ts](../src/container.ts), [src/orchestrator.ts](../src/orchestrator.ts)
 - Helpers (`container()`, `orchestrator()`) are optional and handy for app composition.
 - Libraries should prefer receiving `Container`/`Orchestrator` instances explicitly for stricter DI.
 - We intentionally avoid multi‑binding (`resolveAll/getAll`) and container‑level transient lifetimes. For many instances, use the Manager pattern.

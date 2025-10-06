@@ -16,7 +16,7 @@ test('createPortTokens creates a base token set and extendPorts merges new token
 	await orch.start([
 		{ token: Base.email, provider: { useFactory: () => new InMemoryEmailAdapter() } },
 	])
-	const email = orch.getContainer().resolve(Base.email)
+	const email = orch.container.resolve(Base.email)
 	assert.equal(typeof email.send, 'function')
 	await orch.destroy()
 })

@@ -38,11 +38,6 @@ await container().resolve(Ports.email).send('me@example.com', 'Hi', 'Welcome!')
 await orchestrator().destroy()
 ```
 
-Large app (multi-file pattern)
-- Entry file wires infra (see `examples/large/app.ts`)
-- Feature modules register their own providers (see `examples/large/modules/user.ts`)
-- Use orchestrator dependencies for deterministic ordering
-
 When to use stop() vs destroy()
 - destroy(): Preferred for application shutdown. It stops any started components as needed and then destroys all lifecycles in reverse dependency order, and finally destroys the container. One call is sufficient.
 - stop(): Use when you need to pause running components without tearing them down, for example to perform maintenance or to later start again in the same process. It aggregates stop errors and respects per-component timeouts.
@@ -56,6 +51,7 @@ Next steps
 - hookTimeoutMs (default 5000): max time for each hook (`onStart`, `onStop`, `onDestroy`) and `onTransition`.
 - onTransitionFilter(from, to, hook): decide whether to run `onTransition` for a given phase.
 - emitInitialState (default true): when false, suppresses the initial deferred `stateChange('created')` event.
+- emitter: Lifecycle creates a default internal emitter so `on('stateChange', ...)` works without configuration. To integrate with a shared emitter, pass `opts.emitter` when constructing your Lifecycle subclass.
 
 Example:
 ```ts

@@ -3,28 +3,32 @@
 // Extension points: onCreate, onStart, onStop, onDestroy
 
 import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnostics.js'
-import { Emitter } from './emitter.js'
-import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook } from './types.js'
+import { EmitterAdapter } from './adapters/emitter.js'
+import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook, EmitterPort } from './types.js'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
 	private readonly hookTimeoutMs: number
-	private readonly emitter = new Emitter()
 	private readonly onTransitionFilter: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean
+	readonly #emitter: EmitterPort
 
 	constructor(opts: LifecycleOptions = {}) {
 		this.hookTimeoutMs = opts.hookTimeoutMs ?? 5000
 		this.onTransitionFilter = opts.onTransitionFilter ?? (() => true)
+		this.#emitter = opts.emitter ?? new EmitterAdapter()
 		// defer initial state event (opt-in by default)
 		if (opts.emitInitialState !== false) {
 			if (typeof queueMicrotask === 'function') {
-				queueMicrotask(() => this.emitter.emit('stateChange', this._state))
+				queueMicrotask(() => this.#emitter.emit('stateChange', this._state))
 			}
 			else {
-				setTimeout(() => this.emitter.emit('stateChange', this._state), 0)
+				setTimeout(() => this.#emitter.emit('stateChange', this._state), 0)
 			}
 		}
 	}
+
+	// Observability port getters (emitter only)
+	public get emitter(): EmitterPort { return this.#emitter }
 
 	get state(): LifecycleState { return this._state }
 	protected setState(next: LifecycleState): void {

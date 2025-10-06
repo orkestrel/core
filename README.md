@@ -20,6 +20,12 @@ Quick links
 - Examples: [docs/examples.md](docs/examples.md)
 - API Reference: [docs/api.md](docs/api.md)
 - Contribute: [docs/contribute.md](docs/contribute.md)
+- Adapters:
+  - [docs/layer.md](docs/adapters/layer.md),
+  - [docs/registry.md](docs/adapters/registry.md),
+  - [docs/emitter.md](docs/adapters/emitter.md), 
+  - [docs/event.md](docs/adapters/event.md), 
+  - [docs/queue.md](docs/adapters/queue.md),
 
 ## Quickstart (≈60 seconds)
 
@@ -63,6 +69,7 @@ await orchestrator().destroy()
 - Tokens: unique runtime identifiers for those port interfaces.
 - Container: tiny DI that registers providers (value/factory/class) and resolves singletons.
 - Orchestrator: starts/stops/destroys Lifecycle components in dependency order with timeouts and events.
+- Adapters: concrete implementations of ports; core defaults include LayerAdapter, RegistryAdapter, EmitterAdapter, EventAdapter, and QueueAdapter.
 
 Startup
 - See [Start](docs/start.md) for a quick way to wire and run your app, and [Patterns](docs/patterns.md) for alternatives.
@@ -76,8 +83,6 @@ Run locally
 npm run check
 npm run format
 npm test
-npm run example:simple
-npm run example:large
 ```
 
 Publishing

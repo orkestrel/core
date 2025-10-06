@@ -4,14 +4,14 @@
 - Use `container.createChild()` for request/job scoped lifetimes; always `await scope.destroy()`.
 - Keep adapters side-effect free on import. Do work in `onStart`/`onStop`/`onDestroy` if needed.
 - For tests, use `tsx --test` (or your runner) and `tsc --noEmit` for type checking.
-- Use `orchestrator.list()` and `container.list()` (helpers expose `list`) only for debugging; prefer passing instances explicitly in libraries.
+- Use `orchestrator.list()` and `container.list()` only for debugging; prefer passing instances explicitly in libraries.
 - In TS configs, alias `@orkestrel/core` to `src` for local dev; in apps consuming the package, import from `@orkestrel/core` normally.
 - Keep port interfaces small and stable; adapters can vary by environment (browser/server).
 - Aggregate lifecycle errors are thrown at the end of stop/destroy; inspect `.errors`.
 - Use `onTransition(from, to, hook)` in `Lifecycle` to log or instrument transitions, and gate it with `onTransitionFilter` to target specific hooks.
 - `hookTimeoutMs` is a safety cap (default 5000ms) for each lifecycle operation: it bounds the time for the primary hook and `onTransition` together. If exceeded, a `TimeoutError` is thrown and emitted; it’s not a delay. Tune per component based on expected IO (set low to fail fast, or higher for slow initializations).
 - Start/stop/destroy run in parallel within each dependency layer; avoid global side effects in hooks or guard with locks.
-- Default `Lifecycle` hook timeout is 5000ms; you can override per component (via `LifecycleOptions` or orchestrator timeouts) or set orchestrator defaults.
+- Default `Lifecycle` hook timeout is 5000ms; you can override per component (via `LifecycleOptions`) or set orchestrator defaults.
 - See Providers & Lifetimes for ownership details and async provider guard behavior.
 
 ## Type Safety Conventions
@@ -47,8 +47,8 @@ Outputs look like:
 - onLayers: `[ [ 'Feature:A' ], [ 'Feature:B', 'Feature:C' ] ]`
 - onPhase: `{ phase: 'start', layer: 0, outcomes: [ { token: 'Feature:A', ok: true, durationMs: 2.1 } ] }`
 
-## Telemetry events (practical logging)
-Hook Orchestrator `events` to emit your own logs/metrics. Callbacks run per-component and include durations and rich error details.
+## Orchestrator events (practical logging)
+Hook Orchestrator `events` to emit your own logs. Callbacks run per-component and include durations and rich error details.
 
 Example:
 ```ts
@@ -79,7 +79,7 @@ Tips:
   - ORK1016 Errors during container destroy
   - ORK1020 Invalid lifecycle transition (called start/stop/destroy out of order)
   - ORK1021 Lifecycle hook timeout (hook took longer than allowed)
-- Optional guard: `isLifecycleErrorDetail(x)` validates a telemetry detail shape at runtime (no external deps), useful in pipelines or log processors.
+- Optional guard: `isLifecycleErrorDetail(x)` validates an aggregated error detail shape at runtime (no external deps), useful in pipelines or log processors.
 
 Quick example: catching aggregated errors
 ```ts

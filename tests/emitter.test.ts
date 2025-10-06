@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Emitter } from '@orkestrel/core'
+import { EmitterAdapter } from '@orkestrel/core'
 
 test('Emitter on/emit calls listeners with args', () => {
-	const em = new Emitter()
+	const em = new EmitterAdapter()
 	let called = 0
 	let payload: unknown[] = []
 
@@ -18,7 +18,7 @@ test('Emitter on/emit calls listeners with args', () => {
 })
 
 test('Emitter off removes a specific listener', () => {
-	const em = new Emitter()
+	const em = new EmitterAdapter()
 	let a = 0
 	let b = 0
 	function la() {
@@ -38,7 +38,7 @@ test('Emitter off removes a specific listener', () => {
 })
 
 test('Emitter removeAllListeners clears all', () => {
-	const em = new Emitter()
+	const em = new EmitterAdapter()
 	let count = 0
 	function l() {
 		count++

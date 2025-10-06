@@ -27,14 +27,20 @@ Inject vs Dependencies (at a glance)
 - `dependencies` (orchestrator-level) tells the Orchestrator which tokens must start first; it affects lifecycle ordering and rollback.
 - They’re complementary; use both for the same component when needed. The orchestrator doesn’t infer `dependencies` from `inject`.
 
-Diagnostics & Errors
+Errors
 - All framework errors include stable codes like `[Orkestrel][ORK####] Message…` and often a short help link.
 - Aggregated lifecycle failures throw an `AggregateLifecycleError` with per-component details.
-- See: API diagnostics section and Tips → Diagnostics.
 
 Startup
 - See [Start](./start.md) for the canonical boot pattern, and [Patterns](./patterns.md) for alternatives and when to use them.
 
-See the examples for a tiny single-file app and a larger multi-file composition:
-- examples/simple.ts
-- examples/large/app.ts
+Adapters
+- Emitter: see [docs/emitter.md](adapters/emitter.md)
+- Event: see [docs/event.md](adapters/event.md)
+- Queue: see [docs/queue.md](adapters/queue.md)
+- Layer: see [docs/layer.md](adapters/layer.md)
+
+Notes
+- Lifecycle uses EmitterAdapter internally for its own events.
+- Event is a separate, typed pub/sub adapter for application topics.
+- Orchestrator composes bounded concurrency using QueueAdapter.

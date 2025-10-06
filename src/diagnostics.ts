@@ -1,6 +1,19 @@
 // Centralized diagnostics: codes, templates, and helpers
+// Public API preserved. Focused on orchestrator/container/lifecycle error shaping.
 
-import type { OrkCode, DiagnosticInfo, LifecycleErrorDetail, LifecyclePhase, LifecycleHook, LifecycleContext, LifecycleState } from './types.js'
+import type {
+	OrkCode,
+	DiagnosticInfo,
+	LifecycleErrorDetail,
+	LifecyclePhase,
+	LifecycleHook,
+	LifecycleContext,
+	LifecycleState,
+} from './types.js'
+
+// -----------------------------------
+// Formatting helpers and documentation links
+// -----------------------------------
 
 export function formatMessage(code: OrkCode, message: string): string {
 	return `[Orkestrel][${code}] ${message}`
@@ -20,35 +33,50 @@ export const HELP = {
 	orchestrator: 'https://github.com/orkestrel/core/blob/main/docs/overview.md#orchestrator',
 	errors: 'https://github.com/orkestrel/core/blob/main/docs/tips.md#troubleshooting',
 	lifecycle: 'https://github.com/orkestrel/core/blob/main/docs/api.md#lifecycle',
-}
+} as const
 
 // Helper to format token symbols consistently
 export function tokenDescription(token: symbol): string {
 	return token.description ?? String(token)
 }
 
+// Small internal helper to standardize aggregate info creation
+function aggregateInfo(code: OrkCode, label: string): DiagnosticInfo {
+	return { code, message: formatMessage(code, label), helpUrl: HELP.errors }
+}
+
+// -----------------------------------
+// Error factories used across the codebase
+// -----------------------------------
+
 export const D = {
+	// Registry
 	registryNoDefault: (label: string) => makeError('ORK1001', `No ${label} instance registered for '<default>'`, HELP.registry),
 	registryNoNamed: (label: string, key: string) => makeError('ORK1002', `No ${label} instance registered for '${key}'`, HELP.registry),
 	registryCannotReplaceDefault: (label: string) => makeError('ORK1003', `Cannot replace default ${label} instance`, HELP.registry),
 	registryCannotReplaceLocked: (label: string, key: string) => makeError('ORK1004', `Cannot replace locked ${label} instance for '${key}'`, HELP.registry),
 
+	// Container
 	containerDestroyed: () => makeError('ORK1005', 'Container already destroyed', HELP.container),
 	containerNoProvider: (tokenDesc: string) => makeError('ORK1006', `No provider for ${tokenDesc}`, HELP.providers),
 
+	// Orchestrator
 	duplicateRegistration: (tokenDesc: string) => makeError('ORK1007', `Duplicate registration for ${tokenDesc}`, HELP.orchestrator),
 	unknownDependency: (depDesc: string, tokenDesc: string) => makeError('ORK1008', `Unknown dependency ${depDesc} required by ${tokenDesc}`, HELP.orchestrator),
 	cycleDetected: () => makeError('ORK1009', 'Cycle detected in dependencies', HELP.orchestrator),
 
+	// Provider guards
 	asyncUseValuePromise: (tokenDesc: string) => makeError('ORK1010', `Async providers are not supported: token '${tokenDesc}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, HELP.providers),
 	asyncUseFactoryAsync: (tokenDesc: string) => makeError('ORK1011', `Async providers are not supported: useFactory for token '${tokenDesc}' is an async function. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, HELP.providers),
 	asyncUseFactoryPromise: (tokenDesc: string) => makeError('ORK1012', `Async providers are not supported: useFactory for token '${tokenDesc}' returned a Promise. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, HELP.providers),
 
-	startAggregate: () => ({ code: 'ORK1013' as const, message: formatMessage('ORK1013', 'Errors during start'), helpUrl: HELP.errors }),
-	stopAggregate: () => ({ code: 'ORK1014' as const, message: formatMessage('ORK1014', 'Errors during stop'), helpUrl: HELP.errors }),
-	containerDestroyAggregate: () => ({ code: 'ORK1016' as const, message: formatMessage('ORK1016', 'Errors during container destroy'), helpUrl: HELP.errors }),
-	destroyAggregate: () => ({ code: 'ORK1017' as const, message: formatMessage('ORK1017', 'Errors during destroy'), helpUrl: HELP.errors }),
+	// Aggregation info
+	startAggregate: (): DiagnosticInfo => aggregateInfo('ORK1013', 'Errors during start'),
+	stopAggregate: (): DiagnosticInfo => aggregateInfo('ORK1014', 'Errors during stop'),
+	containerDestroyAggregate: (): DiagnosticInfo => aggregateInfo('ORK1016', 'Errors during container destroy'),
+	destroyAggregate: (): DiagnosticInfo => aggregateInfo('ORK1017', 'Errors during destroy'),
 
+	// Internal invariants
 	invariantMissingNode: () => makeError('ORK1099', 'Invariant: missing node entry'),
 
 	// Lifecycle diagnostics
@@ -69,9 +97,12 @@ export const D = {
 		durationMs: res.durationMs,
 		error: res.error,
 	}),
-}
+} as const
 
+// -----------------------------------
 // Error classes consolidated under diagnostics
+// -----------------------------------
+
 export class LifecycleError extends Error {
 	public readonly cause?: unknown
 	constructor(message: string, options?: { cause?: unknown }) {

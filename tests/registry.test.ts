@@ -1,10 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Registry } from '@orkestrel/core'
+import { RegistryAdapter } from '@orkestrel/core'
 
-test('Registry with symbol default: construct/get/resolve/list and protected default', () => {
+test('RegistryAdapter with symbol default: construct/get/resolve/list and protected default', () => {
 	const DEF = Symbol('def')
-	const reg = new Registry<number>('thing', 42, DEF)
+	const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 42 } })
 	// resolve/get default
 	assert.equal(reg.resolve(), 42)
 	assert.equal(reg.get(), 42)
@@ -15,9 +15,9 @@ test('Registry with symbol default: construct/get/resolve/list and protected def
 	assert.equal(reg.clear(undefined, true), false)
 })
 
-test('Registry supports string and symbol named keys with default present', () => {
+test('RegistryAdapter supports string and symbol named keys with default present', () => {
 	const DEF = Symbol('def')
-	const reg = new Registry<string>('thing', 'default', DEF)
+	const reg = new RegistryAdapter<string>({ label: 'thing', default: { key: DEF, value: 'default' } })
 	reg.set('alpha', 'A')
 	const S = Symbol('beta')
 	reg.set(S, 'B')
@@ -29,21 +29,37 @@ test('Registry supports string and symbol named keys with default present', () =
 	assert.throws(() => reg.resolve('alpha'), /No thing instance registered/)
 })
 
-test('Registry clear on non-existent names returns false and is non-destructive', () => {
+test('RegistryAdapter clear on non-existent names returns false and is non-destructive', () => {
 	const DEF = Symbol('def')
-	const reg = new Registry<number>('thing', 1, DEF)
+	const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 1 } })
 	// clearing unknowns returns false and does not affect entries
 	assert.equal(reg.clear('missing'), false)
 	assert.equal(reg.clear(Symbol('notset')), false)
 	// set some entries
 	reg.set('a', 2)
-	const before = reg.list().slice()
+	const before = [...reg.list()]
 	// clear unknown string and symbol
 	assert.equal(reg.clear('b'), false)
 	assert.equal(reg.clear(Symbol('notset')), false)
 	// contents unchanged
-	assert.deepEqual(reg.list().sort((a, b) => String(a).localeCompare(String(b))), before.sort((a, b) => String(a).localeCompare(String(b))))
+	assert.deepEqual([...reg.list()].sort((a, b) => String(a).localeCompare(String(b))), before.sort((a, b) => String(a).localeCompare(String(b))))
 	// values still retrievable
 	assert.equal(reg.resolve(), 1)
 	assert.equal(reg.resolve('a'), 2)
+})
+
+test('RegistryAdapter basic: resolve without default throws; get returns undefined', () => {
+	const r = new RegistryAdapter<number>({ label: 'num' })
+	assert.equal(r.get(), undefined)
+	assert.throws(() => r.resolve(), /No num instance registered/)
+})
+
+test('RegistryAdapter lock prevents overwrite and force allows clear', () => {
+	const r = new RegistryAdapter<number>({ label: 'num', default: { value: 1 } })
+	r.set('x', 5, true)
+	assert.throws(() => r.set('x', 6), /Cannot replace locked/)
+	assert.equal(r.clear('x'), false)
+	assert.equal(r.clear('x', true), true)
+	assert.equal(r.get('x'), undefined)
+	assert.equal(r.resolve(), 1)
 })

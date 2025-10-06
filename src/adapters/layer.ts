@@ -1,36 +1,5 @@
-import type { Token } from '../types.js'
+import type { Token, LayerNode, LayerPort } from '../types.js'
 import { D, tokenDescription } from '../diagnostics.js'
-
-/**
- * Node representation for dependency graph layering.
- */
-export interface LayerNode<T = unknown> {
-	readonly token: Token<T>
-	readonly dependencies: readonly Token<unknown>[]
-}
-
-/**
- * Port interface for topological layering operations.
- * Provides deterministic Kahn O(V+E) layering, strict dependency validation,
- * and grouping utility for rollback/teardown batching.
- */
-export interface LayerPort {
-	/**
-     * Compute topological layers for the given nodes.
-     * @returns Array of layers, where each layer is an array of tokens that can be processed in parallel.
-     * @throws If dependencies reference unknown tokens or if a cycle is detected.
-     */
-	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][]
-
-	/**
-     * Group tokens by their layer order in reverse (highest layer first).
-     * Useful for stop/destroy operations that need to process in reverse dependency order.
-     * @param tokens Tokens to group
-     * @param layers Pre-computed layers from computeLayers
-     * @returns Array of token groups, ordered from highest to lowest layer
-     */
-	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][]
-}
 
 /**
  * In-memory adapter for topological layering using Kahn's algorithm.

@@ -1,6 +1,6 @@
 # FAQ and Troubleshooting
 
-A quick reference for common issues, their causes, and concise remedies. Error codes refer to diagnostics raised by Orkestrel Core.
+A quick reference for common issues, their causes, and concise remedies. Error codes are stable across releases.
 
 ## Async providers are not allowed (ORK1010–ORK1012)
 Symptoms
@@ -50,11 +50,10 @@ Fix
 - All providers are singletons by design. For request/job scoping, use `container.createChild()` (or `container.using(fn)`) and destroy the scope afterward.
 - For many instances, model a Manager singleton that owns internal child lifecycles and resolves per-instance resources on demand.
 
-## Telemetry and tracing
+## Tracing and events
 - Wire `OrchestratorOptions.events` to capture per-component start/stop/destroy durations and errors.
 - Enable the tracer (`tracer.onLayers`, `tracer.onPhase`) to see dependency layers and per-phase outcomes for debugging.
 
 See also
-- Tips → Tracing and telemetry examples: [docs/tips.md](./tips.md)
+- Tips → Tracing and events examples: [docs/tips.md](./tips.md)
 - API Reference → Orchestrator options: [docs/api.md](./api.md#interface-orchestratoroptions)
-

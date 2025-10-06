@@ -21,18 +21,25 @@ import type {
 	LifecyclePhase,
 	OrchestratorStartResult,
 	LifecycleContext,
+	LayerPort,
+	QueuePort,
 } from './types.js'
-import { isFactoryProvider, isValueProvider, isPromiseLike, isAsyncFunction, isFactoryProviderWithObject, isFactoryProviderWithTuple, isFactoryProviderNoDeps, isZeroArg } from './types.js'
+import {
+	isFactoryProvider,
+	isValueProvider,
+	isPromiseLike,
+	isAsyncFunction,
+	isFactoryProviderWithObject,
+	isFactoryProviderWithTuple,
+	isFactoryProviderNoDeps,
+	isZeroArg,
+} from './types.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
-import { Registry } from './registry.js'
-import {
-	AggregateLifecycleError,
-	D,
-	TimeoutError,
-	tokenDescription,
-} from './diagnostics.js'
+import { RegistryAdapter } from './adapters/registry.js'
+import { AggregateLifecycleError, D, TimeoutError, tokenDescription } from './diagnostics.js'
 import { LayerAdapter } from './adapters/layer.js'
+import { QueueAdapter } from './adapters/queue.js'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
@@ -42,46 +49,51 @@ import { LayerAdapter } from './adapters/layer.js'
  * - Supports telemetry via events and optional debug tracing of layers/phases.
  */
 export class Orchestrator {
-	private readonly container: Container
+	readonly #container: Container
 	private readonly nodes = new Map<Token<unknown>, NodeEntry>()
 	private layers: Token<unknown>[][] | null = null
 	private readonly defaultTimeouts: PhaseTimeouts
 	private readonly events?: OrchestratorOptions['events']
 	private readonly tracer?: OrchestratorOptions['tracer']
 	private readonly concurrency?: number
-	private readonly layerAdapter = new LayerAdapter()
+	private readonly layer: LayerPort
+	private readonly queue: QueuePort<unknown>
 
 	/**
-     * Construct an Orchestrator.
-     * - Pass a Container to bind to an existing one.
-     * - Or pass options to construct with a new internal Container.
-     * - Or pass both.
-     */
+	 * Construct an Orchestrator.
+	 * - Pass a Container to bind to an existing one.
+	 * - Or pass options to construct with a new internal Container.
+	 * - Or pass both.
+	 */
 	constructor(containerOrOpts?: Container | OrchestratorOptions, maybeOpts?: OrchestratorOptions) {
 		if (containerOrOpts instanceof Container) {
-			this.container = containerOrOpts
+			this.#container = containerOrOpts
 			this.events = maybeOpts?.events
 			this.tracer = maybeOpts?.tracer
 			this.defaultTimeouts = maybeOpts?.defaultTimeouts ?? {}
 			this.concurrency = maybeOpts?.concurrency
+			this.layer = maybeOpts?.layer ?? new LayerAdapter()
+			this.queue = maybeOpts?.queue ?? new QueueAdapter()
 		}
 		else {
-			this.container = new Container()
+			this.#container = new Container()
 			this.events = containerOrOpts?.events
 			this.tracer = containerOrOpts?.tracer
 			this.defaultTimeouts = containerOrOpts?.defaultTimeouts ?? {}
 			this.concurrency = containerOrOpts?.concurrency
+			this.layer = containerOrOpts?.layer ?? new LayerAdapter()
+			this.queue = containerOrOpts?.queue ?? new QueueAdapter()
 		}
 	}
 
 	// Public API
 	/** Get the underlying Container bound to this orchestrator. */
-	getContainer(): Container { return this.container }
+	get container(): Container { return this.#container }
 
 	/**
-     * Register a component provider with optional explicit dependencies/timeouts.
-     * Throws on duplicate registrations or async provider shapes.
-     */
+	 * Register a component provider with optional explicit dependencies/timeouts.
+	 * Throws on duplicate registrations or async provider shapes.
+	 */
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
 		if (this.nodes.has(token)) throw D.duplicateRegistration(tokenDescription(token))
 		const normalized = this.normalizeDependencies(token, dependencies)
@@ -92,10 +104,10 @@ export class Orchestrator {
 	}
 
 	/**
-     * Start all components in dependency order. Optionally register additional components first.
-     * On failure, previously started components are rolled back (stopped) in reverse order.
-     * Aggregates errors with code ORK1013.
-     */
+	 * Start all components in dependency order. Optionally register additional components first.
+	 * On failure, previously started components are rolled back (stopped) in reverse order.
+	 * Aggregates errors with code ORK1013.
+	 */
 	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
 		// Register any provided components first
 		for (const e of regs) {
@@ -149,7 +161,7 @@ export class Orchestrator {
 							stopJobs.push(async () => this.stopToken(tk, lc2, timeoutMs, 'rollback'))
 						}
 					}
-					const settled = await this.runLimited(stopJobs)
+					const settled = await this.queue.run(stopJobs, { concurrency: this.concurrency })
 					for (const s of settled) if (s.error) rollbackErrors.push(s.error)
 				}
 				const agg = D.startAggregate()
@@ -184,9 +196,9 @@ export class Orchestrator {
 	}
 
 	/**
-     * Stop (when needed) and destroy all components, then destroy the container.
-     * Aggregates ORK1017 on failure and includes container cleanup errors.
-     */
+	 * Stop (when needed) and destroy all components, then destroy the container.
+	 * Aggregates ORK1017 on failure and includes container cleanup errors.
+	 */
 	async destroy(): Promise<void> {
 		const forwardLayers = this.topoLayers()
 		const layers = forwardLayers.slice().reverse()
@@ -204,7 +216,7 @@ export class Orchestrator {
 				const destroyTimeout = this.getTimeout(tk, 'destroy')
 				jobs.push(async () => this.destroyToken(tk, inst, stopTimeout, destroyTimeout))
 			}
-			const settled = await this.runLimited(jobs)
+			const settled = await this.queue.run(jobs, { concurrency: this.concurrency })
 			for (const r of settled) {
 				if (r.stopOutcome) stopOutcomes.push(r.stopOutcome)
 				if (r.destroyOutcome) destroyOutcomes.push(r.destroyOutcome)
@@ -270,7 +282,7 @@ export class Orchestrator {
 	private topoLayers(): Token<unknown>[][] {
 		if (this.layers) return this.layers
 		const nodes = Array.from(this.nodes.values())
-		const layers = this.layerAdapter.compute(nodes)
+		const layers = this.layer.compute(nodes)
 		this.layers = layers
 		// tracing: emit computed layers once (guarded)
 		this.safeCall(this.tracer?.onLayers, { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
@@ -279,7 +291,7 @@ export class Orchestrator {
 
 	private groupByLayerOrder(tokens: ReadonlyArray<Token<unknown>>): Token<unknown>[][] {
 		const layers = this.topoLayers()
-		return this.layerAdapter.group(tokens, layers)
+		return this.layer.group(tokens, layers)
 	}
 
 	private getNodeEntry(token: Token<unknown>): NodeEntry {
@@ -334,26 +346,8 @@ export class Orchestrator {
 		}
 	}
 
-	// Concurrency helpers used by start/stop/destroy
-	private async runLimited<T>(tasks: ReadonlyArray<Task<T>>): Promise<T[]> {
-		const c = this.concurrency
-		const n = typeof c === 'number' && c > 0 ? Math.floor(c) : 0
-		if (n === 0 || n >= tasks.length) return Promise.all(tasks.map(fn => fn()))
-		const results = new Array<T>(tasks.length)
-		let idx = 0
-		const workers = Array.from({ length: Math.min(n, tasks.length) }, async () => {
-			while (true) {
-				const i = idx++
-				if (i >= tasks.length) break
-				results[i] = await tasks[i]()
-			}
-		})
-		await Promise.all(workers)
-		return results
-	}
-
-	private async runLayerWithTracing<J>(phase: LifecyclePhase, layerIdxForward: number, jobs: ReadonlyArray<Task<J>>, toOutcome: (j: J) => Outcome | undefined): Promise<J[]> {
-		const results = await this.runLimited(jobs)
+	private async runLayerWithTracing<J>(phase: LifecyclePhase, layerIdxForward: number, jobs: ReadonlyArray<Task<J>>, toOutcome: (j: J) => Outcome | undefined): Promise<ReadonlyArray<J>> {
+		const results = await this.queue.run(jobs, { concurrency: this.concurrency })
 		const outcomes: Outcome[] = []
 		for (const r of results) {
 			const out = toOutcome(r)
@@ -424,7 +418,7 @@ export class Orchestrator {
 	}
 }
 
-const orchestratorRegistry = new Registry<Orchestrator>('orchestrator', new Orchestrator(container()))
+const orchestratorRegistry = new RegistryAdapter<Orchestrator>({ label: 'orchestrator', default: { value: new Orchestrator(container()) } })
 
 export const orchestrator: OrchestratorGetter = Object.assign(
 	(name?: string | symbol): Orchestrator => orchestratorRegistry.resolve(name),
@@ -433,7 +427,7 @@ export const orchestrator: OrchestratorGetter = Object.assign(
 			orchestratorRegistry.set(name, o, lock)
 		},
 		clear(name?: string | symbol, force?: boolean) { return orchestratorRegistry.clear(name, force) },
-		list() { return orchestratorRegistry.list() },
+		list() { return [...orchestratorRegistry.list()] },
 	},
 )
 

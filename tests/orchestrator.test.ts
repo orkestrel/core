@@ -341,10 +341,10 @@ test('events callbacks are invoked for start/stop/destroy and errors', async () 
 	const events: { starts: string[], stops: string[], destroys: string[], errors: string[] } = { starts: [], stops: [], destroys: [], errors: [] }
 	const app = new Orchestrator(new Container(), {
 		events: {
-			onComponentStart: ({ token }) => events.starts.push(tokenDescription(token)),
-			onComponentStop: ({ token }) => events.stops.push(tokenDescription(token)),
-			onComponentDestroy: ({ token }) => events.destroys.push(tokenDescription(token)),
-			onComponentError: d => events.errors.push(`${d.tokenDescription}:${d.phase}`),
+			onComponentStart: ({ token }: { token: symbol, durationMs: number }) => events.starts.push(tokenDescription(token)),
+			onComponentStop: ({ token }: { token: symbol, durationMs: number }) => events.stops.push(tokenDescription(token)),
+			onComponentDestroy: ({ token }: { token: symbol, durationMs: number }) => events.destroys.push(tokenDescription(token)),
+			onComponentError: (d: { tokenDescription: string, phase: 'start' | 'stop' | 'destroy' }) => events.errors.push(`${d.tokenDescription}:${d.phase}`),
 		},
 	})
 	await app.start([
@@ -461,8 +461,8 @@ test('tracer emits layers and per-phase outcomes', async () => {
 	const phases: { phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: { token: string, ok: boolean }[] }[] = []
 	const app = new Orchestrator(new Container(), {
 		tracer: {
-			onLayers: (payload) => { layersSeen.push(payload.layers) },
-			onPhase: (payload) => {
+			onLayers: (payload: { layers: string[][] }) => { layersSeen.push(payload.layers) },
+			onPhase: (payload: { phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: { token: string, ok: boolean }[] }) => {
 				phases.push({ phase: payload.phase, layer: payload.layer, outcomes: payload.outcomes.map(o => ({ token: o.token, ok: o.ok })) })
 			},
 		},
@@ -501,7 +501,7 @@ test('tracer does not emit onPhase for layers with no outcomes', async () => {
 	const app = new Orchestrator(new Container(), {
 		tracer: {
 			onLayers: () => {},
-			onPhase: p => phases.push(p),
+			onPhase: (p: { phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: Array<{ token: string, ok: boolean, durationMs: number, timedOut?: boolean }> }) => phases.push(p),
 		},
 	})
 

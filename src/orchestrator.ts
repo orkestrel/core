@@ -32,6 +32,7 @@ import {
 	TimeoutError,
 	tokenDescription,
 } from './diagnostics.js'
+import { LayerAdapter } from './adapters/layer.js'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
@@ -48,13 +49,14 @@ export class Orchestrator {
 	private readonly events?: OrchestratorOptions['events']
 	private readonly tracer?: OrchestratorOptions['tracer']
 	private readonly concurrency?: number
+	private readonly layerAdapter = new LayerAdapter()
 
 	/**
-	 * Construct an Orchestrator.
-	 * - Pass a Container to bind to an existing one.
-	 * - Or pass options to construct with a new internal Container.
-	 * - Or pass both.
-	 */
+     * Construct an Orchestrator.
+     * - Pass a Container to bind to an existing one.
+     * - Or pass options to construct with a new internal Container.
+     * - Or pass both.
+     */
 	constructor(containerOrOpts?: Container | OrchestratorOptions, maybeOpts?: OrchestratorOptions) {
 		if (containerOrOpts instanceof Container) {
 			this.container = containerOrOpts
@@ -77,9 +79,9 @@ export class Orchestrator {
 	getContainer(): Container { return this.container }
 
 	/**
-	 * Register a component provider with optional explicit dependencies/timeouts.
-	 * Throws on duplicate registrations or async provider shapes.
-	 */
+     * Register a component provider with optional explicit dependencies/timeouts.
+     * Throws on duplicate registrations or async provider shapes.
+     */
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
 		if (this.nodes.has(token)) throw D.duplicateRegistration(tokenDescription(token))
 		const normalized = this.normalizeDependencies(token, dependencies)
@@ -90,10 +92,10 @@ export class Orchestrator {
 	}
 
 	/**
-	 * Start all components in dependency order. Optionally register additional components first.
-	 * On failure, previously started components are rolled back (stopped) in reverse order.
-	 * Aggregates errors with code ORK1013.
-	 */
+     * Start all components in dependency order. Optionally register additional components first.
+     * On failure, previously started components are rolled back (stopped) in reverse order.
+     * Aggregates errors with code ORK1013.
+     */
 	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
 		// Register any provided components first
 		for (const e of regs) {
@@ -182,9 +184,9 @@ export class Orchestrator {
 	}
 
 	/**
-	 * Stop (when needed) and destroy all components, then destroy the container.
-	 * Aggregates ORK1017 on failure and includes container cleanup errors.
-	 */
+     * Stop (when needed) and destroy all components, then destroy the container.
+     * Aggregates ORK1017 on failure and includes container cleanup errors.
+     */
 	async destroy(): Promise<void> {
 		const forwardLayers = this.topoLayers()
 		const layers = forwardLayers.slice().reverse()
@@ -268,46 +270,7 @@ export class Orchestrator {
 	private topoLayers(): Token<unknown>[][] {
 		if (this.layers) return this.layers
 		const nodes = Array.from(this.nodes.values())
-		// Validate dependencies exist
-		const present = new Set<Token<unknown>>(nodes.map(n => n.token))
-		for (const n of nodes) {
-			for (const d of n.dependencies) {
-				if (!present.has(d)) throw D.unknownDependency(tokenDescription(d), tokenDescription(n.token))
-			}
-		}
-		// Build indegree and adjacency (dependents) preserving insertion order
-		const indeg = new Map<Token<unknown>, number>()
-		const adj = new Map<Token<unknown>, Token<unknown>[]>()
-		for (const n of nodes) {
-			indeg.set(n.token, 0)
-			adj.set(n.token, [])
-		}
-		for (const n of nodes) {
-			for (const d of n.dependencies) {
-				indeg.set(n.token, (indeg.get(n.token) ?? 0) + 1)
-				adj.get(d)!.push(n.token)
-			}
-		}
-		// Initial frontier in insertion order
-		let frontier: Token<unknown>[] = nodes.filter(n => (indeg.get(n.token) ?? 0) === 0).map(n => n.token)
-		const layers: Token<unknown>[][] = []
-		while (frontier.length) {
-			layers.push(frontier)
-			const next: Token<unknown>[] = []
-			for (const tk of frontier) {
-				const dependents = adj.get(tk)
-				if (!dependents) continue
-				for (const dep of dependents) {
-					const v = (indeg.get(dep) ?? 0) - 1
-					indeg.set(dep, v)
-					if (v === 0) next.push(dep)
-				}
-			}
-			frontier = next
-		}
-		// Check for cycles
-		const totalResolved = layers.reduce((a, b) => a + b.length, 0)
-		if (totalResolved !== nodes.length) throw D.cycleDetected()
+		const layers = this.layerAdapter.compute(nodes)
 		this.layers = layers
 		// tracing: emit computed layers once (guarded)
 		this.safeCall(this.tracer?.onLayers, { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
@@ -315,18 +278,8 @@ export class Orchestrator {
 	}
 
 	private groupByLayerOrder(tokens: ReadonlyArray<Token<unknown>>): Token<unknown>[][] {
-		const layerIndex = new Map<Token<unknown>, number>()
 		const layers = this.topoLayers()
-		layers.forEach((layer, idx) => layer.forEach(tk => layerIndex.set(tk, idx)))
-		const groups = new Map<number, Token<unknown>[]>()
-		for (const tk of tokens) {
-			const idx = layerIndex.get(tk)
-			if (idx === undefined) continue
-			const arr = groups.get(idx) ?? []
-			arr.push(tk)
-			groups.set(idx, arr)
-		}
-		return Array.from(groups.entries()).sort((a, b) => b[0] - a[0]).map(([, arr]) => arr)
+		return this.layerAdapter.group(tokens, layers)
 	}
 
 	private getNodeEntry(token: Token<unknown>): NodeEntry {

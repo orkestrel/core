@@ -52,10 +52,9 @@ export class Orchestrator {
 	readonly #container: Container
 	private readonly nodes = new Map<Token<unknown>, NodeEntry>()
 	private layers: Token<unknown>[][] | null = null
-	private readonly defaultTimeouts: PhaseTimeouts
+	private readonly timeouts: number | PhaseTimeouts
 	private readonly events?: OrchestratorOptions['events']
 	private readonly tracer?: OrchestratorOptions['tracer']
-	private readonly concurrency?: number
 	private readonly layer: LayerPort
 	private readonly queue: QueuePort
 
@@ -70,8 +69,7 @@ export class Orchestrator {
 			this.#container = containerOrOpts
 			this.events = maybeOpts?.events
 			this.tracer = maybeOpts?.tracer
-			this.defaultTimeouts = maybeOpts?.defaultTimeouts ?? {}
-			this.concurrency = maybeOpts?.concurrency
+			this.timeouts = maybeOpts?.timeouts ?? {}
 			this.layer = maybeOpts?.layer ?? new LayerAdapter()
 			this.queue = maybeOpts?.queue ?? new QueueAdapter()
 		}
@@ -79,8 +77,7 @@ export class Orchestrator {
 			this.#container = new Container()
 			this.events = containerOrOpts?.events
 			this.tracer = containerOrOpts?.tracer
-			this.defaultTimeouts = containerOrOpts?.defaultTimeouts ?? {}
-			this.concurrency = containerOrOpts?.concurrency
+			this.timeouts = containerOrOpts?.timeouts ?? {}
 			this.layer = containerOrOpts?.layer ?? new LayerAdapter()
 			this.queue = containerOrOpts?.queue ?? new QueueAdapter()
 		}
@@ -161,7 +158,7 @@ export class Orchestrator {
 							stopJobs.push(async () => this.stopToken(tk, lc2, timeoutMs, 'rollback'))
 						}
 					}
-					const settled = await this.queue.run(stopJobs, { concurrency: this.concurrency })
+					const settled = await this.queue.run(stopJobs)
 					for (const s of settled) if (s.error) rollbackErrors.push(s.error)
 				}
 				const agg = D.startAggregate()
@@ -216,7 +213,7 @@ export class Orchestrator {
 				const destroyTimeout = this.getTimeout(tk, 'destroy')
 				jobs.push(async () => this.destroyToken(tk, inst, stopTimeout, destroyTimeout))
 			}
-			const settled = await this.queue.run(jobs, { concurrency: this.concurrency })
+			const settled = await this.queue.run(jobs)
 			for (const r of settled) {
 				if (r.stopOutcome) stopOutcomes.push(r.stopOutcome)
 				if (r.destroyOutcome) destroyOutcomes.push(r.destroyOutcome)
@@ -302,8 +299,21 @@ export class Orchestrator {
 
 	private getTimeout(token: Token<unknown>, phase: LifecyclePhase): number | undefined {
 		const perNode = this.getNodeEntry(token).timeouts
-		const fromNode = phase === 'start' ? perNode?.onStart : phase === 'stop' ? perNode?.onStop : perNode?.onDestroy
-		const fromDefault = phase === 'start' ? this.defaultTimeouts.onStart : phase === 'stop' ? this.defaultTimeouts.onStop : this.defaultTimeouts.onDestroy
+		let fromNode: number | undefined
+		if (typeof perNode === 'number') {
+			fromNode = perNode
+		}
+		else {
+			fromNode = phase === 'start' ? perNode?.onStart : phase === 'stop' ? perNode?.onStop : perNode?.onDestroy
+		}
+		const d = this.timeouts
+		let fromDefault: number | undefined
+		if (typeof d === 'number') {
+			fromDefault = d
+		}
+		else {
+			fromDefault = phase === 'start' ? d.onStart : phase === 'stop' ? d.onStop : d.onDestroy
+		}
 		return fromNode ?? fromDefault
 	}
 
@@ -347,7 +357,7 @@ export class Orchestrator {
 	}
 
 	private async runLayerWithTracing<J>(phase: LifecyclePhase, layerIdxForward: number, jobs: ReadonlyArray<Task<J>>, toOutcome: (j: J) => Outcome | undefined): Promise<ReadonlyArray<J>> {
-		const results = await this.queue.run(jobs, { concurrency: this.concurrency })
+		const results = await this.queue.run(jobs)
 		const outcomes: Outcome[] = []
 		for (const r of results) {
 			const out = toOutcome(r)

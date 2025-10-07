@@ -354,11 +354,11 @@ export interface OrchestratorRegistration<T> {
 	readonly token: Token<T>
 	readonly provider: Provider<T>
 	readonly dependencies?: readonly Token<unknown>[]
-	readonly timeouts?: PhaseTimeouts
+	readonly timeouts?: number | PhaseTimeouts
 }
 
 export interface OrchestratorOptions {
-	readonly defaultTimeouts?: PhaseTimeouts
+	readonly timeouts?: number | PhaseTimeouts
 	readonly events?: {
 		onComponentStart?: (info: { token: Token<unknown>, durationMs: number }) => void
 		onComponentStop?: (info: { token: Token<unknown>, durationMs: number }) => void
@@ -369,7 +369,6 @@ export interface OrchestratorOptions {
 		onLayers?: (payload: { layers: string[][] }) => void
 		onPhase?: (payload: { phase: LifecyclePhase, layer: number, outcomes: Outcome[] }) => void
 	}
-	readonly concurrency?: number
 	readonly layer?: LayerPort
 	readonly queue?: QueuePort
 }
@@ -383,8 +382,8 @@ export type OrchestratorGetter = {
 
 export interface RegisterOptions {
 	dependencies?: Token<unknown>[] | Record<string, Token<unknown>>
-	timeouts?: PhaseTimeouts
+	timeouts?: number | PhaseTimeouts
 }
 
 // Internal node entry used by orchestrator
-export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: PhaseTimeouts }
+export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }

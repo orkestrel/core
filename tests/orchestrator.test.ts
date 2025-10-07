@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { AggregateLifecycleError, Provider } from '@orkestrel/core'
-import { Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError, register, tokenDescription } from '@orkestrel/core'
+import { Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError, register, tokenDescription, QueueAdapter } from '@orkestrel/core'
 
 class TestComponent extends Adapter {
 	public readonly name: string
@@ -301,7 +301,7 @@ test('Orchestrator | defaultTimeouts on orchestrator apply when register omits t
 		}
 	}
 	const T = createToken<SlowS>('SlowS')
-	const app = new Orchestrator(new Container(), { defaultTimeouts: { onStop: 10 } })
+	const app = new Orchestrator(new Container(), { timeouts: { onStop: 10 } })
 	await app.start([register(T, { useFactory: () => new SlowS() })])
 	let err: unknown
 	try {
@@ -535,7 +535,7 @@ test('Orchestrator | per-layer concurrency limit caps start parallelism', async 
 	const T2 = createToken<ConcurrencyProbe>('CC2')
 	const T3 = createToken<ConcurrencyProbe>('CC3')
 	const T4 = createToken<ConcurrencyProbe>('CC4')
-	const app = new Orchestrator(new Container(), { concurrency: 2 })
+	const app = new Orchestrator(new Container(), { queue: new QueueAdapter({ concurrency: 2 }) })
 	await app.start([
 		register(T1, { useFactory: () => new ConcurrencyProbe(20) }),
 		register(T2, { useFactory: () => new ConcurrencyProbe(20) }),
@@ -573,7 +573,7 @@ test('Orchestrator | per-layer concurrency limit caps stop and destroy paralleli
 	const T2 = createToken<ConcurrencyProbe>('CD2')
 	const T3 = createToken<ConcurrencyProbe>('CD3')
 	const T4 = createToken<ConcurrencyProbe>('CD4')
-	const app = new Orchestrator(new Container(), { concurrency: 2 })
+	const app = new Orchestrator(new Container(), { queue: new QueueAdapter({ concurrency: 2 }) })
 	await app.start([
 		register(T1, { useFactory: () => new ConcurrencyProbe(20) }),
 		register(T2, { useFactory: () => new ConcurrencyProbe(20) }),
@@ -839,4 +839,26 @@ test('Orchestrator | duplicate registration for the same token throws ORK1007', 
 		assert.match((err as Error).message, /\[Orkestrel]\[ORK1007]/)
 		return true
 	})
+})
+
+test('Orchestrator | numeric defaultTimeouts apply to all phases', async () => {
+	class SlowBoth extends Adapter {
+		protected async onStart() { /* fast */ }
+		protected async onStop() { await new Promise<void>(r => setTimeout(r, 15)) }
+	}
+	const T = createToken<SlowBoth>('NumDef:SlowBoth')
+	const app = new Orchestrator(new Container(), { timeouts: 10 })
+	await app.start([register(T, { useFactory: () => new SlowBoth() })])
+	let stopErr: unknown
+	try {
+		await app.stop()
+	}
+	catch (e) {
+		stopErr = e
+	}
+	assert.ok(stopErr instanceof Error)
+	const det = (stopErr as AggregateLifecycleError).details
+	assert.ok(Array.isArray(det))
+	assert.ok(det.some(d => d.tokenDescription === 'NumDef:SlowBoth' && d.timedOut && d.phase === 'stop'))
+	await app.destroy().catch(() => {})
 })

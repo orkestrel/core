@@ -9,13 +9,16 @@ import type { Orchestrator } from './orchestrator.js'
 // Ports: Emitter (used by Lifecycle)
 // ---------------------------
 
-export type EmitterListener<Args extends unknown[] = unknown[]> = (...args: Args) => void
-
 export interface EmitterPort<EMap extends Record<string, unknown[]> = Record<string, unknown[]>> {
 	on<E extends keyof EMap & string>(event: E, fn: (...args: EMap[E]) => void): this
 	off<E extends keyof EMap & string>(event: E, fn: (...args: EMap[E]) => void): this
 	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void
 	removeAllListeners(): void
+}
+
+export interface EmitterAdapterOptions {
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
 }
 
 // ---------------------------
@@ -33,6 +36,8 @@ export interface EventPort<EMap extends Record<string, unknown> = Record<string,
 export interface EventAdapterOptions {
 	readonly onError?: (err: unknown, topic: string) => void
 	readonly sequential?: boolean
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
 }
 
 // ---------------------------
@@ -71,6 +76,8 @@ export interface QueueRunOptions {
 
 export interface QueueAdapterOptions extends QueueRunOptions {
 	readonly capacity?: number
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
 }
 
 // ---------------------------
@@ -88,6 +95,13 @@ export interface RegistryPort<T> {
 export interface RegistryAdapterOptions<T> {
 	readonly label?: string
 	readonly default?: { readonly key?: symbol, readonly value: T }
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
+}
+
+export interface LayerAdapterOptions {
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
 }
 
 // ---------------------------
@@ -111,11 +125,19 @@ export interface DiagnosticErrorContext {
 	readonly timedOut?: boolean
 	readonly durationMs?: number
 	readonly extra?: Record<string, unknown>
+	/** Optional aggregated details for lifecycle errors. */
+	readonly details?: ReadonlyArray<LifecycleErrorDetail>
 }
 
 export interface DiagnosticPort {
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
 	error(err: unknown, context?: DiagnosticErrorContext): void
+	/** Construct an Error using the provided key/code and optional message, emit it, then throw. */
+	fail(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
+	/** Create, emit, and throw an aggregate error containing a collection of errors or lifecycle details. */
+	aggregate(key: string, details: ReadonlyArray<LifecycleErrorDetail | Error>, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
+	/** Build a helpful Error using a known key/code with mapped message and optional hints, without throwing. */
+	help(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): Error
 	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void
 	trace(name: string, payload?: Record<string, unknown>): void
 	event(name: string, payload?: Record<string, unknown>): void
@@ -291,6 +313,12 @@ export type OrkCode
 		| 'ORK1017' // Orchestrator: Errors during destroy (consolidated stop+destroy)
 		| 'ORK1020' // Lifecycle: invalid transition
 		| 'ORK1021' // Lifecycle: hook timed out
+		| 'ORK1022' // Lifecycle: hook failed
+		| 'ORK1040' // Ports: duplicate key
+		| 'ORK1050' // Queue: capacity exceeded
+		| 'ORK1051' // Queue: aborted
+		| 'ORK1052' // Queue: task timed out
+		| 'ORK1053' // Queue: shared deadline exceeded
 		| 'ORK1099' // Internal invariant
 
 export interface DiagnosticInfo { code: OrkCode, message: string, helpUrl?: string }
@@ -320,6 +348,9 @@ export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
 		&& (o.error instanceof Error)
 	)
 }
+
+/** Duck-typed aggregate error shape used when aggregating lifecycle errors. */
+export type AggregateLifecycleError = Error & Readonly<{ details: ReadonlyArray<LifecycleErrorDetail>, errors: ReadonlyArray<Error>, code?: OrkCode, helpUrl?: string }>
 
 // Lifecycle public types
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
@@ -433,3 +464,8 @@ export interface RegisterOptions {
 
 // Internal node entry used by orchestrator
 export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }
+
+// Helper to format token symbols consistently
+export function tokenDescription(token: symbol): string {
+	return token.description ?? String(token)
+}

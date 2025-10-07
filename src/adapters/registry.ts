@@ -1,19 +1,28 @@
-import { D } from '../diagnostics.js'
-import type { RegistryPort, RegistryAdapterOptions } from '../types.js'
+import type { RegistryPort, RegistryAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
+import { HELP } from '../diagnostics.js'
+import { DiagnosticAdapter } from './diagnostic.js'
+import { LoggerAdapter } from './logger'
 
 export class RegistryAdapter<T> implements RegistryPort<T> {
 	private readonly store = new Map<string | symbol, T>()
 	private readonly locked = new Set<string | symbol>()
 	private readonly label: string
 	private readonly defaultKey?: symbol
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
 
 	constructor(options: RegistryAdapterOptions<T> = {}) {
 		this.label = options.label ?? 'registry'
+		this.#logger = options.logger ?? new LoggerAdapter()
+		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
 		if (options.default) {
 			this.defaultKey = options.default.key ?? Symbol(`${this.label}.default`)
 			this.store.set(this.defaultKey, options.default.value)
 		}
 	}
+
+	get logger(): LoggerPort { return this.#logger }
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	get(name?: string | symbol): T | undefined {
 		const key = name ?? this.defaultKey
@@ -22,18 +31,22 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 
 	resolve(name?: string | symbol): T {
 		const key = name ?? this.defaultKey
-		if (key === undefined) throw D.registryNoDefault(this.label)
+		if (key === undefined) {
+			this.#diagnostic.fail('ORK1001', { scope: 'registry', message: `No ${this.label} instance registered for '<default>'`, helpUrl: HELP.registry, extra: { label: this.label, name: '<default>' } })
+		}
 		const v = this.store.get(key)
-		if (v === undefined) throw D.registryNoNamed(this.label, String(key))
-		return v
+		if (v === undefined) {
+			this.#diagnostic.fail('ORK1002', { scope: 'registry', message: `No ${this.label} instance registered for '${String(key)}'`, helpUrl: HELP.registry, extra: { label: this.label, name: String(key) } })
+		}
+		return v as T
 	}
 
 	set(name: string | symbol, value: T, lock = false): void {
 		if (this.defaultKey !== undefined && name === this.defaultKey) {
-			throw D.registryCannotReplaceDefault(this.label)
+			this.#diagnostic.fail('ORK1003', { scope: 'registry', message: `Cannot replace default ${this.label} instance`, helpUrl: HELP.registry, extra: { label: this.label } })
 		}
 		if (this.locked.has(name)) {
-			throw D.registryCannotReplaceLocked(this.label, String(name))
+			this.#diagnostic.fail('ORK1004', { scope: 'registry', message: `Cannot replace locked ${this.label} instance for '${String(name)}'`, helpUrl: HELP.registry, extra: { label: this.label, name: String(name) } })
 		}
 		this.store.set(name, value)
 		if (lock) this.locked.add(name)

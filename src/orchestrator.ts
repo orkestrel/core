@@ -34,16 +34,16 @@ import {
 	isFactoryProviderWithObject,
 	isFactoryProviderWithTuple,
 	isFactoryProviderNoDeps,
-	isZeroArg,
+	tokenDescription,
 } from './types.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
 import { RegistryAdapter } from './adapters/registry.js'
-import { AggregateLifecycleError, D, TimeoutError, tokenDescription, DIAGNOSTIC_MESSAGES } from './diagnostics.js'
 import { LayerAdapter } from './adapters/layer.js'
 import { QueueAdapter } from './adapters/queue.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import { LoggerAdapter } from './adapters/logger'
+import { HELP } from './diagnostics.js'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
@@ -76,19 +76,19 @@ export class Orchestrator {
 			this.events = maybeOpts?.events
 			this.tracer = maybeOpts?.tracer
 			this.timeouts = maybeOpts?.timeouts ?? {}
-			this.#layer = maybeOpts?.layer ?? new LayerAdapter()
-			this.#queue = maybeOpts?.queue ?? new QueueAdapter()
 			this.#logger = maybeOpts?.logger ?? new LoggerAdapter()
-			this.#diagnostic = maybeOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
+			this.#diagnostic = maybeOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+			this.#layer = maybeOpts?.layer ?? new LayerAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
+			this.#queue = maybeOpts?.queue ?? new QueueAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
 		}
 		else {
 			this.events = containerOrOpts?.events
 			this.tracer = containerOrOpts?.tracer
 			this.timeouts = containerOrOpts?.timeouts ?? {}
-			this.#layer = containerOrOpts?.layer ?? new LayerAdapter()
-			this.#queue = containerOrOpts?.queue ?? new QueueAdapter()
 			this.#logger = containerOrOpts?.logger ?? new LoggerAdapter()
-			this.#diagnostic = containerOrOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
+			this.#diagnostic = containerOrOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+			this.#layer = containerOrOpts?.layer ?? new LayerAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
+			this.#queue = containerOrOpts?.queue ?? new QueueAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
 			// Ensure the internal container uses the same logger/diagnostic so components inherit them
 			this.#container = new Container({ logger: this.#logger, diagnostic: this.#diagnostic })
 		}
@@ -97,13 +97,9 @@ export class Orchestrator {
 	// Public API
 	/** Get the underlying Container bound to this orchestrator. */
 	get container(): Container { return this.#container }
-
 	get layer(): LayerPort { return this.#layer }
-
 	get queue(): QueuePort { return this.#queue }
-
 	get logger(): LoggerPort { return this.#logger }
-
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
@@ -111,7 +107,9 @@ export class Orchestrator {
 	 * Throws on duplicate registrations or async provider shapes.
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
-		if (this.nodes.has(token)) throw D.duplicateRegistration(tokenDescription(token))
+		if (this.nodes.has(token)) {
+			this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
+		}
 		const normalized = this.normalizeDependencies(token, dependencies)
 		this.nodes.set(token, { token, dependencies: normalized, timeouts })
 		const guarded = this.guardProvider(token, provider)
@@ -128,7 +126,9 @@ export class Orchestrator {
 		// Register any provided components first
 		for (const e of regs) {
 			const deps = this.normalizeDependencies(e.token, e.dependencies ?? [])
-			if (this.nodes.has(e.token)) throw D.duplicateRegistration(tokenDescription(e.token))
+			if (this.nodes.has(e.token)) {
+				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(e.token)}`, helpUrl: HELP.orchestrator })
+			}
 			this.nodes.set(e.token, { token: e.token, dependencies: deps, timeouts: e.timeouts })
 			const guarded = this.guardProvider(e.token, e.provider)
 			this.container.register(e.token, guarded)
@@ -166,11 +166,11 @@ export class Orchestrator {
 					}
 				}
 				else {
-					const detail = D.makeDetail(tokenDescription(tkn), 'start', 'normal', r)
+					const detail: LifecycleErrorDetail = { tokenDescription: tokenDescription(tkn), phase: 'start', context: 'normal', timedOut: r.timedOut ?? false, durationMs: r.durationMs, error: r.error }
 					failures.push(detail)
 					this.safeCall(this.events?.onComponentError, detail)
 					try {
-						this.diagnostic.error(detail.error, { scope: 'orchestrator', token: detail.tokenDescription, phase: 'start', timedOut: detail.timedOut, durationMs: detail.durationMs })
+						this.diagnostic.error(detail.error, { scope: 'orchestrator', token: detail.tokenDescription, phase: 'start', timedOut: detail.timedOut, durationMs: detail.durationMs, extra: { original: detail.error, originalMessage: detail.error.message, originalStack: detail.error.stack } })
 					}
 					catch {
 						// swallow
@@ -192,15 +192,8 @@ export class Orchestrator {
 					const settled = await this.queue.run(stopJobs)
 					for (const s of settled) if (s.error) rollbackErrors.push(s.error)
 				}
-				const agg = D.startAggregate()
-				const aggregate = new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, [...failures, ...rollbackErrors])
-				try {
-					this.diagnostic.error(aggregate, { scope: 'orchestrator', code: 'ORK1013', extra: { failures: failures.length, rollback: rollbackErrors.length } })
-				}
-				catch {
-					// swallow
-				}
-				throw aggregate
+				const aggDetails = [...failures, ...rollbackErrors]
+				this.#diagnostic.aggregate('ORK1013', aggDetails, { scope: 'orchestrator', message: 'Errors during start', helpUrl: HELP.errors })
 			}
 			for (const s of successes) startedOrder.push({ token: s.token, lc: s.lc })
 		}
@@ -225,15 +218,7 @@ export class Orchestrator {
 			for (const s of settled) if (s.error) errors.push(s.error)
 		}
 		if (errors.length) {
-			const agg = D.stopAggregate()
-			const aggregate = new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
-			try {
-				this.diagnostic.error(aggregate, { scope: 'orchestrator', code: 'ORK1014', extra: { errors: errors.length } })
-			}
-			catch {
-				// swallow
-			}
-			throw aggregate
+			this.#diagnostic.aggregate('ORK1014', errors, { scope: 'orchestrator', message: 'Errors during stop', helpUrl: HELP.errors })
 		}
 	}
 
@@ -279,23 +264,16 @@ export class Orchestrator {
 			await this.container.destroy()
 		}
 		catch (e) {
-			if (e instanceof AggregateLifecycleError) {
-				errors.push(...e.details)
+			const maybeAgg = e as { details?: LifecycleErrorDetail[] }
+			if (maybeAgg && Array.isArray(maybeAgg.details)) {
+				errors.push(...maybeAgg.details)
 			}
 			else if (e instanceof Error) {
 				errors.push({ tokenDescription: 'container', phase: 'destroy', context: 'container', timedOut: false, durationMs: 0, error: e })
 			}
 		}
 		if (errors.length) {
-			const agg = D.destroyAggregate()
-			const aggregate = new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
-			try {
-				this.diagnostic.error(aggregate, { scope: 'orchestrator', code: 'ORK1017', extra: { errors: errors.length } })
-			}
-			catch {
-				// swallow
-			}
-			throw aggregate
+			this.#diagnostic.aggregate('ORK1017', errors, { scope: 'orchestrator', message: 'Errors during destroy', helpUrl: HELP.errors })
 		}
 	}
 
@@ -307,28 +285,26 @@ export class Orchestrator {
 	private guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
 		if (isValueProvider(provider)) {
 			const v = provider.useValue
-			if (isPromiseLike(v)) throw D.asyncUseValuePromise(tokenDescription(token))
+			if (isPromiseLike(v)) {
+				this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${tokenDescription(token)}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
+			}
 			return provider
 		}
 		if (isFactoryProvider(provider)) {
 			const desc = tokenDescription(token)
 			// Wrap useFactory variant to assert sync-only behavior while preserving original signatures
 			if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) {
-				const wrapped = wrapFactory(provider.useFactory, desc)
+				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
 				return { useFactory: wrapped, inject: provider.inject }
 			}
 			if (isFactoryProviderWithObject<T>(provider)) {
-				const wrapped = wrapFactory(provider.useFactory, desc)
+				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
 				return { useFactory: wrapped, inject: provider.inject }
 			}
 			if (isFactoryProviderNoDeps<T>(provider)) {
 				const uf = provider.useFactory
-				if (isZeroArg(uf)) {
-					const wrapped = wrapFactory(uf, desc)
-					return { useFactory: wrapped }
-				}
-				const wrapped = wrapFactory(uf, desc)
-				return { useFactory: wrapped }
+				const wrapped = wrapFactory(this.#diagnostic, uf as (...args: readonly unknown[]) => unknown, desc) as typeof uf
+				return { useFactory: wrapped } as Provider<T>
 			}
 		}
 		return provider
@@ -358,7 +334,9 @@ export class Orchestrator {
 
 	private getNodeEntry(token: Token<unknown>): NodeEntry {
 		const n = this.nodes.get(token)
-		if (!n) throw D.invariantMissingNode()
+		if (!n) {
+			this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: missing node entry' })
+		}
 		return n
 	}
 
@@ -397,7 +375,8 @@ export class Orchestrator {
 				const timeoutPromise = new Promise<never>((_, reject) => {
 					const id = setTimeout(() => {
 						timedOut = true
-						reject(new TimeoutError(phase, timeoutMs))
+						const e = this.#diagnostic.help('ORK1021', { scope: 'lifecycle', message: `Lifecycle hook '${phase}' timed out after ${timeoutMs}ms`, name: 'TimeoutError', hook: phase, timedOut: true, durationMs: timeoutMs })
+						reject(e)
 					}, timeoutMs)
 					void Promise.resolve(p).finally(() => clearTimeout(id))
 				})
@@ -451,10 +430,10 @@ export class Orchestrator {
 			}
 			return { outcome: { token: tokenDescription(tk), ok: true, durationMs: r.durationMs } }
 		}
-		const d = D.makeDetail(tokenDescription(tk), 'stop', context, r)
+		const d: LifecycleErrorDetail = { tokenDescription: tokenDescription(tk), phase: 'stop', context, timedOut: r.timedOut ?? false, durationMs: r.durationMs, error: r.error }
 		this.safeCall(this.events?.onComponentError, d)
 		try {
-			this.diagnostic.error(d.error, { scope: 'orchestrator', token: d.tokenDescription, phase: 'stop', timedOut: d.timedOut, durationMs: d.durationMs })
+			this.diagnostic.error(d.error, { scope: 'orchestrator', token: d.tokenDescription, phase: 'stop', timedOut: d.timedOut, durationMs: d.durationMs, extra: { original: d.error, originalMessage: d.error.message, originalStack: d.error.stack } })
 		}
 		catch {
 			// swallow
@@ -484,10 +463,10 @@ export class Orchestrator {
 				out.destroyOutcome = { token: tokenDescription(tk), ok: true, durationMs: r2.durationMs }
 			}
 			else {
-				const d2 = D.makeDetail(tokenDescription(tk), 'destroy', 'normal', r2)
+				const d2: LifecycleErrorDetail = { tokenDescription: tokenDescription(tk), phase: 'destroy', context: 'normal', timedOut: r2.timedOut ?? false, durationMs: r2.durationMs, error: r2.error }
 				this.safeCall(this.events?.onComponentError, d2)
 				try {
-					this.diagnostic.error(d2.error, { scope: 'orchestrator', token: d2.tokenDescription, phase: 'destroy', timedOut: d2.timedOut, durationMs: d2.durationMs })
+					this.diagnostic.error(d2.error, { scope: 'orchestrator', token: d2.tokenDescription, phase: 'destroy', timedOut: d2.timedOut, durationMs: d2.durationMs, extra: { original: d2.error, originalMessage: d2.error.message, originalStack: d2.error.stack } })
 				}
 				catch {
 					// swallow
@@ -578,12 +557,16 @@ export function register<T>(token: Token<T>, provider: Provider<T>, options: Reg
    Provider guard helpers (strict, eslint-safe)
 --------------------------- */
 
-function wrapFactory<A extends readonly unknown[], R>(fn: (...args: A) => R, tokenDesc: string): (...args: A) => R {
+function wrapFactory<A extends readonly unknown[], R>(diag: DiagnosticPort, fn: (...args: A) => R, tokenDesc: string): (...args: A) => R {
 	// disallow async functions immediately
-	if (isAsyncFunction(fn)) throw D.asyncUseFactoryAsync(tokenDesc)
+	if (isAsyncFunction(fn)) {
+		diag.fail('ORK1011', { scope: 'orchestrator', message: `Async providers are not supported: useFactory for token '${tokenDesc}' is an async function. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, helpUrl: HELP.providers })
+	}
 	return (...args: A): R => {
 		const out = fn(...args)
-		if (isPromiseLike(out)) throw D.asyncUseFactoryPromise(tokenDesc)
+		if (isPromiseLike(out)) {
+			diag.fail('ORK1012', { scope: 'orchestrator', message: `Async providers are not supported: useFactory for token '${tokenDesc}' returned a Promise. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, helpUrl: HELP.providers })
+		}
 		return out
 	}
 }

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { InvalidTransitionError, TimeoutError, AggregateLifecycleError, D, isLifecycleErrorDetail, DiagnosticAdapter } from '@orkestrel/core'
-import type { LoggerPort, LogLevel } from '@orkestrel/core'
+import { isLifecycleErrorDetail, DiagnosticAdapter } from '@orkestrel/core'
+import type { LoggerPort, LogLevel, LifecycleErrorDetail } from '@orkestrel/core'
 
 class FakeLogger implements LoggerPort {
 	public entries: { level: LogLevel, message: string, fields?: Record<string, unknown> }[] = []
@@ -11,31 +11,34 @@ class FakeLogger implements LoggerPort {
 }
 
 test('Diagnostics suite', async (t) => {
-	await t.test('InvalidTransitionError includes from/to', () => {
-		const err = new InvalidTransitionError('started', 'created')
-		assert.match(err.message, /Invalid lifecycle transition/)
-		assert.equal(err.from, 'started')
-		assert.equal(err.to, 'created')
+	await t.test('Timeout-like error via DiagnosticAdapter.help', () => {
+		const d = new DiagnosticAdapter({ logger: new FakeLogger() })
+		const err = d.help('ORK1021', { name: 'TimeoutError', message: 'Hook \'start\' timed out after 123ms' })
+		assert.match(err.message, /timed out/i)
+		assert.equal(err.name, 'TimeoutError')
 	})
 
-	await t.test('TimeoutError includes hook and milliseconds', () => {
-		const err = new TimeoutError('start', 123)
-		assert.match(err.message, /timed out/)
-		assert.equal(err.hook, 'start')
-		assert.equal(err.ms, 123)
-	})
-
-	await t.test('AggregateLifecycleError aggregates errors', () => {
+	await t.test('aggregate collects errors and surfaces .details/.errors', () => {
+		const d = new DiagnosticAdapter({ logger: new FakeLogger() })
 		const e1 = new Error('boom1')
 		const e2 = new Error('boom2')
-		const agg = new AggregateLifecycleError({ message: 'agg' }, [e1, e2])
-		assert.equal(agg.message, 'agg')
-		assert.equal(agg.errors.length, 2)
+		try {
+			d.aggregate('ORK1017', [e1, e2], { message: 'agg' })
+			assert.fail('should throw')
+		}
+		catch (e) {
+			const agg = e as Error & { details?: LifecycleErrorDetail[], errors?: Error[] }
+			assert.equal(agg.message, 'agg')
+			assert.ok(Array.isArray(agg.details))
+			assert.equal(agg.details?.length, 2)
+			assert.ok(Array.isArray(agg.errors))
+			assert.equal(agg.errors?.length, 2)
+		}
 	})
 
 	await t.test('isLifecycleErrorDetail returns true for valid details', () => {
-		const e1 = D.makeDetail('A', 'start', 'normal', { durationMs: 5, error: new Error('x'), timedOut: false })
-		const e2 = D.makeDetail('B', 'stop', 'rollback', { durationMs: 1, error: new Error('y'), timedOut: true })
+		const e1: LifecycleErrorDetail = { tokenDescription: 'A', phase: 'start', context: 'normal', durationMs: 5, error: new Error('x'), timedOut: false }
+		const e2: LifecycleErrorDetail = { tokenDescription: 'B', phase: 'stop', context: 'rollback', durationMs: 1, error: new Error('y'), timedOut: true }
 		assert.equal(isLifecycleErrorDetail(e1), true)
 		assert.equal(isLifecycleErrorDetail(e2), true)
 	})

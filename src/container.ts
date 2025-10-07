@@ -1,6 +1,6 @@
 import { Lifecycle } from './lifecycle.js'
 import { RegistryAdapter } from './adapters/registry.js'
-import { AggregateLifecycleError, D, tokenDescription, DIAGNOSTIC_MESSAGES } from './diagnostics.js'
+import { HELP } from './diagnostics.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
 	Token,
@@ -34,6 +34,7 @@ import {
 	isFactoryProviderWithObject,
 	isFactoryProviderNoDeps,
 	isZeroArg,
+	tokenDescription,
 } from './types.js'
 import { LoggerAdapter } from './adapters/logger'
 
@@ -41,12 +42,12 @@ import { LoggerAdapter } from './adapters/logger'
  * Minimal, strongly-typed DI container.
  *
  * - Registers providers (value, factory, class) under Tokens.
- * - Resolves single tokens or token maps, strictly (`resolve`) or optionally (`get`).
- * - Supports child scopes and scoped work via `using`.
- * - Destroys owned lifecycles on `destroy()`.
+ * - Resolves single tokens or token maps, strictly (resolve) or optionally (get).
+ * - Supports child scopes and scoped work via using.
+ * - Destroys owned lifecycles on destroy().
  */
 export class Container {
-	private readonly registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider' })
+	private readonly registry: RegistryAdapter<Registration<unknown>>
 	private readonly parent?: Container
 	private destroyed = false
 	readonly #diagnostic: DiagnosticPort
@@ -55,7 +56,8 @@ export class Container {
 	constructor(opts: ContainerOptions = {}) {
 		this.parent = opts.parent
 		this.#logger = opts.logger ?? new LoggerAdapter()
-		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
+		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
@@ -93,7 +95,9 @@ export class Container {
 		if (typeof tokenOrMap !== 'object') {
 			// strict single-token retrieval
 			const reg = this.lookup(tokenOrMap as Token<unknown>)
-			if (!reg) throw D.containerNoProvider(tokenDescription(tokenOrMap as symbol))
+			if (!reg) {
+				this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tokenOrMap as symbol)}`, helpUrl: HELP.providers })
+			}
 			return this.materialize(reg).value
 		}
 		// map retrieval (strict)
@@ -157,15 +161,7 @@ export class Container {
 			}
 		}
 		if (errors.length) {
-			const info = D.containerDestroyAggregate()
-			const aggregate = new AggregateLifecycleError({ code: info.code, message: info.message, helpUrl: info.helpUrl }, errors)
-			try {
-				this.diagnostic.error(aggregate, { scope: 'container', code: 'ORK1016', extra: { errors: errors.length } })
-			}
-			catch {
-				// swallow
-			}
-			throw aggregate
+			this.diagnostic.aggregate('ORK1016', errors, { scope: 'container', message: 'Errors during container destroy', helpUrl: HELP.errors })
 		}
 	}
 
@@ -223,7 +219,11 @@ export class Container {
 		return value instanceof Lifecycle ? { value, lifecycle: value, disposable } : { value, disposable }
 	}
 
-	private assertNotDestroyed(): void { if (this.destroyed) throw D.containerDestroyed() }
+	private assertNotDestroyed(): void {
+		if (this.destroyed) {
+			this.#diagnostic.fail('ORK1005', { scope: 'container', message: 'Container already destroyed', helpUrl: HELP.container })
+		}
+	}
 
 	// Consolidated map retrieval for resolve()/get()
 	private retrievalMap(tokens: TokenRecord, strict: boolean): Record<string, unknown> {
@@ -232,7 +232,9 @@ export class Container {
 			const tk = tokens[key]
 			const reg = this.lookup(tk)
 			if (!reg) {
-				if (strict) throw D.containerNoProvider(tokenDescription(tk))
+				if (strict) {
+					this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tk)}`, helpUrl: HELP.providers })
+				}
 				out[key] = undefined
 				continue
 			}

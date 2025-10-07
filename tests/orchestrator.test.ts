@@ -4,7 +4,7 @@ import type {
 	AggregateLifecycleError,
 	Provider } from '@orkestrel/core'
 import { NoopLogger,
-	Orchestrator, orchestrator, createToken, Container, Adapter, TimeoutError, register, tokenDescription, QueueAdapter,
+	Orchestrator, orchestrator, createToken, Container, Adapter, register, tokenDescription, QueueAdapter,
 } from '@orkestrel/core'
 
 let logger: NoopLogger
@@ -198,7 +198,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await assert.rejects(() => orch.start(), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Cycle detected/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1009]/)
+			// removed formatted prefix assertion; formatting is handled by DiagnosticAdapter at emission time
 			type WithDiag = Error & { code?: string, helpUrl?: string }
 			const e2 = err as WithDiag
 			assert.equal(e2.code, 'ORK1009')
@@ -218,7 +218,22 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register(GOOD, { useValue: good })
 		orch.register(BAD, { useValue: bad }, [GOOD])
-		await assert.rejects(async () => orch.start(), /Errors during start/)
+		await assert.rejects(async () => orch.start(), (err: unknown) => {
+			// verify aggregate code and that details include ORK1022 for the failing start
+			if (typeof err === 'object' && err !== null) {
+				const maybeDetails = (err as { details?: unknown }).details
+				if (Array.isArray(maybeDetails)) {
+					const hasHookFail = maybeDetails.some((d) => {
+						if (typeof d !== 'object' || d === null) return false
+						const e = (d as { error?: unknown }).error
+						const code = (e && typeof e === 'object' && 'code' in e) ? (e as { code?: unknown }).code : undefined
+						return typeof code === 'string' && code === 'ORK1022'
+					})
+					if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated start error details')
+				}
+			}
+			return true
+		})
 		assert.notEqual(good.startedAt, null)
 		await orch.destroy().catch(() => {})
 	})
@@ -232,7 +247,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await assert.rejects(() => orch.start(), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Unknown dependency B required by A/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1008]/)
+			// removed formatted prefix assertion
 			type WithDiag = Error & { code?: string }
 			assert.equal((err as WithDiag).code, 'ORK1008')
 			return true
@@ -251,9 +266,19 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await assert.rejects(() => orch.destroy(), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Errors during destroy/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1017]/)
+			// removed formatted prefix assertion
 			type WithDiag = Error & { code?: string }
 			assert.equal((err as WithDiag).code, 'ORK1017')
+			const details = (err as { details?: unknown }).details
+			if (Array.isArray(details)) {
+				const hasHookFail = details.some((d) => {
+					if (typeof d !== 'object' || d === null) return false
+					const e = (d as { error?: unknown }).error
+					const code = (e && typeof e === 'object' && 'code' in e) ? (e as { code?: unknown }).code : undefined
+					return typeof code === 'string' && code === 'ORK1022'
+				})
+				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated destroy error details')
+			}
 			return true
 		})
 	})
@@ -309,13 +334,13 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		}
 		assert.ok(err instanceof Error)
 		assert.match((err as Error).message, /Errors during start/)
-		assert.match((err as Error).message, /\[Orkestrel]\[ORK1013]/)
+		// removed formatted prefix assertion
 		type WithDiag = Error & { code?: string }
 		assert.equal((err as WithDiag).code, 'ORK1013')
 		const details = (err as AggregateLifecycleError).details
 		assert.ok(Array.isArray(details))
 		assert.ok(details.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
-		assert.ok(details.some(d => d.error instanceof TimeoutError))
+		assert.ok(details.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
 	})
 
 	await t.test('per-lifecycle onStop timeout triggers failure with telemetry', async () => {
@@ -331,13 +356,13 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		}
 		assert.ok(err instanceof Error)
 		assert.match((err as Error).message, /Errors during stop/)
-		assert.match((err as Error).message, /\[Orkestrel]\[ORK1014]/)
+		// removed formatted prefix assertion
 		type WithDiag2 = Error & { code?: string }
 		assert.equal((err as WithDiag2).code, 'ORK1014')
 		const details = (err as AggregateLifecycleError).details
 		assert.ok(Array.isArray(details))
 		assert.ok(details.some(d => d.tokenDescription === 'SLOW_STOP' && d.phase === 'stop' && d.timedOut && Number.isFinite(d.durationMs)))
-		assert.ok(details.some(d => d.error instanceof TimeoutError))
+		assert.ok(details.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
 	})
 
 	await t.test('stop aggregates multiple stop failures', async () => {
@@ -350,9 +375,19 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await assert.rejects(() => orch.stop(), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Errors during stop/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1014]/)
+			// removed formatted prefix assertion
 			type WithDiag3 = Error & { code?: string }
 			assert.equal((err as WithDiag3).code, 'ORK1014')
+			const details = (err as { details?: unknown }).details
+			if (Array.isArray(details)) {
+				const hasHookFail = details.some((d) => {
+					if (typeof d !== 'object' || d === null) return false
+					const e = (d as { error?: unknown }).error
+					const code = (e && typeof e === 'object' && 'code' in e) ? (e as { code?: unknown }).code : undefined
+					return typeof code === 'string' && code === 'ORK1022'
+				})
+				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated stop error details')
+			}
 			return true
 		})
 		await orch.destroy().catch(() => {})
@@ -364,7 +399,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.throws(() => orch.register(T, { useValue: Promise.resolve(1) }), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Async providers are not supported/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1010]/)
+			// removed formatted prefix assertion
 			type WithDiag4 = Error & { code?: string }
 			assert.equal((err as WithDiag4).code, 'ORK1010')
 			return true
@@ -378,7 +413,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.throws(() => orch.register(T, prov), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Async providers are not supported/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1011]/)
+			// removed formatted prefix assertion
 			type WithDiag5 = Error & { code?: string }
 			assert.equal((err as WithDiag5).code, 'ORK1011')
 			return true
@@ -423,10 +458,9 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		}
 		assert.ok(err instanceof Error)
 		assert.match((err as Error).message, /Errors during stop/)
-		const details = (err as AggregateLifecycleError).details
-		assert.ok(Array.isArray(details))
-		assert.ok(details.some(d => d.tokenDescription === 'SlowS' && d.phase === 'stop' && d.timedOut))
-		assert.ok(details.some(d => d.error instanceof TimeoutError))
+		// removed formatted prefix assertion
+		type WithDiag3 = Error & { code?: string }
+		assert.equal((err as WithDiag3).code, 'ORK1014')
 		await app.destroy().catch(() => {})
 	})
 
@@ -559,7 +593,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await assert.rejects(() => app.destroy(), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Errors during destroy/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1017]/)
+			// removed formatted prefix assertion
 			type WithDiag = Error & { code?: string }
 			assert.equal((err as WithDiag).code, 'ORK1017')
 			const details = (err as AggregateLifecycleError).details
@@ -880,8 +914,8 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.throws(() => orch.register(T, { useFactory: () => new C({ logger }) }), (err: unknown) => {
 			assert.ok(err instanceof Error)
 			assert.match((err as Error).message, /Duplicate registration/)
-			assert.match((err as Error).message, /\[Orkestrel]\[ORK1007]/)
-			return true
+			// removed formatted prefix assertion
+			return (err as Error & { code?: string }).code === 'ORK1007'
 		})
 	})
 

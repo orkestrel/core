@@ -1,11 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { RegistryAdapter } from '@orkestrel/core'
+import { RegistryAdapter, NoopLogger } from '@orkestrel/core'
 
 test('Registry suite', async (t) => {
 	await t.test('with symbol default: construct/get/resolve/list and protect default', () => {
 		const DEF = Symbol('def')
-		const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 42 } })
+		const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 42 }, logger: new NoopLogger() })
 		// resolve/get default
 		assert.equal(reg.resolve(), 42)
 		assert.equal(reg.get(), 42)
@@ -18,7 +18,7 @@ test('Registry suite', async (t) => {
 
 	await t.test('supports string and symbol named keys with default present', () => {
 		const DEF = Symbol('def')
-		const reg = new RegistryAdapter<string>({ label: 'thing', default: { key: DEF, value: 'default' } })
+		const reg = new RegistryAdapter<string>({ label: 'thing', default: { key: DEF, value: 'default' }, logger: new NoopLogger() })
 		reg.set('alpha', 'A')
 		const S = Symbol('beta')
 		reg.set(S, 'B')
@@ -32,7 +32,7 @@ test('Registry suite', async (t) => {
 
 	await t.test('clear on non-existent names returns false and is non-destructive', () => {
 		const DEF = Symbol('def')
-		const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 1 } })
+		const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 1 }, logger: new NoopLogger() })
 		// clearing unknowns returns false and does not affect entries
 		assert.equal(reg.clear('missing'), false)
 		assert.equal(reg.clear(Symbol('notset')), false)
@@ -50,13 +50,13 @@ test('Registry suite', async (t) => {
 	})
 
 	await t.test('resolve without default throws; get returns undefined', () => {
-		const r = new RegistryAdapter<number>({ label: 'num' })
+		const r = new RegistryAdapter<number>({ label: 'num', logger: new NoopLogger() })
 		assert.equal(r.get(), undefined)
 		assert.throws(() => r.resolve(), /No num instance registered/)
 	})
 
 	await t.test('lock prevents overwrite and force allows clear', () => {
-		const r = new RegistryAdapter<number>({ label: 'num', default: { value: 1 } })
+		const r = new RegistryAdapter<number>({ label: 'num', default: { value: 1 }, logger: new NoopLogger() })
 		r.set('x', 5, true)
 		assert.throws(() => r.set('x', 6), /Cannot replace locked/)
 		assert.equal(r.clear('x'), false)

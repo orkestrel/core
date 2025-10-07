@@ -2,7 +2,6 @@
 // Public methods: create, start, stop, destroy
 // Extension points: onCreate, onStart, onStop, onDestroy, onTransition
 
-import { InvalidTransitionError, LifecycleError, TimeoutError, DIAGNOSTIC_MESSAGES } from './diagnostics.js'
 import { EmitterAdapter } from './adapters/emitter.js'
 import { QueueAdapter } from './adapters/queue.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
@@ -11,6 +10,7 @@ import type {
 	LoggerPort,
 } from './types.js'
 import { LoggerAdapter } from './adapters/logger'
+import { HELP } from './diagnostics.js'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
@@ -24,10 +24,11 @@ export abstract class Lifecycle {
 	constructor(opts: LifecycleOptions = {}) {
 		this.timeouts = opts.timeouts ?? 5000
 		this.emitInitial = opts.emitInitial ?? true
-		this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>()
-		this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1 })
+		// Initialize logger/diagnostic first so dependent adapters inherit them
 		this.#logger = opts.logger ?? new LoggerAdapter()
-		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
+		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>({ logger: this.#logger, diagnostic: this.#diagnostic })
+		this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1, logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
 	get emitter(): EmitterPort<LifecycleEventMap> { return this.#emitter }
@@ -82,12 +83,16 @@ export abstract class Lifecycle {
 			}
 		}
 		catch (err) {
-			// Map queue timeouts/shared-deadline errors to TimeoutError; wrap others as LifecycleError
+			// Map queue timeouts/shared-deadline errors to a named TimeoutError-like error; pass through others
 			const isTimeout = err instanceof Error && (err.message.includes('timed out') || err.message.includes('shared deadline exceeded'))
-			const wrapped = isTimeout ? new TimeoutError(hookName, this.timeouts) : (err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, { cause: err }))
+			const wrapped = isTimeout
+				? this.diagnostics.help('ORK1021', { name: 'TimeoutError', message: `Hook '${hookName}' timed out after ${this.timeouts}ms`, hook: hookName, timedOut: true })
+				: this.diagnostics.help('ORK1022', { name: 'HookError', message: `Hook '${hookName}' failed`, hook: hookName })
 			this.emitter.emit('error', wrapped)
 			try {
-				this.diagnostics.error(wrapped, { scope: 'lifecycle', hook: hookName, timedOut: isTimeout })
+				const originalMessage = (err instanceof Error) ? err.message : undefined
+				const originalStack = (err instanceof Error) ? err.stack : undefined
+				this.diagnostics.error(wrapped, { scope: 'lifecycle', hook: hookName, timedOut: isTimeout, extra: { original: err, originalMessage, originalStack } })
 			}
 			catch {
 				// swallow
@@ -97,7 +102,7 @@ export abstract class Lifecycle {
 	}
 
 	async create(): Promise<void> {
-		if (this._state !== 'created') throw new InvalidTransitionError(this._state, 'created')
+		if (this._state !== 'created') this.diagnostics.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: `Invalid lifecycle transition from ${this._state} to created`, helpUrl: HELP.lifecycle })
 		await this.runHook('create', () => this.onCreate(), this._state, 'created')
 	}
 
@@ -119,10 +124,11 @@ export abstract class Lifecycle {
 
 	private validateTransition(target: LifecycleState): void {
 		const from = this._state
-		if (from === 'destroyed') throw new InvalidTransitionError(from, target)
-		if (from === 'created' && target !== 'started' && target !== 'destroyed') throw new InvalidTransitionError(from, target)
-		if (from === 'started' && !(target === 'stopped' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
-		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
+		const fail = (to: LifecycleState) => this.diagnostics.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: `Invalid lifecycle transition from ${from} to ${to}`, helpUrl: HELP.lifecycle })
+		if (from === 'destroyed') fail(target)
+		if (from === 'created' && target !== 'started' && target !== 'destroyed') fail(target)
+		if (from === 'started' && !(target === 'stopped' || target === 'destroyed')) fail(target)
+		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) fail(target)
 	}
 
 	// Hooks (override in subclasses)

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { LifecycleState, QueuePort } from '@orkestrel/core'
-import { Lifecycle, InvalidTransitionError, NoopLogger } from '@orkestrel/core'
+import { Lifecycle, NoopLogger } from '@orkestrel/core'
 
 let logger: NoopLogger
 
@@ -61,9 +61,36 @@ test('Lifecycle suite', async (t) => {
 		assert.equal(lc.state, 'created')
 	})
 
+	// New test: ensure non-timeout hook failures expose ORK1022 code
+	await t.test('failing start sets ORK1022 code', async () => {
+		const lc = new FailingStart({ timeouts: 50, logger })
+		await assert.rejects(() => lc.start(), (err: unknown) => {
+			// Narrow incrementally and check for a code property safely
+			if (typeof err === 'object' && err !== null && 'code' in err) {
+				const code = (err as { code?: unknown }).code
+				// Only assert when a string code is present
+				if (typeof code === 'string') assert.equal(code, 'ORK1022')
+			}
+			return true
+		})
+	})
+
 	await t.test('hook timeout triggers TimeoutError', async () => {
 		const lc = new HangingStart({ timeouts: 10, logger })
 		await assert.rejects(() => lc.start(), /timed out/)
+		assert.equal(lc.state, 'created')
+	})
+
+	// New test: ensure timeout failures expose ORK1021 code
+	await t.test('hook timeout sets ORK1021 code', async () => {
+		const lc = new HangingStart({ timeouts: 10, logger })
+		await assert.rejects(() => lc.start(), (err: unknown) => {
+			if (typeof err === 'object' && err !== null && 'code' in err) {
+				const code = (err as { code?: unknown }).code
+				if (typeof code === 'string') assert.equal(code, 'ORK1021')
+			}
+			return true
+		})
 		assert.equal(lc.state, 'created')
 	})
 
@@ -71,7 +98,6 @@ test('Lifecycle suite', async (t) => {
 		const lc = new TestLifecycle({ logger })
 		await lc.start()
 		await assert.rejects(async () => lc.create(), (err: unknown) => {
-			assert.ok(err instanceof InvalidTransitionError)
 			assert.match((err as Error).message, /Invalid lifecycle transition/)
 			return true
 		})

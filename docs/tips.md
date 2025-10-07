@@ -79,6 +79,11 @@ Tips:
   - ORK1016 Errors during container destroy
   - ORK1020 Invalid lifecycle transition (called start/stop/destroy out of order)
   - ORK1021 Lifecycle hook timeout (hook took longer than allowed)
+  - ORK1040 Ports duplicate key (extendPorts)
+  - ORK1050 Queue capacity exceeded
+  - ORK1051 Queue aborted
+  - ORK1052 Queue task timed out
+  - ORK1053 Queue shared deadline exceeded
 - Optional guard: `isLifecycleErrorDetail(x)` validates an aggregated error detail shape at runtime (no external deps), useful in pipelines or log processors.
 
 Quick example: catching aggregated errors

@@ -1,12 +1,18 @@
-import type { QueuePort, QueueAdapterOptions, QueueRunOptions } from '../types.js'
+import type { QueuePort, QueueAdapterOptions, QueueRunOptions, LoggerPort, DiagnosticPort } from '../types.js'
+import { LoggerAdapter } from './logger'
+import { DiagnosticAdapter } from './diagnostic'
 
 export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	private readonly items: T[] = []
 	private readonly capacity?: number
 	private readonly defaults: QueueRunOptions
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
 
 	constructor(options: QueueAdapterOptions = {}) {
 		this.capacity = options.capacity
+		this.#logger = options?.logger ?? new LoggerAdapter()
+		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
 		this.defaults = {
 			concurrency: options.concurrency,
 			deadline: options.deadline,
@@ -15,9 +21,13 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 		}
 	}
 
+	get logger(): LoggerPort { return this.#logger }
+
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+
 	async enqueue(item: T): Promise<void> {
 		if (typeof this.capacity === 'number' && this.items.length >= this.capacity) {
-			return Promise.reject(new Error('QueueAdapter: capacity exceeded'))
+			this.#diagnostic.fail('ORK1050', { scope: 'internal', message: 'QueueAdapter: capacity exceeded' })
 		}
 		this.items.push(item)
 	}
@@ -43,6 +53,7 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 		let abortError: unknown | null = null
 		let nextIdx = 0
 
+		const diag = this.#diagnostic
 		const withTimeout = async <U>(fn: () => Promise<U> | U, idx: number): Promise<U> => {
 			const now = Date.now()
 			const remaining = sharedEnd ? Math.max(0, sharedEnd - now) : undefined
@@ -52,13 +63,20 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 			const cap = remaining == null ? taskCap : (taskCap == null ? remaining : Math.min(remaining, taskCap))
 			// If a shared deadline is in effect and is the limiting factor, prefer the shared-deadline error.
 			const dueToShared = sharedEnd != null && (taskCap == null || (remaining != null && remaining <= taskCap))
-			if (cap != null && cap === 0) throw new Error(dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out`)
+			if (cap != null && cap === 0) diag.fail(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` })
 			let tId: ReturnType<typeof setTimeout> | undefined
 			if (cap == null) return Promise.resolve(fn())
 			try {
 				return await Promise.race([
 					Promise.resolve(fn()),
-					new Promise<never>((_, reject) => { tId = setTimeout(() => reject(new Error(dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out`)), cap) }),
+					new Promise<never>((_, reject) => {
+						tId = setTimeout(() => {
+							try {
+								diag.fail(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` })
+							}
+							catch (e) { reject(e as never) }
+						}, cap)
+					}),
 				])
 			}
 			finally {
@@ -66,16 +84,27 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 			}
 		}
 
-		if (opts.signal?.aborted) return Promise.reject(new Error('QueueAdapter: aborted'))
+		if (opts.signal?.aborted) return Promise.reject((() => {
+			try {
+				this.#diagnostic.fail('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
+			}
+			catch (e) { return e }
+		})() as Error)
 
 		const worker = async () => {
 			while (abortError == null) {
 				if (opts.signal?.aborted) {
-					abortError = new Error('QueueAdapter: aborted')
+					try {
+						this.#diagnostic.fail('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
+					}
+					catch (e) { abortError = e }
 					break
 				}
 				if (sharedEnd != null && Date.now() >= sharedEnd) {
-					abortError = new Error('QueueAdapter: shared deadline exceeded')
+					try {
+						this.#diagnostic.fail('ORK1053', { scope: 'internal', message: 'QueueAdapter: shared deadline exceeded' })
+					}
+					catch (e) { abortError = e }
 					break
 				}
 				const idx = nextIdx++

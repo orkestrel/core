@@ -1,11 +1,25 @@
-import type { Token, LayerNode, LayerPort } from '../types.js'
-import { D, tokenDescription } from '../diagnostics.js'
+import type { Token, LayerNode, LayerPort, LayerAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
+import { tokenDescription } from '../types.js'
+import { DiagnosticAdapter } from './diagnostic.js'
+import { LoggerAdapter } from './logger'
+import { HELP } from '../diagnostics'
 
 /**
  * In-memory adapter for topological layering using Kahn's algorithm.
  * Provides deterministic O(V+E) layering with strict dependency validation.
  */
 export class LayerAdapter implements LayerPort {
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
+
+	constructor(options: LayerAdapterOptions = {}) {
+		this.#logger = options.logger ?? new LoggerAdapter()
+		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+	}
+
+	get logger(): LoggerPort { return this.#logger }
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+
 	/**
      * Compute topological layers for the given nodes using Kahn's algorithm.
      * @returns Array of layers, where each layer contains tokens with no remaining dependencies.
@@ -18,7 +32,12 @@ export class LayerAdapter implements LayerPort {
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
 				if (!present.has(d)) {
-					throw D.unknownDependency(tokenDescription(d), tokenDescription(n.token))
+					this.#diagnostic.fail('ORK1008', {
+						scope: 'orchestrator',
+						message: `Unknown dependency ${tokenDescription(d)} required by ${tokenDescription(n.token)}`,
+						helpUrl: HELP.orchestrator,
+						token: tokenDescription(n.token),
+					})
 				}
 			}
 		}
@@ -61,7 +80,7 @@ export class LayerAdapter implements LayerPort {
 		// Check for cycles
 		const totalResolved = layers.reduce((a, b) => a + b.length, 0)
 		if (totalResolved !== nodes.length) {
-			throw D.cycleDetected()
+			this.#diagnostic.fail('ORK1009', { scope: 'orchestrator', message: 'Cycle detected in dependency graph', helpUrl: HELP.orchestrator })
 		}
 
 		return layers

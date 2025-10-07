@@ -1,7 +1,21 @@
-import type { EmitterPort } from '../types.js'
+import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, LoggerPort } from '../types.js'
+import { LoggerAdapter } from './logger'
+import { DiagnosticAdapter } from './diagnostic'
 
 export class EmitterAdapter<EMap extends Record<string, unknown[]> = Record<string, unknown[]>> implements EmitterPort<EMap> {
 	private listeners: Partial<{ [K in keyof EMap]: Set<(...args: EMap[K]) => void> }> = {}
+
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
+
+	constructor(options: EmitterAdapterOptions = {}) {
+		this.#logger = options?.logger ?? new LoggerAdapter()
+		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+	}
+
+	get logger(): LoggerPort { return this.#logger }
+
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	on<E extends keyof EMap & string>(event: E, fn: (...args: EMap[E]) => void): this {
 		const set = (this.listeners[event] ??= new Set()) as Set<(...args: EMap[E]) => void>

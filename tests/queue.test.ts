@@ -1,14 +1,16 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { QueueAdapter } from '@orkestrel/core'
+import { QueueAdapter, NoopLogger } from '@orkestrel/core'
 
 function delay(ms: number) {
 	return new Promise<void>(r => setTimeout(r, ms))
 }
 
+const logger = new NoopLogger()
+
 test('Queue suite', async (t) => {
 	await t.test('preserves result order with full parallelism', async () => {
-		const q = new QueueAdapter()
+		const q = new QueueAdapter({ logger })
 		const tasks = [
 			async () => {
 				await delay(10)
@@ -28,7 +30,7 @@ test('Queue suite', async (t) => {
 	})
 
 	await t.test('respects concurrency cap', async () => {
-		const q = new QueueAdapter()
+		const q = new QueueAdapter({ logger })
 		let active = 0
 		let maxActive = 0
 		const makeTask = (ms: number) => async () => {
@@ -46,7 +48,7 @@ test('Queue suite', async (t) => {
 	})
 
 	await t.test('propagates task errors (rejects)', async () => {
-		const q = new QueueAdapter()
+		const q = new QueueAdapter({ logger })
 		const err = new Error('boom')
 		const tasks = [
 			async () => 1,
@@ -59,7 +61,7 @@ test('Queue suite', async (t) => {
 	})
 
 	await t.test('FIFO enqueue/dequeue preserves order', async () => {
-		const q = new QueueAdapter<string>()
+		const q = new QueueAdapter<string>({ logger })
 		await q.enqueue('a')
 		await q.enqueue('b')
 		await q.enqueue('c')
@@ -71,7 +73,7 @@ test('Queue suite', async (t) => {
 	})
 
 	await t.test('dequeue on empty returns undefined', async () => {
-		const q = new QueueAdapter<number>()
+		const q = new QueueAdapter<number>({ logger })
 		assert.equal(await q.size(), 0)
 		assert.equal(await q.dequeue(), undefined)
 		await q.enqueue(1)
@@ -80,15 +82,19 @@ test('Queue suite', async (t) => {
 	})
 
 	await t.test('enforces capacity on enqueue', async () => {
-		const q = new QueueAdapter<number>({ capacity: 2 })
+		const q = new QueueAdapter<number>({ capacity: 2, logger })
 		await q.enqueue(1)
 		await q.enqueue(2)
-		await assert.rejects(() => q.enqueue(3), /capacity exceeded/)
+		await assert.rejects(() => q.enqueue(3), (err: unknown) => {
+			if (!(err instanceof Error)) return false
+			const code = (err as Error & { code?: string }).code
+			return /capacity exceeded/.test(err.message) && code === 'ORK1050'
+		})
 		assert.equal(await q.size(), 2)
 	})
 
 	await t.test('dequeue after capacity enforcement still works', async () => {
-		const q = new QueueAdapter<string>({ capacity: 1 })
+		const q = new QueueAdapter<string>({ capacity: 1, logger })
 		await q.enqueue('a')
 		await assert.rejects(() => q.enqueue('b'))
 		const v = await q.dequeue()
@@ -97,7 +103,7 @@ test('Queue suite', async (t) => {
 	})
 
 	await t.test('run with concurrency=1 runs tasks sequentially and preserves order', async () => {
-		const q = new QueueAdapter()
+		const q = new QueueAdapter({ logger })
 		let active = 0
 		let maxActive = 0
 		const mk = (ms: number, out: string) => async () => {
@@ -114,7 +120,7 @@ test('Queue suite', async (t) => {
 	})
 
 	await t.test('run supports per-task timeout', async () => {
-		const q = new QueueAdapter()
+		const q = new QueueAdapter({ logger })
 		const tasks = [
 			async () => {
 				await delay(30)
@@ -125,11 +131,15 @@ test('Queue suite', async (t) => {
 				return 'b'
 			},
 		]
-		await assert.rejects(() => q.run(tasks, { concurrency: 2, timeout: 10 }), /timed out/)
+		await assert.rejects(() => q.run(tasks, { concurrency: 2, timeout: 10 }), (err: unknown) => {
+			if (!(err instanceof Error)) return false
+			const code = (err as Error & { code?: string }).code
+			return /timed out/.test(err.message) && code === 'ORK1052'
+		})
 	})
 
 	await t.test('run with deadline enforces shared time budget across tasks', async () => {
-		const q = new QueueAdapter()
+		const q = new QueueAdapter({ logger })
 		const tasks = [
 			async () => {
 				await delay(10)
@@ -144,11 +154,15 @@ test('Queue suite', async (t) => {
 				return 3
 			},
 		]
-		await assert.rejects(() => q.run(tasks, { concurrency: 1, deadline: 15 }), /shared deadline exceeded/)
+		await assert.rejects(() => q.run(tasks, { concurrency: 1, deadline: 15 }), (err: unknown) => {
+			if (!(err instanceof Error)) return false
+			const code = (err as Error & { code?: string }).code
+			return /shared deadline exceeded/.test(err.message) && code === 'ORK1053'
+		})
 	})
 
 	await t.test('run with abort signal stops scheduling and rejects', async () => {
-		const q = new QueueAdapter()
+		const q = new QueueAdapter({ logger })
 		const controller = new AbortController()
 		let started = 0
 		const mk = (ms: number) => async () => {
@@ -159,7 +173,11 @@ test('Queue suite', async (t) => {
 		const tasks = [mk(50), mk(50), mk(50), mk(50)]
 		const p = q.run(tasks, { concurrency: 2, signal: controller.signal })
 		setTimeout(() => controller.abort(), 10)
-		await assert.rejects(() => p, /aborted/)
+		await assert.rejects(() => p, (err: unknown) => {
+			if (!(err instanceof Error)) return false
+			const code = (err as Error & { code?: string }).code
+			return /aborted/.test(err.message) && code === 'ORK1051'
+		})
 		assert.ok(started >= 1)
 	})
 })

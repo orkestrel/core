@@ -1,6 +1,6 @@
 import type { QueuePort, QueueAdapterOptions, QueueRunOptions } from '../types.js'
 
-export class QueueAdapter<T> implements QueuePort<T> {
+export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	private readonly items: T[] = []
 	private readonly capacity?: number
 	private readonly defaults: QueueRunOptions

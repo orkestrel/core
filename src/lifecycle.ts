@@ -5,18 +5,21 @@
 import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnostics.js'
 import { EmitterAdapter } from './adapters/emitter.js'
 import { QueueAdapter } from './adapters/queue.js'
-import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook, EmitterPort } from './types.js'
+import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook, EmitterPort, QueuePort } from './types.js'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
 	private readonly timeouts: number
 	private emitInitial: boolean
 	readonly #emitter: EmitterPort<LifecycleEventMap>
+	private readonly queue: QueuePort
 
 	constructor(opts: LifecycleOptions = {}) {
 		this.timeouts = opts.timeouts ?? 5000
 		this.emitInitial = opts.emitInitial ?? true
 		this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>()
+		// Reuse a queue per instance; default to sequential execution for hooks; pass shared deadline per run
+		this.queue = opts.queue ?? new QueueAdapter({ concurrency: 1 })
 	}
 
 	// Observability port getters (emitter only)
@@ -59,7 +62,7 @@ export abstract class Lifecycle {
 			() => this.onTransition(from, target, hookName),
 		]
 		try {
-			await new QueueAdapter({ deadline: this.timeouts, concurrency: 1 }).run(tasks)
+			await this.queue.run(tasks, { deadline: this.timeouts, concurrency: 1 })
 			this.setState(target)
 			this.emitter.emit(hookName)
 		}

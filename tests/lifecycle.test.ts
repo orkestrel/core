@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Lifecycle, InvalidTransitionError, type LifecycleState } from '@orkestrel/core'
+import { Lifecycle, InvalidTransitionError } from '@orkestrel/core'
+import type { LifecycleState, QueuePort } from '@orkestrel/core'
 
 class TestLifecycle extends Lifecycle {
 	public log: string[] = []
@@ -113,4 +114,36 @@ test('Lifecycle | emitInitial=false suppresses initial transition', async () => 
 	await lc.start()
 	await new Promise(r => setTimeout(r, 0))
 	assert.deepEqual(events, ['started'])
+})
+
+test('Lifecycle | supports injected queue and enforces concurrency=1 with shared deadline', async () => {
+	interface Capture { calls: number, lastOptions?: { concurrency?: number, deadline?: number } }
+	const cap: Capture = { calls: 0 }
+	class FakeQueue implements QueuePort<unknown> {
+		async enqueue(_: unknown): Promise<void> { /* noop */ }
+		async dequeue(): Promise<unknown | undefined> { return undefined }
+		async size(): Promise<number> { return 0 }
+		async run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: { concurrency?: number, deadline?: number }): Promise<ReadonlyArray<R>> {
+			cap.calls++
+			cap.lastOptions = { concurrency: options?.concurrency, deadline: options?.deadline }
+			const out: R[] = []
+			for (const t of tasks) out.push(await Promise.resolve(t()))
+			return out
+		}
+	}
+	class QLife extends Lifecycle {
+		public ok = false
+		protected async onStart(): Promise<void> { this.ok = true }
+		protected async onTransition(): Promise<void> { /* no-op */ }
+	}
+	const timeouts = 25
+	const q = new FakeQueue()
+	const lc = new QLife({ timeouts, queue: q })
+	await lc.start()
+	assert.equal(lc.state, 'started')
+	assert.equal(lc instanceof QLife, true)
+	assert.equal((lc as QLife).ok, true)
+	assert.equal(cap.calls, 1)
+	assert.equal(cap.lastOptions?.concurrency, 1)
+	assert.equal(cap.lastOptions?.deadline, timeouts)
 })

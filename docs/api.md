@@ -75,8 +75,9 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
 
 ### interface LifecycleOptions
 - `timeouts?: number` — default 5000; max time for each hook (`onStart`, `onStop`, `onDestroy`) and `onTransition` combined.
-- `emitInitialState?: boolean` — default true; when false, suppresses the initial deferred `stateChange('created')` emission.
+- `emitInitial?: boolean` — default true; when false, suppresses the initial deferred `transition('created')` emission.
 - `emitter?: EmitterPort` — optional custom emitter instance.
+- `queue?: QueuePort<unknown>` — optional custom queue used to run the hook and `onTransition` under a single shared deadline. Hooks always run sequentially (concurrency=1).
 
 Compatibility note
 - The initial state emission is scheduled using `setTimeout(..., 0)`. Working in modern browsers and Node.js 18+. This keeps the constructor synchronous while still making the initial state observable.

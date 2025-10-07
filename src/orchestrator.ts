@@ -57,7 +57,7 @@ export class Orchestrator {
 	private readonly tracer?: OrchestratorOptions['tracer']
 	private readonly concurrency?: number
 	private readonly layer: LayerPort
-	private readonly queue: QueuePort<unknown>
+	private readonly queue: QueuePort
 
 	/**
 	 * Construct an Orchestrator.

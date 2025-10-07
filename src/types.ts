@@ -53,7 +53,7 @@ export interface LayerPort {
 // Ports: Queue
 // ---------------------------
 
-export interface QueuePort<T> {
+export interface QueuePort<T = unknown> {
 	enqueue(item: T): Promise<void>
 	dequeue(): Promise<T | undefined>
 	size(): Promise<number>
@@ -287,6 +287,8 @@ export interface LifecycleOptions {
 	readonly emitInitial?: boolean
 	// Emitter remains injectable
 	readonly emitter?: EmitterPort<LifecycleEventMap>
+	// Optional queue port for running hooks under a shared deadline; defaults to an internal adapter.
+	readonly queue?: QueuePort
 }
 export type LifecycleEventMap = {
 	transition: [LifecycleState]
@@ -369,7 +371,7 @@ export interface OrchestratorOptions {
 	}
 	readonly concurrency?: number
 	readonly layer?: LayerPort
-	readonly queue?: QueuePort<unknown>
+	readonly queue?: QueuePort
 }
 
 export type OrchestratorGetter = {

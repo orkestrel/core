@@ -1,4 +1,4 @@
-// Centralized diagnostics: codes, templates, and helpers
+// Centralized diagnostics: codes, templates, and helpers (errors/messages only)
 // Public API preserved. Focused on orchestrator/container/lifecycle error shaping.
 
 import type {
@@ -9,6 +9,7 @@ import type {
 	LifecycleHook,
 	LifecycleContext,
 	LifecycleState,
+	DiagnosticMessage,
 } from './types.js'
 
 // -----------------------------------
@@ -149,3 +150,22 @@ export class AggregateLifecycleError extends LifecycleError {
 		this.helpUrl = (info as DiagnosticInfo).helpUrl
 	}
 }
+
+// -----------------------------------
+// Default messages for DiagnosticsAdapter mapping
+// -----------------------------------
+
+export const DIAGNOSTIC_MESSAGES: ReadonlyArray<DiagnosticMessage> = Object.freeze([
+	// Lifecycle
+	{ key: 'lifecycle.transition', level: 'debug', message: 'lifecycle.transition' },
+	{ key: 'lifecycle.hook', level: 'info', message: 'lifecycle.hook' },
+	// Orchestrator component lifecycle
+	{ key: 'orchestrator.component.start', level: 'info', message: 'orchestrator.component.start' },
+	{ key: 'orchestrator.component.stop', level: 'info', message: 'orchestrator.component.stop' },
+	{ key: 'orchestrator.component.destroy', level: 'info', message: 'orchestrator.component.destroy' },
+	// Aggregate error codes
+	{ key: 'ORK1013', level: 'error', message: 'Errors during start' },
+	{ key: 'ORK1014', level: 'error', message: 'Errors during stop' },
+	{ key: 'ORK1016', level: 'error', message: 'Errors during container destroy' },
+	{ key: 'ORK1017', level: 'error', message: 'Errors during destroy' },
+])

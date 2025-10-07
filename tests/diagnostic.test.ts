@@ -1,0 +1,116 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { InvalidTransitionError, TimeoutError, AggregateLifecycleError, D, isLifecycleErrorDetail, DiagnosticAdapter } from '@orkestrel/core'
+import type { LoggerPort, LogLevel } from '@orkestrel/core'
+
+class FakeLogger implements LoggerPort {
+	public entries: { level: LogLevel, message: string, fields?: Record<string, unknown> }[] = []
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void {
+		this.entries.push({ level, message, fields })
+	}
+}
+
+// ---------- Diagnostics helpers/classes tests ----------
+
+test('Diagnostics | InvalidTransitionError includes from/to', () => {
+	const err = new InvalidTransitionError('started', 'created')
+	assert.match(err.message, /Invalid lifecycle transition/)
+	assert.equal(err.from, 'started')
+	assert.equal(err.to, 'created')
+})
+
+test('Diagnostics | TimeoutError includes hook and milliseconds', () => {
+	const err = new TimeoutError('start', 123)
+	assert.match(err.message, /timed out/)
+	assert.equal(err.hook, 'start')
+	assert.equal(err.ms, 123)
+})
+
+test('Diagnostics | AggregateLifecycleError aggregates errors', () => {
+	const e1 = new Error('boom1')
+	const e2 = new Error('boom2')
+	const agg = new AggregateLifecycleError({ message: 'agg' }, [e1, e2])
+	assert.equal(agg.message, 'agg')
+	assert.equal(agg.errors.length, 2)
+})
+
+test('Diagnostics | isLifecycleErrorDetail returns true for valid details', () => {
+	const e1 = D.makeDetail('A', 'start', 'normal', { durationMs: 5, error: new Error('x'), timedOut: false })
+	const e2 = D.makeDetail('B', 'stop', 'rollback', { durationMs: 1, error: new Error('y'), timedOut: true })
+	assert.equal(isLifecycleErrorDetail(e1), true)
+	assert.equal(isLifecycleErrorDetail(e2), true)
+})
+
+test('Diagnostics | isLifecycleErrorDetail returns false for invalid shapes', () => {
+	assert.equal(isLifecycleErrorDetail(null), false)
+	assert.equal(isLifecycleErrorDetail({}), false)
+	assert.equal(isLifecycleErrorDetail({ tokenDescription: 'x' }), false)
+	assert.equal(isLifecycleErrorDetail({ tokenDescription: 'x', phase: 'start', context: 'normal', timedOut: false, durationMs: 'nope', error: new Error('z') }), false)
+	assert.equal(isLifecycleErrorDetail({ tokenDescription: 'x', phase: 'start', context: 'normal', timedOut: false, durationMs: 1, error: 'err' }), false)
+})
+
+// ---------- DiagnosticAdapter tests (unified messages mapping) ----------
+
+test('DiagnosticAdapter | default behavior without overrides', () => {
+	const logger = new FakeLogger()
+	const d = new DiagnosticAdapter({ logger })
+	d.log('info', 'hello')
+	assert.equal(logger.entries.length, 1)
+	assert.equal(logger.entries[0].level, 'info')
+	assert.equal(logger.entries[0].message, 'hello')
+})
+
+test('DiagnosticAdapter | overrides apply via messages array (log)', () => {
+	const logger = new FakeLogger()
+	const d = new DiagnosticAdapter({ logger, messages: [{ key: 'hello', level: 'warn', message: 'hi' }] })
+	d.log('info', 'hello')
+	assert.equal(logger.entries.length, 1)
+	assert.equal(logger.entries[0].level, 'warn')
+	assert.equal(logger.entries[0].message, 'hi')
+})
+
+test('DiagnosticAdapter | overrides apply for metric/trace/event', () => {
+	const logger = new FakeLogger()
+	const d = new DiagnosticAdapter({
+		logger,
+		messages: [
+			{ key: 'm1', message: 'metric-one' },
+			{ key: 't1', level: 'info' },
+			{ key: 'e1', level: 'warn', message: 'event-one' },
+		],
+	})
+
+	d.metric('m1', 42, { tag: 'x' })
+	assert.equal(logger.entries[0].level, 'info') // default level for metric
+	assert.equal(logger.entries[0].message, 'metric-one')
+	assert.deepEqual(logger.entries[0].fields, { value: 42, tag: 'x' })
+
+	logger.entries = []
+	d.trace('t1', { a: 1 })
+	assert.equal(logger.entries[0].level, 'info') // overridden level
+	assert.equal(logger.entries[0].message, 't1') // message unchanged when not provided
+	assert.deepEqual(logger.entries[0].fields, { a: 1 })
+
+	logger.entries = []
+	d.event('e1', { b: 2 })
+	assert.equal(logger.entries[0].level, 'warn')
+	assert.equal(logger.entries[0].message, 'event-one')
+	assert.deepEqual(logger.entries[0].fields, { b: 2 })
+})
+
+test('DiagnosticAdapter | error uses context.code when provided', () => {
+	const logger = new FakeLogger()
+	const d = new DiagnosticAdapter({ logger, messages: [{ key: 'MYCODE', level: 'warn', message: 'bad things' }] })
+	d.error(new Error('boom'), { code: 'MYCODE' as unknown as never })
+	assert.equal(logger.entries[0].level, 'warn')
+	assert.equal(logger.entries[0].message, 'bad things')
+	assert.ok(logger.entries[0].fields && 'err' in (logger.entries[0].fields))
+})
+
+test('DiagnosticAdapter | error falls back to error name key when no code', () => {
+	const logger = new FakeLogger()
+	const d = new DiagnosticAdapter({ logger, messages: [{ key: 'Error', level: 'error', message: 'oops mapped' }] })
+	d.error(new Error('original'))
+	assert.equal(logger.entries[0].level, 'error')
+	assert.equal(logger.entries[0].message, 'oops mapped')
+})

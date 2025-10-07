@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { extendPorts, createPortToken, createPortTokens, Orchestrator } from '@orkestrel/core'
+import { extendPorts, createPortToken, createPortTokens, Orchestrator, NoopLogger } from '@orkestrel/core'
+
+const logger = new NoopLogger()
 
 interface EmailPort { send(to: string, subject: string, body: string): Promise<void> }
 class InMemoryEmailAdapter implements EmailPort { async send() { /* no-op */ } }
@@ -12,7 +14,7 @@ test('Ports | createPortTokens creates a base token set; extendPorts merges', as
 	const Extended = extendPorts(Base, { featureFlag: {} as FeatureFlagPort })
 	assert.ok(Base.email)
 	assert.ok(Extended.featureFlag)
-	const orch = new Orchestrator()
+	const orch = new Orchestrator({ logger })
 	await orch.start([
 		{ token: Base.email, provider: { useFactory: () => new InMemoryEmailAdapter() } },
 	])

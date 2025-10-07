@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createToken, Container, container, Adapter } from '@orkestrel/core'
+import { createToken, Container, container, Adapter, NoopLogger } from '@orkestrel/core'
+
+const logger = new NoopLogger()
 
 class TestLifecycle extends Adapter {
 	started = 0
@@ -11,12 +13,14 @@ class TestLifecycle extends Adapter {
 }
 
 class FailingOnDestroy extends Adapter {
-	protected async onDestroy(): Promise<void> { throw new Error('destroy-fail') }
+	protected async onDestroy(): Promise<void> {
+		throw new Error('destroy-fail')
+	}
 }
 
 test('Container | value provider resolution', () => {
 	const TOK = createToken<number>('num')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.register(TOK, { useValue: 42 })
 	assert.strictEqual(c.resolve(TOK), 42)
 	assert.equal(c.has(TOK), true)
@@ -28,7 +32,7 @@ test('Container | factory provider with inject array resolves dependencies by or
 	const A = createToken<number>('A')
 	const B = createToken<string>('B')
 	const OUT = createToken<{ a: number, b: string }>('OUT')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.set(A, 10)
 	c.set(B, 'hi')
 	c.register(OUT, { useFactory: (a, b) => ({ a, b }), inject: [A, B] })
@@ -40,22 +44,20 @@ test('Container | factory provider with inject object resolves named dependencie
 	const A = createToken<number>('A2')
 	const B = createToken<string>('B2')
 	const SUM = createToken<number>('SUM')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.set(A, 3)
 	c.set(B, 'abcd')
 	c.register(SUM, { useFactory: ({ a, b }) => a + b.length, inject: { a: A, b: B } })
 	assert.equal(c.resolve(SUM), 3 + 4)
 })
 
-class NeedsDeps {
-	constructor(public readonly a: number, public readonly b: string) {}
-}
+class NeedsDeps { constructor(public readonly a: number, public readonly b: string) {} }
 
 test('Container | class provider with inject array constructs with resolved dependencies', () => {
 	const A = createToken<number>('A3')
 	const B = createToken<string>('B3')
 	const C = createToken<NeedsDeps>('C3')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.set(A, 5)
 	c.set(B, 'z')
 	c.register(C, { useClass: NeedsDeps, inject: [A, B] })
@@ -68,7 +70,7 @@ test('Container | class provider with inject array constructs with resolved depe
 test('Container | factory provider resolution and get/has', () => {
 	const TOK = createToken<{ v: number }>('obj')
 	const MISS = createToken('missing')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.register(TOK, { useFactory: () => ({ v: 10 }) })
 	assert.strictEqual(c.resolve(TOK).v, 10)
 	assert.equal(c.get(MISS), undefined)
@@ -79,7 +81,7 @@ test('Container | object-map strict resolution and optional get()', () => {
 	const A = createToken<number>('A')
 	const B = createToken<string>('B')
 	const C = createToken<boolean>('C')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.set(A, 1)
 	c.set(B, 'two')
 	c.set(C, true)
@@ -94,8 +96,8 @@ test('Container | object-map strict resolution and optional get()', () => {
 
 test('Container | class provider without autostart; child container lookup', async () => {
 	const TOK = createToken<TestLifecycle>('life')
-	const c = new Container()
-	c.register(TOK, { useFactory: () => new TestLifecycle({}) })
+	const c = new Container({ logger })
+	c.register(TOK, { useFactory: () => new TestLifecycle({ logger }) })
 	const child = c.createChild()
 	const inst = child.resolve(TOK)
 	// no autostart; instance should not be started yet
@@ -110,8 +112,8 @@ test('Container | class provider without autostart; child container lookup', asy
 
 test('Container | destroy aggregates errors and is idempotent', async () => {
 	const BAD = createToken<FailingOnDestroy>('bad')
-	const c = new Container()
-	c.register(BAD, { useFactory: () => new FailingOnDestroy() })
+	const c = new Container({ logger })
+	c.register(BAD, { useFactory: () => new FailingOnDestroy({ logger }) })
 	const inst = c.resolve(BAD)
 	await inst.start()
 	await inst.stop()
@@ -123,7 +125,7 @@ test('Container | destroy aggregates errors and is idempotent', async () => {
 test('Container | global helper supports default symbol and named string keys', () => {
 	// clear any existing registrations (default is protected and will remain)
 	for (const name of container.list()) container.clear(name, true)
-	const ALT = new Container()
+	const ALT = new Container({ logger })
 	const T = createToken<number>('num2')
 	// register on default container directly
 	container().register(T, { useValue: 7 })
@@ -157,7 +159,7 @@ test('Container | callable getter resolves a token map with resolve({ ... })', (
 test('Container | named container resolves a token map with resolve({ ... })', () => {
 	// clear any existing registrations (default persists)
 	for (const name of container.list()) container.clear(name, true)
-	const namedC = new Container()
+	const namedC = new Container({ logger })
 	container.set('tenantA', namedC)
 	const A = createToken<number>('A')
 	const B = createToken<string>('B')
@@ -175,10 +177,10 @@ test('Container | using(fn) runs in a child scope and destroys it after', async 
 		protected async onDestroy() { this.destroyed = true }
 	}
 	const T = createToken<Scoped>('Scoped')
-	const root = new Container()
+	const root = new Container({ logger })
 	let inst: Scoped | undefined
 	await root.using(async (scope) => {
-		scope.register(T, { useFactory: () => new Scoped() })
+		scope.register(T, { useFactory: () => new Scoped({ logger }) })
 		inst = scope.resolve(T)
 		await Promise.resolve()
 	})
@@ -188,7 +190,7 @@ test('Container | using(fn) runs in a child scope and destroys it after', async 
 
 test('Container | using(apply, fn) registers overrides in a child scope', async () => {
 	const T = createToken<string>('scoped:val')
-	const root = new Container()
+	const root = new Container({ logger })
 	// no root registration
 	const result = await root.using(
 		(scope) => {
@@ -207,7 +209,7 @@ test('Container | using(apply, fn) registers overrides in a child scope', async 
 
 test('Container | register with lock prevents re-registration for the same token', () => {
 	const T = createToken<number>('lockReg')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.register(T, { useValue: 1 }, true) // lock
 	assert.equal(c.resolve(T), 1)
 	assert.throws(() => c.register(T, { useValue: 2 }), /Cannot replace locked provider/)
@@ -215,7 +217,7 @@ test('Container | register with lock prevents re-registration for the same token
 
 test('Container | set with lock prevents overwriting value', () => {
 	const T = createToken<string>('lockSet')
-	const c = new Container()
+	const c = new Container({ logger })
 	c.set(T, 'A', true)
 	assert.equal(c.resolve(T), 'A')
 	assert.throws(() => c.set(T, 'B'), /Cannot replace locked provider/)
@@ -223,7 +225,7 @@ test('Container | set with lock prevents overwriting value', () => {
 
 test('Container | child inherits providers via has/get from parent', () => {
 	const T = createToken<number>('parent:val')
-	const parent = new Container()
+	const parent = new Container({ logger })
 	parent.set(T, 99)
 	const child = parent.createChild()
 	assert.equal(child.has(T), true)

@@ -23,6 +23,8 @@ import type {
 	LifecycleContext,
 	LayerPort,
 	QueuePort,
+	DiagnosticPort,
+	LoggerPort,
 } from './types.js'
 import {
 	isFactoryProvider,
@@ -37,9 +39,11 @@ import {
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
 import { RegistryAdapter } from './adapters/registry.js'
-import { AggregateLifecycleError, D, TimeoutError, tokenDescription } from './diagnostics.js'
+import { AggregateLifecycleError, D, TimeoutError, tokenDescription, DIAGNOSTIC_MESSAGES } from './diagnostics.js'
 import { LayerAdapter } from './adapters/layer.js'
 import { QueueAdapter } from './adapters/queue.js'
+import { DiagnosticAdapter } from './adapters/diagnostic.js'
+import { LoggerAdapter } from './adapters/logger'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
@@ -55,8 +59,10 @@ export class Orchestrator {
 	private readonly timeouts: number | PhaseTimeouts
 	private readonly events?: OrchestratorOptions['events']
 	private readonly tracer?: OrchestratorOptions['tracer']
-	private readonly layer: LayerPort
-	private readonly queue: QueuePort
+	readonly #layer: LayerPort
+	readonly #queue: QueuePort
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
 
 	/**
 	 * Construct an Orchestrator.
@@ -70,22 +76,35 @@ export class Orchestrator {
 			this.events = maybeOpts?.events
 			this.tracer = maybeOpts?.tracer
 			this.timeouts = maybeOpts?.timeouts ?? {}
-			this.layer = maybeOpts?.layer ?? new LayerAdapter()
-			this.queue = maybeOpts?.queue ?? new QueueAdapter()
+			this.#layer = maybeOpts?.layer ?? new LayerAdapter()
+			this.#queue = maybeOpts?.queue ?? new QueueAdapter()
+			this.#logger = maybeOpts?.logger ?? new LoggerAdapter()
+			this.#diagnostic = maybeOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
 		}
 		else {
-			this.#container = new Container()
 			this.events = containerOrOpts?.events
 			this.tracer = containerOrOpts?.tracer
 			this.timeouts = containerOrOpts?.timeouts ?? {}
-			this.layer = containerOrOpts?.layer ?? new LayerAdapter()
-			this.queue = containerOrOpts?.queue ?? new QueueAdapter()
+			this.#layer = containerOrOpts?.layer ?? new LayerAdapter()
+			this.#queue = containerOrOpts?.queue ?? new QueueAdapter()
+			this.#logger = containerOrOpts?.logger ?? new LoggerAdapter()
+			this.#diagnostic = containerOrOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
+			// Ensure the internal container uses the same logger/diagnostic so components inherit them
+			this.#container = new Container({ logger: this.#logger, diagnostic: this.#diagnostic })
 		}
 	}
 
 	// Public API
 	/** Get the underlying Container bound to this orchestrator. */
 	get container(): Container { return this.#container }
+
+	get layer(): LayerPort { return this.#layer }
+
+	get queue(): QueuePort { return this.#queue }
+
+	get logger(): LoggerPort { return this.#logger }
+
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
 	 * Register a component provider with optional explicit dependencies/timeouts.
@@ -139,11 +158,23 @@ export class Orchestrator {
 				if (r.ok) {
 					successes.push({ token: tkn, lc, durationMs: r.durationMs })
 					this.safeCall(this.events?.onComponentStart, { token: tkn, durationMs: r.durationMs })
+					try {
+						this.diagnostic.event('orchestrator.component.start', { token: tokenDescription(tkn), durationMs: r.durationMs })
+					}
+					catch {
+						// swallow
+					}
 				}
 				else {
 					const detail = D.makeDetail(tokenDescription(tkn), 'start', 'normal', r)
 					failures.push(detail)
 					this.safeCall(this.events?.onComponentError, detail)
+					try {
+						this.diagnostic.error(detail.error, { scope: 'orchestrator', token: detail.tokenDescription, phase: 'start', timedOut: detail.timedOut, durationMs: detail.durationMs })
+					}
+					catch {
+						// swallow
+					}
 				}
 			}
 			if (failures.length > 0) {
@@ -162,7 +193,14 @@ export class Orchestrator {
 					for (const s of settled) if (s.error) rollbackErrors.push(s.error)
 				}
 				const agg = D.startAggregate()
-				throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, [...failures, ...rollbackErrors])
+				const aggregate = new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, [...failures, ...rollbackErrors])
+				try {
+					this.diagnostic.error(aggregate, { scope: 'orchestrator', code: 'ORK1013', extra: { failures: failures.length, rollback: rollbackErrors.length } })
+				}
+				catch {
+					// swallow
+				}
+				throw aggregate
 			}
 			for (const s of successes) startedOrder.push({ token: s.token, lc: s.lc })
 		}
@@ -188,7 +226,14 @@ export class Orchestrator {
 		}
 		if (errors.length) {
 			const agg = D.stopAggregate()
-			throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
+			const aggregate = new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
+			try {
+				this.diagnostic.error(aggregate, { scope: 'orchestrator', code: 'ORK1014', extra: { errors: errors.length } })
+			}
+			catch {
+				// swallow
+			}
+			throw aggregate
 		}
 	}
 
@@ -222,6 +267,13 @@ export class Orchestrator {
 			const layerIdx = forwardLayers.length - 1 - i
 			if (stopOutcomes.length) this.safeCall(this.tracer?.onPhase, { phase: 'stop', layer: layerIdx, outcomes: stopOutcomes })
 			if (destroyOutcomes.length) this.safeCall(this.tracer?.onPhase, { phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes })
+			try {
+				if (stopOutcomes.length) this.diagnostic.event('orchestrator.phase', { phase: 'stop', layer: layerIdx, outcomes: stopOutcomes })
+				if (destroyOutcomes.length) this.diagnostic.event('orchestrator.phase', { phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes })
+			}
+			catch {
+				// swallow
+			}
 		}
 		try {
 			await this.container.destroy()
@@ -236,7 +288,14 @@ export class Orchestrator {
 		}
 		if (errors.length) {
 			const agg = D.destroyAggregate()
-			throw new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
+			const aggregate = new AggregateLifecycleError({ code: agg.code, message: agg.message, helpUrl: agg.helpUrl }, errors)
+			try {
+				this.diagnostic.error(aggregate, { scope: 'orchestrator', code: 'ORK1017', extra: { errors: errors.length } })
+			}
+			catch {
+				// swallow
+			}
+			throw aggregate
 		}
 	}
 
@@ -283,6 +342,12 @@ export class Orchestrator {
 		this.layers = layers
 		// tracing: emit computed layers once (guarded)
 		this.safeCall(this.tracer?.onLayers, { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
+		try {
+			this.diagnostic.trace('orchestrator.layers', { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
+		}
+		catch {
+			// swallow
+		}
 		return layers
 	}
 
@@ -364,6 +429,12 @@ export class Orchestrator {
 			if (out) outcomes.push(out)
 		}
 		if (outcomes.length) this.safeCall(this.tracer?.onPhase, { phase, layer: layerIdxForward, outcomes })
+		try {
+			if (outcomes.length) this.diagnostic.event('orchestrator.phase', { phase, layer: layerIdxForward, outcomes })
+		}
+		catch {
+			// swallow
+		}
 		return results
 	}
 
@@ -372,10 +443,22 @@ export class Orchestrator {
 		const r = await this.runPhase(inst, 'stop', timeout)
 		if (r.ok) {
 			this.safeCall(this.events?.onComponentStop, { token: tk, durationMs: r.durationMs })
+			try {
+				this.diagnostic.event('orchestrator.component.stop', { token: tokenDescription(tk), durationMs: r.durationMs, context })
+			}
+			catch {
+				// swallow
+			}
 			return { outcome: { token: tokenDescription(tk), ok: true, durationMs: r.durationMs } }
 		}
 		const d = D.makeDetail(tokenDescription(tk), 'stop', context, r)
 		this.safeCall(this.events?.onComponentError, d)
+		try {
+			this.diagnostic.error(d.error, { scope: 'orchestrator', token: d.tokenDescription, phase: 'stop', timedOut: d.timedOut, durationMs: d.durationMs })
+		}
+		catch {
+			// swallow
+		}
 		return { outcome: { token: tokenDescription(tk), ok: false, durationMs: r.durationMs, timedOut: r.timedOut }, error: d }
 	}
 
@@ -392,11 +475,23 @@ export class Orchestrator {
 			const r2 = await this.runPhase(inst, 'destroy', destroyTimeout)
 			if (r2.ok) {
 				this.safeCall(this.events?.onComponentDestroy, { token: tk, durationMs: r2.durationMs })
+				try {
+					this.diagnostic.event('orchestrator.component.destroy', { token: tokenDescription(tk), durationMs: r2.durationMs })
+				}
+				catch {
+					// swallow
+				}
 				out.destroyOutcome = { token: tokenDescription(tk), ok: true, durationMs: r2.durationMs }
 			}
 			else {
 				const d2 = D.makeDetail(tokenDescription(tk), 'destroy', 'normal', r2)
 				this.safeCall(this.events?.onComponentError, d2)
+				try {
+					this.diagnostic.error(d2.error, { scope: 'orchestrator', token: d2.tokenDescription, phase: 'destroy', timedOut: d2.timedOut, durationMs: d2.durationMs })
+				}
+				catch {
+					// swallow
+				}
 				out.destroyOutcome = { token: tokenDescription(tk), ok: false, durationMs: r2.durationMs, timedOut: r2.timedOut }
 				localErrors.push(d2)
 			}
@@ -405,12 +500,9 @@ export class Orchestrator {
 		return out
 	}
 
-	// ---- small utility helpers (typed and side-effect-safe) ----
-	/** Guarded single-argument callback invocation to isolate orchestration from telemetry errors. */
-	private safeCall<T>(fn: ((payload: T) => void) | undefined, payload: T): void {
-		if (!fn) return
+	private safeCall<TArgs extends unknown[]>(fn: ((...args: TArgs) => void | Promise<void>) | undefined, ...args: TArgs): void {
 		try {
-			fn(payload)
+			fn?.(...args)
 		}
 		catch { /* swallow */ }
 	}
@@ -430,16 +522,34 @@ export class Orchestrator {
 
 const orchestratorRegistry = new RegistryAdapter<Orchestrator>({ label: 'orchestrator', default: { value: new Orchestrator(container()) } })
 
-export const orchestrator: OrchestratorGetter = Object.assign(
+export const orchestrator = Object.assign(
 	(name?: string | symbol): Orchestrator => orchestratorRegistry.resolve(name),
 	{
-		set(name: string | symbol, o: Orchestrator, lock?: boolean) {
-			orchestratorRegistry.set(name, o, lock)
-		},
+		set(name: string | symbol, app: Orchestrator, lock?: boolean) { orchestratorRegistry.set(name, app, lock) },
 		clear(name?: string | symbol, force?: boolean) { return orchestratorRegistry.clear(name, force) },
 		list() { return [...orchestratorRegistry.list()] },
+		using: orchestratorUsing,
 	},
-)
+) satisfies OrchestratorGetter
+
+function orchestratorUsing<T>(fn: (app: Orchestrator) => Promise<T> | T, name?: string | symbol): Promise<T>
+function orchestratorUsing<T>(apply: (app: Orchestrator) => void, fn: (app: Orchestrator) => Promise<T> | T, name?: string | symbol): Promise<T>
+function orchestratorUsing<T>(arg1: ((app: Orchestrator) => void) | ((app: Orchestrator) => Promise<T> | T), arg2?: ((app: Orchestrator) => Promise<T> | T) | (string | symbol), arg3?: string | symbol): Promise<T> {
+	let apply: ((app: Orchestrator) => void) | undefined
+	let fn: (app: Orchestrator) => Promise<T> | T
+	let name: string | symbol | undefined
+	if (typeof arg2 === 'function') {
+		apply = arg1 as (app: Orchestrator) => void
+		fn = arg2 as (app: Orchestrator) => Promise<T> | T
+		name = arg3
+	}
+	else {
+		fn = arg1 as (app: Orchestrator) => Promise<T> | T
+		name = arg2 as (string | symbol | undefined)
+	}
+	const app = orchestratorRegistry.resolve(name)
+	return apply ? app.container.using(() => apply!(app), () => fn(app)) : app.container.using(() => fn(app))
+}
 
 function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>): Token<unknown>[] {
 	if (!deps) return []

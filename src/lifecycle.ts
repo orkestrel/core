@@ -2,28 +2,38 @@
 // Public methods: create, start, stop, destroy
 // Extension points: onCreate, onStart, onStop, onDestroy, onTransition
 
-import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnostics.js'
+import { InvalidTransitionError, LifecycleError, TimeoutError, DIAGNOSTIC_MESSAGES } from './diagnostics.js'
 import { EmitterAdapter } from './adapters/emitter.js'
 import { QueueAdapter } from './adapters/queue.js'
-import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook, EmitterPort, QueuePort } from './types.js'
+import { DiagnosticAdapter } from './adapters/diagnostic.js'
+import type {
+	LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook, EmitterPort, QueuePort, DiagnosticPort,
+	LoggerPort,
+} from './types.js'
+import { LoggerAdapter } from './adapters/logger'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
 	private readonly timeouts: number
 	private emitInitial: boolean
 	readonly #emitter: EmitterPort<LifecycleEventMap>
-	private readonly queue: QueuePort
+	readonly #queue: QueuePort
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
 
 	constructor(opts: LifecycleOptions = {}) {
 		this.timeouts = opts.timeouts ?? 5000
 		this.emitInitial = opts.emitInitial ?? true
 		this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>()
-		// Reuse a queue per instance; default to sequential execution for hooks; pass shared deadline per run
-		this.queue = opts.queue ?? new QueueAdapter({ concurrency: 1 })
+		this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1 })
+		this.#logger = opts.logger ?? new LoggerAdapter()
+		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
 	}
 
-	// Observability port getters (emitter only)
-	public get emitter(): EmitterPort<LifecycleEventMap> { return this.#emitter }
+	get emitter(): EmitterPort<LifecycleEventMap> { return this.#emitter }
+	get queue(): QueuePort { return this.#queue }
+	get logger(): LoggerPort { return this.#logger }
+	get diagnostics(): DiagnosticPort { return this.#diagnostic }
 
 	get state(): LifecycleState { return this._state }
 	protected setState(next: LifecycleState): void {
@@ -31,6 +41,13 @@ export abstract class Lifecycle {
 		if (this._state === next) return
 		this._state = next
 		this.emitter.emit('transition', next)
+		// diagnostics event (guarded)
+		try {
+			this.diagnostics.event('lifecycle.transition', { state: next })
+		}
+		catch {
+			// swallow
+		}
 	}
 
 	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
@@ -48,14 +65,6 @@ export abstract class Lifecycle {
 		return this
 	}
 
-	private validateTransition(target: LifecycleState): void {
-		const from = this._state
-		if (from === 'destroyed') throw new InvalidTransitionError(from, target)
-		if (from === 'created' && target !== 'started' && target !== 'destroyed') throw new InvalidTransitionError(from, target)
-		if (from === 'started' && !(target === 'stopped' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
-		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
-	}
-
 	private async runHook(hookName: LifecycleHook, hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
 		const tasks: Array<() => Promise<void> | void> = [
 			() => hook(),
@@ -65,12 +74,24 @@ export abstract class Lifecycle {
 			await this.queue.run(tasks, { deadline: this.timeouts, concurrency: 1 })
 			this.setState(target)
 			this.emitter.emit(hookName)
+			try {
+				this.diagnostics.event('lifecycle.hook', { hook: hookName, to: target })
+			}
+			catch {
+				// swallow
+			}
 		}
 		catch (err) {
 			// Map queue timeouts/shared-deadline errors to TimeoutError; wrap others as LifecycleError
 			const isTimeout = err instanceof Error && (err.message.includes('timed out') || err.message.includes('shared deadline exceeded'))
 			const wrapped = isTimeout ? new TimeoutError(hookName, this.timeouts) : (err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, { cause: err }))
 			this.emitter.emit('error', wrapped)
+			try {
+				this.diagnostics.error(wrapped, { scope: 'lifecycle', hook: hookName, timedOut: isTimeout })
+			}
+			catch {
+				// swallow
+			}
 			return Promise.reject(wrapped)
 		}
 	}
@@ -94,6 +115,14 @@ export abstract class Lifecycle {
 		this.validateTransition('destroyed')
 		await this.runHook('destroy', () => this.onDestroy(), this._state, 'destroyed')
 		this.emitter.removeAllListeners()
+	}
+
+	private validateTransition(target: LifecycleState): void {
+		const from = this._state
+		if (from === 'destroyed') throw new InvalidTransitionError(from, target)
+		if (from === 'created' && target !== 'started' && target !== 'destroyed') throw new InvalidTransitionError(from, target)
+		if (from === 'started' && !(target === 'stopped' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
+		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
 	}
 
 	// Hooks (override in subclasses)

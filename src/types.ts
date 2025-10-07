@@ -91,6 +91,47 @@ export interface RegistryAdapterOptions<T> {
 }
 
 // ---------------------------
+// Ports: Logging & Diagnostic
+// ---------------------------
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+
+export interface LoggerPort {
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
+}
+
+export type DiagnosticScope = 'lifecycle' | 'orchestrator' | 'container' | 'registry' | 'internal'
+
+export interface DiagnosticErrorContext {
+	readonly scope?: DiagnosticScope
+	readonly code?: OrkCode
+	readonly token?: string
+	readonly phase?: LifecyclePhase
+	readonly hook?: LifecycleHook
+	readonly timedOut?: boolean
+	readonly durationMs?: number
+	readonly extra?: Record<string, unknown>
+}
+
+export interface DiagnosticPort {
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
+	error(err: unknown, context?: DiagnosticErrorContext): void
+	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void
+	trace(name: string, payload?: Record<string, unknown>): void
+	event(name: string, payload?: Record<string, unknown>): void
+}
+
+export type MessageMapEntry = Readonly<{ level?: LogLevel, message?: string }>
+
+export interface DiagnosticMessage extends MessageMapEntry { readonly key: string }
+
+export interface DiagnosticAdapterOptions {
+	readonly logger: LoggerPort
+	/** Optional list of keyed message overrides applied across logs, metrics, traces, events, and errors. */
+	readonly messages?: ReadonlyArray<DiagnosticMessage>
+}
+
+// ---------------------------
 // Tokens
 // ---------------------------
 
@@ -227,7 +268,7 @@ export function isPromiseLike<T = unknown>(x: unknown): x is PromiseLike<T> {
 }
 
 // ---------------------------
-// Diagnostics and lifecycle types (shared)
+// Diagnostic and lifecycle types (shared)
 // ---------------------------
 
 export type OrkCode
@@ -289,6 +330,9 @@ export interface LifecycleOptions {
 	readonly emitter?: EmitterPort<LifecycleEventMap>
 	// Optional queue port for running hooks under a shared deadline; defaults to an internal adapter.
 	readonly queue?: QueuePort
+	readonly logger?: LoggerPort
+	// Optional diagnostic adapter for lifecycle telemetry.
+	readonly diagnostic?: DiagnosticPort
 }
 export type LifecycleEventMap = {
 	transition: [LifecycleState]
@@ -303,7 +347,7 @@ export type LifecycleEventMap = {
 // Container-related types centralization
 // ---------------------------
 
-export interface ContainerOptions { readonly parent?: Container }
+export interface ContainerOptions { readonly parent?: Container, readonly diagnostic?: DiagnosticPort, readonly logger?: LoggerPort }
 
 export interface ResolvedProvider<T> { value: T, lifecycle?: Lifecycle, disposable: boolean }
 export interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: ResolvedProvider<T> }
@@ -371,6 +415,8 @@ export interface OrchestratorOptions {
 	}
 	readonly layer?: LayerPort
 	readonly queue?: QueuePort
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
 }
 
 export type OrchestratorGetter = {

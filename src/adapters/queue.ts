@@ -50,13 +50,15 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 				? Math.max(0, Math.floor(opts.timeout))
 				: undefined
 			const cap = remaining == null ? taskCap : (taskCap == null ? remaining : Math.min(remaining, taskCap))
-			if (cap != null && cap === 0) throw new Error(`QueueAdapter: task #${idx} timed out`)
+			// If a shared deadline is in effect and is the limiting factor, prefer the shared-deadline error.
+			const dueToShared = sharedEnd != null && (taskCap == null || (remaining != null && remaining <= taskCap))
+			if (cap != null && cap === 0) throw new Error(dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out`)
 			let tId: ReturnType<typeof setTimeout> | undefined
 			if (cap == null) return Promise.resolve(fn())
 			try {
 				return await Promise.race([
 					Promise.resolve(fn()),
-					new Promise<never>((_, reject) => { tId = setTimeout(() => reject(new Error(`QueueAdapter: task #${idx} timed out`)), cap) }),
+					new Promise<never>((_, reject) => { tId = setTimeout(() => reject(new Error(dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out`)), cap) }),
 				])
 			}
 			finally {

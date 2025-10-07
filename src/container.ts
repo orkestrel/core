@@ -1,6 +1,7 @@
 import { Lifecycle } from './lifecycle.js'
 import { RegistryAdapter } from './adapters/registry.js'
-import { AggregateLifecycleError, D, tokenDescription } from './diagnostics.js'
+import { AggregateLifecycleError, D, tokenDescription, DIAGNOSTIC_MESSAGES } from './diagnostics.js'
+import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
 	Token,
 	ValueProvider,
@@ -21,6 +22,8 @@ import type {
 	ResolvedProvider,
 	Registration,
 	ContainerGetter,
+	DiagnosticPort,
+	LoggerPort,
 } from './types.js'
 import {
 	isValueProvider,
@@ -32,6 +35,7 @@ import {
 	isFactoryProviderNoDeps,
 	isZeroArg,
 } from './types.js'
+import { LoggerAdapter } from './adapters/logger'
 
 /**
  * Minimal, strongly-typed DI container.
@@ -45,8 +49,18 @@ export class Container {
 	private readonly registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider' })
 	private readonly parent?: Container
 	private destroyed = false
+	readonly #diagnostic: DiagnosticPort
+	readonly #logger: LoggerPort
 
-	constructor(opts: ContainerOptions = {}) { this.parent = opts.parent }
+	constructor(opts: ContainerOptions = {}) {
+		this.parent = opts.parent
+		this.#logger = opts.logger ?? new LoggerAdapter()
+		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: DIAGNOSTIC_MESSAGES })
+	}
+
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+
+	get logger(): LoggerPort { return this.#logger }
 
 	// Concise overload set for strong contextual typing
 	register<T, A extends readonly unknown[]>(token: Token<T>, provider: FactoryProviderWithTuple<T, A> | ClassProviderWithTuple<T, A>, lock?: boolean): this
@@ -100,7 +114,7 @@ export class Container {
 	}
 
 	/** Create a child container that inherits providers from this container. */
-	createChild(): Container { return new Container({ parent: this }) }
+	createChild(): Container { return new Container({ parent: this, diagnostic: this.diagnostic, logger: this.logger }) }
 
 	// Overloads: using(fn) and using(apply, fn)
 	async using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>
@@ -144,7 +158,14 @@ export class Container {
 		}
 		if (errors.length) {
 			const info = D.containerDestroyAggregate()
-			throw new AggregateLifecycleError({ code: info.code, message: info.message, helpUrl: info.helpUrl }, errors)
+			const aggregate = new AggregateLifecycleError({ code: info.code, message: info.message, helpUrl: info.helpUrl }, errors)
+			try {
+				this.diagnostic.error(aggregate, { scope: 'container', code: 'ORK1016', extra: { errors: errors.length } })
+			}
+			catch {
+				// swallow
+			}
+			throw aggregate
 		}
 	}
 

@@ -1,7 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Lifecycle, InvalidTransitionError } from '@orkestrel/core'
 import type { LifecycleState, QueuePort } from '@orkestrel/core'
+import { Lifecycle, InvalidTransitionError, NoopLogger } from '@orkestrel/core'
+
+const logger = new NoopLogger()
 
 class TestLifecycle extends Lifecycle {
 	public log: string[] = []
@@ -12,15 +14,18 @@ class TestLifecycle extends Lifecycle {
 }
 
 class FailingStart extends Lifecycle {
-	protected async onStart(): Promise<void> { throw new Error('boom') }
+	protected async onStart(): Promise<void> {
+		throw new Error('boom')
+	}
 }
-
 class HangingStart extends Lifecycle {
-	protected async onStart(): Promise<void> { await new Promise(() => {}) }
+	protected async onStart(): Promise<void> {
+		await new Promise(() => {})
+	}
 }
 
 test('Lifecycle | happy path transitions', async () => {
-	const lc = new TestLifecycle({ timeouts: 100 })
+	const lc = new TestLifecycle({ timeouts: 100, logger })
 	await lc.create()
 	assert.equal(lc.state, 'created')
 	await lc.start()
@@ -35,19 +40,19 @@ test('Lifecycle | happy path transitions', async () => {
 })
 
 test('Lifecycle | failing start wraps error', async () => {
-	const lc = new FailingStart({ timeouts: 50 })
+	const lc = new FailingStart({ timeouts: 50, logger })
 	await assert.rejects(() => lc.start(), /Hook 'start' failed/)
 	assert.equal(lc.state, 'created')
 })
 
 test('Lifecycle | hook timeout triggers TimeoutError', async () => {
-	const lc = new HangingStart({ timeouts: 10 })
+	const lc = new HangingStart({ timeouts: 10, logger })
 	await assert.rejects(() => lc.start(), /timed out/)
 	assert.equal(lc.state, 'created')
 })
 
 test('Lifecycle | invalid transition throws', async () => {
-	const lc = new TestLifecycle()
+	const lc = new TestLifecycle({ logger })
 	await lc.start()
 	await assert.rejects(async () => lc.create(), (err: unknown) => {
 		assert.ok(err instanceof InvalidTransitionError)
@@ -69,7 +74,7 @@ test('Lifecycle | onTransition runs between hook and state change (filterable in
 		}
 	}
 
-	const lc = new Transitions({ timeouts: 50 })
+	const lc = new Transitions({ timeouts: 50, logger })
 	await lc.start()
 	assert.equal(lc.state, 'started')
 	await lc.stop()
@@ -84,15 +89,17 @@ test('Lifecycle | onTransition timeout surfaces as TimeoutError', async () => {
 		protected async onStart(): Promise<void> { /* ok */ }
 		protected async onTransition(): Promise<void> { await new Promise(() => {}) }
 	}
-	const lc = new SlowTransition({ timeouts: 10 })
+	const lc = new SlowTransition({ timeouts: 10, logger })
 	await assert.rejects(() => lc.start(), /timed out/)
 	assert.equal(lc.state, 'created')
 })
 
 test('Lifecycle | transition not emitted twice for created->created on create()', async () => {
 	const events: LifecycleState[] = []
-	class L extends Lifecycle { protected async onCreate(): Promise<void> { /* no-op */ } }
-	const lc = new L({ timeouts: 20 })
+	class L extends Lifecycle {
+		protected async onCreate(): Promise<void> { /* no-op */ }
+	}
+	const lc = new L({ timeouts: 20, logger })
 	lc.on('transition', s => events.push(s))
 	// allow initial microtask to flush
 	await new Promise(r => setTimeout(r, 0))
@@ -105,8 +112,10 @@ test('Lifecycle | transition not emitted twice for created->created on create()'
 
 test('Lifecycle | emitInitial=false suppresses initial transition', async () => {
 	const events: LifecycleState[] = []
-	class L extends Lifecycle { protected async onStart(): Promise<void> { /* no-op */ } }
-	const lc = new L({ timeouts: 20, emitInitial: false })
+	class L extends Lifecycle {
+		protected async onStart(): Promise<void> { /* no-op */ }
+	}
+	const lc = new L({ timeouts: 20, emitInitial: false, logger })
 	lc.on('transition', s => events.push(s))
 	// initial should not fire
 	await new Promise(r => setTimeout(r, 0))
@@ -138,7 +147,7 @@ test('Lifecycle | supports injected queue and enforces concurrency=1 with shared
 	}
 	const timeouts = 25
 	const q = new FakeQueue()
-	const lc = new QLife({ timeouts, queue: q })
+	const lc = new QLife({ timeouts, queue: q, logger })
 	await lc.start()
 	assert.equal(lc.state, 'started')
 	assert.equal(lc instanceof QLife, true)

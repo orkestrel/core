@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventAdapter } from '@orkestrel/core'
 
-test('EventAdapter: subscribe, publish sequentially, unsubscribe', async () => {
+test('Event | subscribe/publish sequentially and unsubscribe', async () => {
 	const ev = new EventAdapter()
 	const seen: number[] = []
 	const unsub = await ev.subscribe<number>('t', (n) => {
@@ -16,7 +16,7 @@ test('EventAdapter: subscribe, publish sequentially, unsubscribe', async () => {
 	assert.deepEqual(seen, [1, 2])
 })
 
-test('EventAdapter: concurrent publish isolates handler errors', async () => {
+test('Event | concurrent publish isolates handler errors', async () => {
 	let errCount = 0
 	const ev = new EventAdapter({
 		onError: () => { errCount++ },
@@ -34,7 +34,7 @@ test('EventAdapter: concurrent publish isolates handler errors', async () => {
 	assert.equal(called, true)
 })
 
-test('EventAdapter topics() reflects active subscriptions and cleanup', async () => {
+test('Event | topics return active topics and clean up', async () => {
 	const bus = new EventAdapter()
 	assert.deepEqual(bus.topics(), [])
 	const offA = await bus.subscribe('A', async () => {})

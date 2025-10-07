@@ -51,7 +51,7 @@ class Svc extends Lifecycle {
   protected async onStop() { /* lightweight */ }
 }
 
-const s = new Svc({ hookTimeoutMs: 50 })
+const s = new Svc({ timeouts: 50 })
 await s.start()
 assert.equal(s.state, 'started')
 await s.stop()

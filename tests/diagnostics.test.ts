@@ -2,21 +2,21 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { InvalidTransitionError, TimeoutError, AggregateLifecycleError, D, isLifecycleErrorDetail } from '@orkestrel/core'
 
-test('InvalidTransitionError carries from/to and message', () => {
+test('Diagnostics | InvalidTransitionError includes from/to', () => {
 	const err = new InvalidTransitionError('started', 'created')
 	assert.match(err.message, /Invalid lifecycle transition/)
 	assert.equal(err.from, 'started')
 	assert.equal(err.to, 'created')
 })
 
-test('TimeoutError formats hook and milliseconds', () => {
+test('Diagnostics | TimeoutError includes hook and milliseconds', () => {
 	const err = new TimeoutError('start', 123)
 	assert.match(err.message, /timed out/)
 	assert.equal(err.hook, 'start')
 	assert.equal(err.ms, 123)
 })
 
-test('AggregateLifecycleError aggregates errors and exposes first cause', () => {
+test('Diagnostics | AggregateLifecycleError aggregates errors', () => {
 	const e1 = new Error('boom1')
 	const e2 = new Error('boom2')
 	const agg = new AggregateLifecycleError({ message: 'agg' }, [e1, e2])
@@ -24,14 +24,14 @@ test('AggregateLifecycleError aggregates errors and exposes first cause', () => 
 	assert.equal(agg.errors.length, 2)
 })
 
-test('isLifecycleErrorDetail returns true for valid details', () => {
+test('Diagnostics | isLifecycleErrorDetail returns true for valid details', () => {
 	const e1 = D.makeDetail('A', 'start', 'normal', { durationMs: 5, error: new Error('x'), timedOut: false })
 	const e2 = D.makeDetail('B', 'stop', 'rollback', { durationMs: 1, error: new Error('y'), timedOut: true })
 	assert.equal(isLifecycleErrorDetail(e1), true)
 	assert.equal(isLifecycleErrorDetail(e2), true)
 })
 
-test('isLifecycleErrorDetail returns false for invalid shapes', () => {
+test('Diagnostics | isLifecycleErrorDetail returns false for invalid shapes', () => {
 	assert.equal(isLifecycleErrorDetail(null), false)
 	assert.equal(isLifecycleErrorDetail({}), false)
 	assert.equal(isLifecycleErrorDetail({ tokenDescription: 'x' }), false)

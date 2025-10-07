@@ -1,6 +1,6 @@
 // Lifecycle core with protected onX hook pattern
 // Public methods: create, start, stop, destroy
-// Extension points: onCreate, onStart, onStop, onDestroy
+// Extension points: onCreate, onStart, onStop, onDestroy, onTransition
 
 import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnostics.js'
 import { EmitterAdapter } from './adapters/emitter.js'
@@ -8,43 +8,40 @@ import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
-	private readonly hookTimeoutMs: number
-	private readonly onTransitionFilter: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean
-	readonly #emitter: EmitterPort
+	private readonly timeouts: number
+	private emitInitial: boolean
+	readonly #emitter: EmitterPort<LifecycleEventMap>
 
 	constructor(opts: LifecycleOptions = {}) {
-		this.hookTimeoutMs = opts.hookTimeoutMs ?? 5000
-		this.onTransitionFilter = opts.onTransitionFilter ?? (() => true)
-		this.#emitter = opts.emitter ?? new EmitterAdapter()
-		// defer initial state event (opt-in by default)
-		if (opts.emitInitialState !== false) {
-			if (typeof queueMicrotask === 'function') {
-				queueMicrotask(() => this.#emitter.emit('stateChange', this._state))
-			}
-			else {
-				setTimeout(() => this.#emitter.emit('stateChange', this._state), 0)
-			}
-		}
+		this.timeouts = opts.timeouts ?? 5000
+		this.emitInitial = opts.emitInitial ?? true
+		this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>()
+		// Initial state emission is scheduled lazily when the first 'transition' listener is attached
 	}
 
 	// Observability port getters (emitter only)
-	public get emitter(): EmitterPort { return this.#emitter }
+	public get emitter(): EmitterPort<LifecycleEventMap> { return this.#emitter }
 
 	get state(): LifecycleState { return this._state }
 	protected setState(next: LifecycleState): void {
 		// avoid emitting when state doesn't actually change
 		if (this._state === next) return
 		this._state = next
-		this.emitter.emit('stateChange', next)
+		this.emitter.emit('transition', next)
 	}
 
-	on<T extends keyof LifecycleEventMap>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
-		this.emitter.on(evt as string, fn as unknown as (...args: unknown[]) => void)
+	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
+		// Schedule initial emission on first transition subscription (if enabled)
+		if (evt === 'transition' && this.emitInitial) {
+			this.emitInitial = false
+			setTimeout(() => this.emitter.emit('transition', this._state), 0)
+		}
+		this.emitter.on(evt, fn)
 		return this
 	}
 
-	off<T extends keyof LifecycleEventMap>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
-		this.emitter.off(evt as string, fn as unknown as (...args: unknown[]) => void)
+	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
+		this.emitter.off(evt, fn)
 		return this
 	}
 
@@ -56,23 +53,35 @@ export abstract class Lifecycle {
 		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
 	}
 
-	private async runHook(hookName: LifecycleHook, hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
+	// Run a task with a deadline (single cap shared across hook + onTransition)
+	private async runWithDeadline<T>(hook: LifecycleHook, deadline: number, task: () => Promise<T> | T): Promise<T> {
+		// compute remaining ms; if none, immediately time out
+		const remaining = Math.max(0, deadline - Date.now())
+		if (remaining === 0) throw new TimeoutError(hook, this.timeouts)
+
 		let timeoutId: ReturnType<typeof setTimeout> | undefined
-		const timeout = new Promise<never>((_, reject) => {
-			timeoutId = setTimeout(() => reject(new TimeoutError(hookName, this.hookTimeoutMs)), this.hookTimeoutMs)
-		})
 		try {
-			await Promise.race([Promise.resolve(hook()), timeout])
-			// between states: allow subclasses to observe/act on transition
-			if (this.onTransitionFilter(from, target, hookName)) {
-				await Promise.race([Promise.resolve(this.onTransition(from, target, hookName)), timeout])
-			}
-			clearTimeout(timeoutId)
+			const timeout = new Promise<never>((_, reject) => {
+				timeoutId = setTimeout(() => reject(new TimeoutError(hook, this.timeouts)), remaining)
+			})
+			return await Promise.race([Promise.resolve(task()), timeout])
+		}
+		finally {
+			if (timeoutId !== undefined) clearTimeout(timeoutId)
+		}
+	}
+
+	private async runHook(hookName: LifecycleHook, hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
+		// single deadline for both the primary hook and onTransition
+		const deadline = Date.now() + this.timeouts
+		try {
+			await this.runWithDeadline(hookName, deadline, hook)
+			// between states: allow subclasses to observe/act on transition (subclasses can filter internally)
+			await this.runWithDeadline(hookName, deadline, () => this.onTransition(from, target, hookName))
 			this.setState(target)
 			this.emitter.emit(hookName)
 		}
 		catch (err) {
-			clearTimeout(timeoutId)
 			const wrapped = err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, { cause: err })
 			this.emitter.emit('error', wrapped)
 			return Promise.reject(wrapped)

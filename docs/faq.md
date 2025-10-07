@@ -37,7 +37,7 @@ Symptoms
 - A start/stop/destroy hook exceeds configured timeout and fails.
 
 Why
-- `hookTimeoutMs` on `Lifecycle` caps hook runtime, and orchestrator timeouts (`onStart`, `onStop`, `onDestroy`) cap per-component lifecycles.
+- `timeouts` on `Lifecycle` caps hook runtime, and orchestrator timeouts (`onStart`, `onStop`, `onDestroy`) cap per-component lifecycles.
 
 Fix
 - Reduce the work per hook or increase timeouts (either per component or via orchestrator defaults). Favor fast fail for critical paths.

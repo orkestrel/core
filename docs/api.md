@@ -74,9 +74,12 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
 - Union: `'created' | 'started' | 'stopped' | 'destroyed'`
 
 ### interface LifecycleOptions
-- `hookTimeoutMs?: number` — default 5000
-- `onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy') => boolean`
-- `emitInitialState?: boolean` — default true; when false, suppresses the initial deferred `stateChange('created')` emission
+- `timeouts?: number` — default 5000; max time for each hook (`onStart`, `onStop`, `onDestroy`) and `onTransition` combined.
+- `emitInitialState?: boolean` — default true; when false, suppresses the initial deferred `stateChange('created')` emission.
+- `emitter?: EmitterPort` — optional custom emitter instance.
+
+Compatibility note
+- The initial state emission is scheduled using `setTimeout(..., 0)`. Working in modern browsers and Node.js 18+. This keeps the constructor synchronous while still making the initial state observable.
 
 ### class Lifecycle
 - constructor(opts?: LifecycleOptions)
@@ -89,7 +92,7 @@ Source: [src/lifecycle.ts](../src/lifecycle.ts)
   - `destroy(): Promise<void>`
 - Protected hooks to override:
   - `onCreate()`, `onStart()`, `onStop()`, `onDestroy()`
-  - `onTransition(from, to, hook)` — runs after the primary hook resolves and before the state changes; useful for debugging or cross-cutting transitions
+  - `onTransition(from, to, hook)` — runs after the primary hook resolves and before the state changes; useful for debugging or cross-cutting transitions. If you want to limit when it runs, filter inside your override (e.g., run only for `hook==='start'`).
 - Throws:
   - `InvalidTransitionError` on illegal state transitions
   - `TimeoutError` if a hook exceeds configured timeout (applies to both the primary hook and `onTransition`)
@@ -102,7 +105,7 @@ Hook timing
 - For each public method (`create`, `start`, `stop`, `destroy`):
   1. Validate transition (throws on invalid)
   2. Run corresponding `onX` hook with timeout
-  3. If `onTransitionFilter(from, to, hook)` returns true, run `onTransition(from, to, hook)` with the same timeout
+  3. Run `onTransition(from, to, hook)` with the same timeout
   4. Update `state` and emit `stateChange`
   5. Emit the hook event (`create`/`start`/`stop`/`destroy`)
 
@@ -112,7 +115,7 @@ class EmailService extends Lifecycle {
   protected async onStart() { /* open connection */ }
   protected async onStop() { /* flush/close */ }
   protected async onTransition(from: 'created'|'started'|'stopped'|'destroyed', to: typeof from, hook: 'create'|'start'|'stop'|'destroy') {
-    console.debug(`[lc] ${from} -> ${to} via ${hook}`)
+    if (hook === 'start') console.debug(`[lc] ${from} -> ${to} via ${hook}`)
   }
 }
 ```

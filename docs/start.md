@@ -48,8 +48,7 @@ Next steps
 - Full API reference: `docs/api.md`
 
 ## Lifecycle options (quick)
-- hookTimeoutMs (default 5000): max time for each hook (`onStart`, `onStop`, `onDestroy`) and `onTransition`.
-- onTransitionFilter(from, to, hook): decide whether to run `onTransition` for a given phase.
+- timeouts (default 5000): max time for each hook (`onStart`, `onStop`, `onDestroy`) and `onTransition` combined.
 - emitInitialState (default true): when false, suppresses the initial deferred `stateChange('created')` event.
 - emitter: Lifecycle creates a default internal emitter so `on('stateChange', ...)` works without configuration. To integrate with a shared emitter, pass `opts.emitter` when constructing your Lifecycle subclass.
 
@@ -58,9 +57,15 @@ Example:
 class Service extends Lifecycle {
   protected async onStart() { /* ... */ }
   protected async onStop() { /* ... */ }
+  protected async onTransition(from: LifecycleState, to: LifecycleState, hook: 'create'|'start'|'stop'|'destroy') {
+    // If you want to run only for certain hooks, filter inside the override
+    if (hook === 'start') {
+      // ...
+    }
+  }
 }
 
-const s = new Service({ hookTimeoutMs: 200, emitInitialState: false, onTransitionFilter: (_f, _t, hook) => hook === 'start' })
+const s = new Service({ timeouts: 200, emitInitialState: false })
 s.on('stateChange', s => console.log('state:', s))
 await s.start()
 ```

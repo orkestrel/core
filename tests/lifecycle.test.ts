@@ -18,8 +18,8 @@ class HangingStart extends Lifecycle {
 	protected async onStart(): Promise<void> { await new Promise(() => {}) }
 }
 
-test('lifecycle happy path transitions', async () => {
-	const lc = new TestLifecycle({ hookTimeoutMs: 100 })
+test('Lifecycle | happy path transitions', async () => {
+	const lc = new TestLifecycle({ timeouts: 100 })
 	await lc.create()
 	assert.equal(lc.state, 'created')
 	await lc.start()
@@ -33,19 +33,19 @@ test('lifecycle happy path transitions', async () => {
 	assert.deepEqual(lc.log, ['create', 'start', 'stop', 'start', 'destroy'])
 })
 
-test('lifecycle failing start wraps error', async () => {
-	const lc = new FailingStart({ hookTimeoutMs: 50 })
+test('Lifecycle | failing start wraps error', async () => {
+	const lc = new FailingStart({ timeouts: 50 })
 	await assert.rejects(() => lc.start(), /Hook 'start' failed/)
 	assert.equal(lc.state, 'created')
 })
 
-test('lifecycle hook timeout triggers TimeoutError', async () => {
-	const lc = new HangingStart({ hookTimeoutMs: 10 })
+test('Lifecycle | hook timeout triggers TimeoutError', async () => {
+	const lc = new HangingStart({ timeouts: 10 })
 	await assert.rejects(() => lc.start(), /timed out/)
 	assert.equal(lc.state, 'created')
 })
 
-test('invalid transition throws', async () => {
+test('Lifecycle | invalid transition throws', async () => {
 	const lc = new TestLifecycle()
 	await lc.start()
 	await assert.rejects(async () => lc.create(), (err: unknown) => {
@@ -57,17 +57,18 @@ test('invalid transition throws', async () => {
 	await assert.rejects(() => lc.start(), /Invalid lifecycle transition/)
 })
 
-test('onTransition runs between hook and state change and can be filtered', async () => {
+test('Lifecycle | onTransition runs between hook and state change (filterable in override)', async () => {
 	class Transitions extends Lifecycle {
 		public transitions: string[] = []
 		protected async onStart(): Promise<void> { /* no-op */ }
 		protected async onStop(): Promise<void> { /* no-op */ }
 		protected async onTransition(from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy'): Promise<void> {
-			this.transitions.push(`${from}->${to}:${hook}`)
+			// filter internally to only record 'start' transitions
+			if (hook === 'start') this.transitions.push(`${from}->${to}:${hook}`)
 		}
 	}
 
-	const lc = new Transitions({ hookTimeoutMs: 50, onTransitionFilter: (_f, _t, hook) => hook === 'start' })
+	const lc = new Transitions({ timeouts: 50 })
 	await lc.start()
 	assert.equal(lc.state, 'started')
 	await lc.stop()
@@ -77,21 +78,21 @@ test('onTransition runs between hook and state change and can be filtered', asyn
 	])
 })
 
-test('onTransition timeout is treated like the main hook and surfaces as TimeoutError', async () => {
+test('Lifecycle | onTransition timeout surfaces as TimeoutError', async () => {
 	class SlowTransition extends Lifecycle {
 		protected async onStart(): Promise<void> { /* ok */ }
 		protected async onTransition(): Promise<void> { await new Promise(() => {}) }
 	}
-	const lc = new SlowTransition({ hookTimeoutMs: 10 })
+	const lc = new SlowTransition({ timeouts: 10 })
 	await assert.rejects(() => lc.start(), /timed out/)
 	assert.equal(lc.state, 'created')
 })
 
-test('stateChange is not emitted twice for created->created on create()', async () => {
+test('Lifecycle | transition not emitted twice for created->created on create()', async () => {
 	const events: LifecycleState[] = []
 	class L extends Lifecycle { protected async onCreate(): Promise<void> { /* no-op */ } }
-	const lc = new L({ hookTimeoutMs: 20 })
-	lc.on('stateChange', s => events.push(s))
+	const lc = new L({ timeouts: 20 })
+	lc.on('transition', s => events.push(s))
 	// allow initial microtask to flush
 	await new Promise(r => setTimeout(r, 0))
 	assert.deepEqual(events, ['created'])
@@ -101,11 +102,11 @@ test('stateChange is not emitted twice for created->created on create()', async 
 	assert.deepEqual(events, ['created'])
 })
 
-test('emitInitialState=false suppresses the initial stateChange event', async () => {
+test('Lifecycle | emitInitial=false suppresses initial transition', async () => {
 	const events: LifecycleState[] = []
 	class L extends Lifecycle { protected async onStart(): Promise<void> { /* no-op */ } }
-	const lc = new L({ hookTimeoutMs: 20, emitInitialState: false })
-	lc.on('stateChange', s => events.push(s))
+	const lc = new L({ timeouts: 20, emitInitial: false })
+	lc.on('transition', s => events.push(s))
 	// initial should not fire
 	await new Promise(r => setTimeout(r, 0))
 	assert.deepEqual(events, [])

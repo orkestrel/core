@@ -6,7 +6,7 @@ function delay(ms: number) {
 	return new Promise<void>(r => setTimeout(r, ms))
 }
 
-test('QueueAdapter preserves result order with full parallelism', async () => {
+test('Queue | preserves result order with full parallelism', async () => {
 	const q = new QueueAdapter()
 	const tasks = [
 		async () => {
@@ -26,7 +26,7 @@ test('QueueAdapter preserves result order with full parallelism', async () => {
 	assert.deepEqual(out, ['a', 'b', 'c'])
 })
 
-test('QueueAdapter respects concurrency cap', async () => {
+test('Queue | respects concurrency cap', async () => {
 	const q = new QueueAdapter()
 	let active = 0
 	let maxActive = 0
@@ -44,7 +44,7 @@ test('QueueAdapter respects concurrency cap', async () => {
 	assert.ok(maxActive <= cap, `max active ${maxActive} should be <= ${cap}`)
 })
 
-test('QueueAdapter propagates task errors (rejects)', async () => {
+test('Queue | propagates task errors (rejects)', async () => {
 	const q = new QueueAdapter()
 	const err = new Error('boom')
 	const tasks = [
@@ -55,7 +55,7 @@ test('QueueAdapter propagates task errors (rejects)', async () => {
 	await assert.rejects(() => q.run(tasks, { concurrency: 2 }), { message: 'boom' })
 })
 
-test('QueueAdapter FIFO: enqueue/dequeue preserves order', async () => {
+test('Queue | FIFO enqueue/dequeue preserves order', async () => {
 	const q = new QueueAdapter<string>()
 	await q.enqueue('a')
 	await q.enqueue('b')
@@ -67,7 +67,7 @@ test('QueueAdapter FIFO: enqueue/dequeue preserves order', async () => {
 	assert.equal(await q.size(), 0)
 })
 
-test('QueueAdapter dequeue on empty returns undefined', async () => {
+test('Queue | dequeue on empty returns undefined', async () => {
 	const q = new QueueAdapter<number>()
 	assert.equal(await q.size(), 0)
 	assert.equal(await q.dequeue(), undefined)
@@ -76,7 +76,7 @@ test('QueueAdapter dequeue on empty returns undefined', async () => {
 	assert.equal(await q.dequeue(), undefined)
 })
 
-test('QueueAdapter enforces capacity on enqueue', async () => {
+test('Queue | enforces capacity on enqueue', async () => {
 	const q = new QueueAdapter<number>({ capacity: 2 })
 	await q.enqueue(1)
 	await q.enqueue(2)
@@ -84,7 +84,7 @@ test('QueueAdapter enforces capacity on enqueue', async () => {
 	assert.equal(await q.size(), 2)
 })
 
-test('QueueAdapter dequeue after capacity enforcement still works', async () => {
+test('Queue | dequeue after capacity enforcement still works', async () => {
 	const q = new QueueAdapter<string>({ capacity: 1 })
 	await q.enqueue('a')
 	await assert.rejects(() => q.enqueue('b'))

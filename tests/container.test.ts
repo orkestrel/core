@@ -14,7 +14,7 @@ class FailingOnDestroy extends Adapter {
 	protected async onDestroy(): Promise<void> { throw new Error('destroy-fail') }
 }
 
-test('value provider resolution', () => {
+test('Container | value provider resolution', () => {
 	const TOK = createToken<number>('num')
 	const c = new Container()
 	c.register(TOK, { useValue: 42 })
@@ -24,7 +24,7 @@ test('value provider resolution', () => {
 
 // Inject tests
 
-test('factory provider with inject array resolves dependencies by order', () => {
+test('Container | factory provider with inject array resolves dependencies by order', () => {
 	const A = createToken<number>('A')
 	const B = createToken<string>('B')
 	const OUT = createToken<{ a: number, b: string }>('OUT')
@@ -36,7 +36,7 @@ test('factory provider with inject array resolves dependencies by order', () => 
 	assert.deepEqual(v, { a: 10, b: 'hi' })
 })
 
-test('factory provider with inject object resolves named dependencies', () => {
+test('Container | factory provider with inject object resolves named dependencies', () => {
 	const A = createToken<number>('A2')
 	const B = createToken<string>('B2')
 	const SUM = createToken<number>('SUM')
@@ -51,7 +51,7 @@ class NeedsDeps {
 	constructor(public readonly a: number, public readonly b: string) {}
 }
 
-test('class provider with inject array constructs with resolved dependencies', () => {
+test('Container | class provider with inject array constructs with resolved dependencies', () => {
 	const A = createToken<number>('A3')
 	const B = createToken<string>('B3')
 	const C = createToken<NeedsDeps>('C3')
@@ -65,7 +65,7 @@ test('class provider with inject array constructs with resolved dependencies', (
 	assert.equal(inst.b, 'z')
 })
 
-test('factory provider resolution and get/has', () => {
+test('Container | factory provider resolution and get/has', () => {
 	const TOK = createToken<{ v: number }>('obj')
 	const MISS = createToken('missing')
 	const c = new Container()
@@ -75,7 +75,7 @@ test('factory provider resolution and get/has', () => {
 	assert.equal(c.has(MISS), false)
 })
 
-test('object-map strict resolution and optional get()', () => {
+test('Container | object-map strict resolution and optional get()', () => {
 	const A = createToken<number>('A')
 	const B = createToken<string>('B')
 	const C = createToken<boolean>('C')
@@ -92,7 +92,7 @@ test('object-map strict resolution and optional get()', () => {
 	assert.equal(maybe.x, undefined)
 })
 
-test('class provider WITHOUT autostart and child container lookup', async () => {
+test('Container | class provider without autostart; child container lookup', async () => {
 	const TOK = createToken<TestLifecycle>('life')
 	const c = new Container()
 	c.register(TOK, { useFactory: () => new TestLifecycle({}) })
@@ -108,7 +108,7 @@ test('class provider WITHOUT autostart and child container lookup', async () => 
 	assert.ok(inst.stopped >= 0)
 })
 
-test('destroy aggregates errors and is idempotent', async () => {
+test('Container | destroy aggregates errors and is idempotent', async () => {
 	const BAD = createToken<FailingOnDestroy>('bad')
 	const c = new Container()
 	c.register(BAD, { useFactory: () => new FailingOnDestroy() })
@@ -120,7 +120,7 @@ test('destroy aggregates errors and is idempotent', async () => {
 	await c.destroy()
 })
 
-test('container() helper supports default symbol and named string keys', () => {
+test('Container | global helper supports default symbol and named string keys', () => {
 	// clear any existing registrations (default is protected and will remain)
 	for (const name of container.list()) container.clear(name, true)
 	const ALT = new Container()
@@ -141,7 +141,7 @@ test('container() helper supports default symbol and named string keys', () => {
 	assert.equal(container.clear('alt', true), true)
 })
 
-test('callable container resolves a token map with resolve({ ... })', () => {
+test('Container | callable getter resolves a token map with resolve({ ... })', () => {
 	// ensure clean registry state (default persists)
 	for (const name of container.list()) container.clear(name, true)
 	const A = createToken<number>('A')
@@ -154,7 +154,7 @@ test('callable container resolves a token map with resolve({ ... })', () => {
 	assert.equal(b, 'xyz')
 })
 
-test('named container resolves a token map with resolve({ ... })', () => {
+test('Container | named container resolves a token map with resolve({ ... })', () => {
 	// clear any existing registrations (default persists)
 	for (const name of container.list()) container.clear(name, true)
 	const namedC = new Container()
@@ -169,7 +169,7 @@ test('named container resolves a token map with resolve({ ... })', () => {
 	assert.equal(b, 'z')
 })
 
-test('Container.using runs in a child scope and destroys it after', async () => {
+test('Container | using(fn) runs in a child scope and destroys it after', async () => {
 	class Scoped extends Adapter {
 		public destroyed = false
 		protected async onDestroy() { this.destroyed = true }
@@ -186,7 +186,7 @@ test('Container.using runs in a child scope and destroys it after', async () => 
 	assert.equal(inst?.destroyed, true)
 })
 
-test('Container.using(apply, fn) registers overrides in a child scope and cleans up', async () => {
+test('Container | using(apply, fn) registers overrides in a child scope', async () => {
 	const T = createToken<string>('scoped:val')
 	const root = new Container()
 	// no root registration
@@ -205,7 +205,7 @@ test('Container.using(apply, fn) registers overrides in a child scope and cleans
 	assert.equal(root.get(T), undefined)
 })
 
-test('register with lock prevents re-registration for the same token', () => {
+test('Container | register with lock prevents re-registration for the same token', () => {
 	const T = createToken<number>('lockReg')
 	const c = new Container()
 	c.register(T, { useValue: 1 }, true) // lock
@@ -213,7 +213,7 @@ test('register with lock prevents re-registration for the same token', () => {
 	assert.throws(() => c.register(T, { useValue: 2 }), /Cannot replace locked provider/)
 })
 
-test('set with lock prevents overwriting value', () => {
+test('Container | set with lock prevents overwriting value', () => {
 	const T = createToken<string>('lockSet')
 	const c = new Container()
 	c.set(T, 'A', true)
@@ -221,7 +221,7 @@ test('set with lock prevents overwriting value', () => {
 	assert.throws(() => c.set(T, 'B'), /Cannot replace locked provider/)
 })
 
-test('child container inherits providers via has/get from parent', () => {
+test('Container | child inherits providers via has/get from parent', () => {
 	const T = createToken<number>('parent:val')
 	const parent = new Container()
 	parent.set(T, 99)

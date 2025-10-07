@@ -9,12 +9,12 @@ import type { Orchestrator } from './orchestrator.js'
 // Ports: Emitter (used by Lifecycle)
 // ---------------------------
 
-export type EmitterListener = (...args: unknown[]) => void
+export type EmitterListener<Args extends unknown[] = unknown[]> = (...args: Args) => void
 
-export interface EmitterPort {
-	on(event: string, fn: EmitterListener): this
-	off(event: string, fn: EmitterListener): this
-	emit(event: string, ...args: unknown[]): void
+export interface EmitterPort<EMap extends Record<string, unknown[]> = Record<string, unknown[]>> {
+	on<E extends keyof EMap & string>(event: E, fn: (...args: EMap[E]) => void): this
+	off<E extends keyof EMap & string>(event: E, fn: (...args: EMap[E]) => void): this
+	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void
 	removeAllListeners(): void
 }
 
@@ -93,10 +93,10 @@ export function createToken<_T = unknown>(description: string): Token<_T> {
 
 export type TokensOf<T extends Record<string, unknown>> = { [K in keyof T & string]: Token<T[K]> }
 
-export function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): TokensOf<T> {
+export function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): Readonly<TokensOf<T>> {
 	const out: Partial<Record<keyof T & string, Token<unknown>>> = {}
 	for (const key of Object.keys(shape) as (keyof T & string)[]) out[key] = createToken(`${namespace}:${key}`)
-	return out as TokensOf<T>
+	return Object.freeze(out) as Readonly<TokensOf<T>>
 }
 
 // Utility token maps used by Container and helpers
@@ -108,23 +108,38 @@ export type OptionalResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]:
 // Provider type definitions
 // ---------------------------
 
-export interface ValueProvider<T> { useValue: T }
+export interface ValueProvider<T> { readonly useValue: T }
 
-export type InjectTuple<A extends readonly unknown[]> = { [K in keyof A]: Token<A[K]> }
-export type InjectObject<O extends Record<string, unknown>> = { [K in keyof O]: Token<O[K]> }
+export type InjectTuple<A extends readonly unknown[]> = { readonly [K in keyof A]: Token<A[K]> }
+export type InjectObject<O extends Record<string, unknown>> = Readonly<{ [K in keyof O]: Token<O[K]> }>
 
-export type FactoryProviderNoDeps<T> = { useFactory: () => T } | { useFactory: (container: Container) => T }
-export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = { useFactory: (...args: A) => T, inject: InjectTuple<A> }
-export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = { useFactory: (deps: O) => T, inject: InjectObject<O> }
+export type FactoryProviderNoDeps<T>
+	= | { readonly useFactory: () => T }
+		| { readonly useFactory: (container: Container) => T }
+
+export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
+	readonly useFactory: (...args: A) => T
+	readonly inject: InjectTuple<A>
+}
+
+export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = {
+	readonly useFactory: (deps: O) => T
+	readonly inject: InjectObject<O>
+}
+
 export type FactoryProvider<T>
-	= FactoryProviderNoDeps<T>
+	= | FactoryProviderNoDeps<T>
 		| FactoryProviderWithTuple<T, readonly unknown[]>
 		| FactoryProviderWithObject<T, Record<string, unknown>>
 
 export type CtorNoDeps<T> = new () => T
 export type CtorWithContainer<T> = new (container: Container) => T
-export type ClassProviderNoDeps<T> = { useClass: CtorNoDeps<T> | CtorWithContainer<T> }
-export type ClassProviderWithTuple<T, A extends readonly unknown[]> = { useClass: new (...args: A) => T, inject: InjectTuple<A> }
+
+export type ClassProviderNoDeps<T> = { readonly useClass: CtorNoDeps<T> | CtorWithContainer<T> }
+export type ClassProviderWithTuple<T, A extends readonly unknown[]> = {
+	readonly useClass: new (...args: A) => T
+	readonly inject: InjectTuple<A>
+}
 export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithTuple<T, readonly unknown[]>
 
 export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
@@ -259,14 +274,13 @@ export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
 // Lifecycle public types
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
 export interface LifecycleOptions {
-	readonly hookTimeoutMs?: number
-	readonly onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean
-	readonly emitInitialState?: boolean
+	readonly timeouts?: number
+	readonly emitInitial?: boolean
 	// Emitter remains injectable
-	readonly emitter?: EmitterPort
+	readonly emitter?: EmitterPort<LifecycleEventMap>
 }
 export type LifecycleEventMap = {
-	stateChange: [LifecycleState]
+	transition: [LifecycleState]
 	create: []
 	start: []
 	stop: []

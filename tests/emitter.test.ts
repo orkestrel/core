@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EmitterAdapter } from '@orkestrel/core'
 
-test('Emitter on/emit calls listeners with args', () => {
+test('Emitter | on/emit calls listeners with args', () => {
 	const em = new EmitterAdapter()
 	let called = 0
 	let payload: unknown[] = []
@@ -17,7 +17,7 @@ test('Emitter on/emit calls listeners with args', () => {
 	assert.deepEqual(payload, [1, 'a'])
 })
 
-test('Emitter off removes a specific listener', () => {
+test('Emitter | off removes a specific listener', () => {
 	const em = new EmitterAdapter()
 	let a = 0
 	let b = 0
@@ -37,7 +37,7 @@ test('Emitter off removes a specific listener', () => {
 	assert.equal(b, 1)
 })
 
-test('Emitter removeAllListeners clears all', () => {
+test('Emitter | removeAllListeners clears all', () => {
 	const em = new EmitterAdapter()
 	let count = 0
 	function l() {

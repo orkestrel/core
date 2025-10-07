@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { RegistryAdapter } from '@orkestrel/core'
 
-test('RegistryAdapter with symbol default: construct/get/resolve/list and protected default', () => {
+test('Registry | with symbol default: construct/get/resolve/list and protect default', () => {
 	const DEF = Symbol('def')
 	const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 42 } })
 	// resolve/get default
@@ -15,7 +15,7 @@ test('RegistryAdapter with symbol default: construct/get/resolve/list and protec
 	assert.equal(reg.clear(undefined, true), false)
 })
 
-test('RegistryAdapter supports string and symbol named keys with default present', () => {
+test('Registry | supports string and symbol named keys with default present', () => {
 	const DEF = Symbol('def')
 	const reg = new RegistryAdapter<string>({ label: 'thing', default: { key: DEF, value: 'default' } })
 	reg.set('alpha', 'A')
@@ -29,7 +29,7 @@ test('RegistryAdapter supports string and symbol named keys with default present
 	assert.throws(() => reg.resolve('alpha'), /No thing instance registered/)
 })
 
-test('RegistryAdapter clear on non-existent names returns false and is non-destructive', () => {
+test('Registry | clear on non-existent names returns false and is non-destructive', () => {
 	const DEF = Symbol('def')
 	const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 1 } })
 	// clearing unknowns returns false and does not affect entries
@@ -48,13 +48,13 @@ test('RegistryAdapter clear on non-existent names returns false and is non-destr
 	assert.equal(reg.resolve('a'), 2)
 })
 
-test('RegistryAdapter basic: resolve without default throws; get returns undefined', () => {
+test('Registry | resolve without default throws; get returns undefined', () => {
 	const r = new RegistryAdapter<number>({ label: 'num' })
 	assert.equal(r.get(), undefined)
 	assert.throws(() => r.resolve(), /No num instance registered/)
 })
 
-test('RegistryAdapter lock prevents overwrite and force allows clear', () => {
+test('Registry | lock prevents overwrite and force allows clear', () => {
 	const r = new RegistryAdapter<number>({ label: 'num', default: { value: 1 } })
 	r.set('x', 5, true)
 	assert.throws(() => r.set('x', 6), /Cannot replace locked/)

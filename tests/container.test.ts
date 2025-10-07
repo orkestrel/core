@@ -220,3 +220,14 @@ test('set with lock prevents overwriting value', () => {
 	assert.equal(c.resolve(T), 'A')
 	assert.throws(() => c.set(T, 'B'), /Cannot replace locked provider/)
 })
+
+test('child container inherits providers via has/get from parent', () => {
+	const T = createToken<number>('parent:val')
+	const parent = new Container()
+	parent.set(T, 99)
+	const child = parent.createChild()
+	assert.equal(child.has(T), true)
+	assert.equal(child.get(T), 99)
+	// resolve should also work via parent lookup
+	assert.equal(child.resolve(T), 99)
+})

@@ -259,11 +259,11 @@ export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
 // Lifecycle public types
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
 export interface LifecycleOptions {
-	hookTimeoutMs?: number
-	onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean
-	emitInitialState?: boolean
+	readonly hookTimeoutMs?: number
+	readonly onTransitionFilter?: (from: LifecycleState, to: LifecycleState, hook: LifecycleHook) => boolean
+	readonly emitInitialState?: boolean
 	// Emitter remains injectable
-	emitter?: EmitterPort
+	readonly emitter?: EmitterPort
 }
 export type LifecycleEventMap = {
 	stateChange: [LifecycleState]
@@ -278,7 +278,7 @@ export type LifecycleEventMap = {
 // Container-related types centralization
 // ---------------------------
 
-export interface ContainerOptions { parent?: Container }
+export interface ContainerOptions { readonly parent?: Container }
 
 export interface ResolvedProvider<T> { value: T, lifecycle?: Lifecycle, disposable: boolean }
 export interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: ResolvedProvider<T> }

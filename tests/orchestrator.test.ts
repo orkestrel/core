@@ -834,3 +834,16 @@ test('events callbacks errors are isolated and do not disrupt orchestration', as
 	assert.equal((stopErr as WithDiag).code, 'ORK1014')
 	await app.destroy().catch(() => {})
 })
+
+test('duplicate registration for the same token throws ORK1007', async () => {
+	class C extends Adapter {}
+	const T = createToken<C>('dup')
+	const orch = new Orchestrator(new Container())
+	orch.register(T, { useFactory: () => new C() })
+	assert.throws(() => orch.register(T, { useFactory: () => new C() }), (err: unknown) => {
+		assert.ok(err instanceof Error)
+		assert.match((err as Error).message, /Duplicate registration/)
+		assert.match((err as Error).message, /\[Orkestrel]\[ORK1007]/)
+		return true
+	})
+})

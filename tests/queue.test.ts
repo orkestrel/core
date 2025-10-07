@@ -75,3 +75,20 @@ test('QueueAdapter dequeue on empty returns undefined', async () => {
 	assert.equal(await q.dequeue(), 1)
 	assert.equal(await q.dequeue(), undefined)
 })
+
+test('QueueAdapter enforces capacity on enqueue', async () => {
+	const q = new QueueAdapter<number>({ capacity: 2 })
+	await q.enqueue(1)
+	await q.enqueue(2)
+	await assert.rejects(() => q.enqueue(3), /capacity exceeded/)
+	assert.equal(await q.size(), 2)
+})
+
+test('QueueAdapter dequeue after capacity enforcement still works', async () => {
+	const q = new QueueAdapter<string>({ capacity: 1 })
+	await q.enqueue('a')
+	await assert.rejects(() => q.enqueue('b'))
+	const v = await q.dequeue()
+	assert.equal(v, 'a')
+	assert.equal(await q.size(), 0)
+})

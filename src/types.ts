@@ -57,10 +57,19 @@ export interface QueuePort<T> {
 	enqueue(item: T): Promise<void>
 	dequeue(): Promise<T | undefined>
 	size(): Promise<number>
-	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: { readonly concurrency?: number }): Promise<ReadonlyArray<R>>
+	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: QueueRunOptions): Promise<ReadonlyArray<R>>
 }
 
-export interface QueueAdapterOptions {
+export interface QueueRunOptions {
+	readonly concurrency?: number
+	readonly timeout?: number
+	/** Shared time budget in milliseconds for the whole run (applies across tasks). */
+	readonly deadline?: number
+	/** Optional abort signal; if aborted, stops scheduling further tasks and rejects. */
+	readonly signal?: AbortSignal
+}
+
+export interface QueueAdapterOptions extends QueueRunOptions {
 	readonly capacity?: number
 }
 
@@ -366,7 +375,7 @@ export interface OrchestratorOptions {
 export type OrchestratorGetter = {
 	(name?: string | symbol): Orchestrator
 	set(name: string | symbol, o: Orchestrator, lock?: boolean): void
-	clear(name?: string | symbol, force?: boolean): boolean
+	clear(name: string | symbol, force?: boolean): boolean
 	list(): (string | symbol)[]
 }
 

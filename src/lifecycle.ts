@@ -4,6 +4,7 @@
 
 import { InvalidTransitionError, LifecycleError, TimeoutError } from './diagnostics.js'
 import { EmitterAdapter } from './adapters/emitter.js'
+import { QueueAdapter } from './adapters/queue.js'
 import type { LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook, EmitterPort } from './types.js'
 
 export abstract class Lifecycle {
@@ -16,7 +17,6 @@ export abstract class Lifecycle {
 		this.timeouts = opts.timeouts ?? 5000
 		this.emitInitial = opts.emitInitial ?? true
 		this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>()
-		// Initial state emission is scheduled lazily when the first 'transition' listener is attached
 	}
 
 	// Observability port getters (emitter only)
@@ -53,36 +53,20 @@ export abstract class Lifecycle {
 		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) throw new InvalidTransitionError(from, target)
 	}
 
-	// Run a task with a deadline (single cap shared across hook + onTransition)
-	private async runWithDeadline<T>(hook: LifecycleHook, deadline: number, task: () => Promise<T> | T): Promise<T> {
-		// compute remaining ms; if none, immediately time out
-		const remaining = Math.max(0, deadline - Date.now())
-		if (remaining === 0) throw new TimeoutError(hook, this.timeouts)
-
-		let timeoutId: ReturnType<typeof setTimeout> | undefined
-		try {
-			const timeout = new Promise<never>((_, reject) => {
-				timeoutId = setTimeout(() => reject(new TimeoutError(hook, this.timeouts)), remaining)
-			})
-			return await Promise.race([Promise.resolve(task()), timeout])
-		}
-		finally {
-			if (timeoutId !== undefined) clearTimeout(timeoutId)
-		}
-	}
-
 	private async runHook(hookName: LifecycleHook, hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
-		// single deadline for both the primary hook and onTransition
-		const deadline = Date.now() + this.timeouts
+		const tasks: Array<() => Promise<void> | void> = [
+			() => hook(),
+			() => this.onTransition(from, target, hookName),
+		]
 		try {
-			await this.runWithDeadline(hookName, deadline, hook)
-			// between states: allow subclasses to observe/act on transition (subclasses can filter internally)
-			await this.runWithDeadline(hookName, deadline, () => this.onTransition(from, target, hookName))
+			await new QueueAdapter({ deadline: this.timeouts, concurrency: 1 }).run(tasks)
 			this.setState(target)
 			this.emitter.emit(hookName)
 		}
 		catch (err) {
-			const wrapped = err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, { cause: err })
+			// Map queue timeouts/shared-deadline errors to TimeoutError; wrap others as LifecycleError
+			const isTimeout = err instanceof Error && (err.message.includes('timed out') || err.message.includes('shared deadline exceeded'))
+			const wrapped = isTimeout ? new TimeoutError(hookName, this.timeouts) : (err instanceof LifecycleError ? err : new LifecycleError(`Hook '${hookName}' failed`, { cause: err }))
 			this.emitter.emit('error', wrapped)
 			return Promise.reject(wrapped)
 		}

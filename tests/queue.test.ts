@@ -92,3 +92,70 @@ test('Queue | dequeue after capacity enforcement still works', async () => {
 	assert.equal(v, 'a')
 	assert.equal(await q.size(), 0)
 })
+
+test('Queue | run with concurrency=1 runs tasks sequentially and preserves order', async () => {
+	const q = new QueueAdapter()
+	let active = 0
+	let maxActive = 0
+	const mk = (ms: number, out: string) => async () => {
+		active++
+		maxActive = Math.max(maxActive, active)
+		await delay(ms)
+		active--
+		return out
+	}
+	const tasks = [mk(10, 'a'), mk(5, 'b'), mk(1, 'c')]
+	const res = await q.run(tasks, { concurrency: 1 })
+	assert.deepEqual(res, ['a', 'b', 'c'])
+	assert.equal(maxActive, 1)
+})
+
+test('Queue | run supports per-task timeout', async () => {
+	const q = new QueueAdapter()
+	const tasks = [
+		async () => {
+			await delay(30)
+			return 'a'
+		},
+		async () => {
+			await delay(5)
+			return 'b'
+		},
+	]
+	await assert.rejects(() => q.run(tasks, { concurrency: 2, timeout: 10 }), /timed out/)
+})
+
+test('Queue | run with deadline enforces shared time budget across tasks', async () => {
+	const q = new QueueAdapter()
+	const tasks = [
+		async () => {
+			await delay(10)
+			return 1
+		},
+		async () => {
+			await delay(10)
+			return 2
+		},
+		async () => {
+			await delay(10)
+			return 3
+		},
+	]
+	await assert.rejects(() => q.run(tasks, { concurrency: 1, deadline: 15 }), /shared deadline exceeded/)
+})
+
+test('Queue | run with abort signal stops scheduling and rejects', async () => {
+	const q = new QueueAdapter()
+	const controller = new AbortController()
+	let started = 0
+	const mk = (ms: number) => async () => {
+		started++
+		await delay(ms)
+		return ms
+	}
+	const tasks = [mk(50), mk(50), mk(50), mk(50)]
+	const p = q.run(tasks, { concurrency: 2, signal: controller.signal })
+	setTimeout(() => controller.abort(), 10)
+	await assert.rejects(() => p, /aborted/)
+	assert.ok(started >= 1) // at least one task started before abort
+})

@@ -554,6 +554,7 @@ export function register<T>(token: Token<T>, provider: Provider<T>, options: Reg
 
 function wrapFactory<R>(diag: DiagnosticPort, fn: () => R, tokenDesc: string): () => R
 function wrapFactory<R>(diag: DiagnosticPort, fn: (c: Container) => R, tokenDesc: string): (c: Container) => R
+function wrapFactory<A extends readonly unknown[], R>(diag: DiagnosticPort, fn: (...args: A) => R, tokenDesc: string): (...args: A) => R
 function wrapFactory<A extends readonly unknown[], R>(diag: DiagnosticPort, fn: (...args: A) => R, tokenDesc: string): (...args: A) => R {
 	// disallow async functions immediately
 	if (isAsyncFunction(fn)) {

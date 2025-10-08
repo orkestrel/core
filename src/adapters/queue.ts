@@ -1,7 +1,7 @@
 import type { QueuePort, QueueAdapterOptions, QueueRunOptions, LoggerPort, DiagnosticPort } from '../types.js'
 import { LoggerAdapter } from './logger'
 import { DiagnosticAdapter } from './diagnostic'
-import { QUEUE_MESSAGES } from '../diagnostics.js'
+import { QUEUE_MESSAGES } from '../constants.js'
 
 export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	private readonly items: T[] = []
@@ -72,10 +72,8 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 					Promise.resolve(fn()),
 					new Promise<never>((_, reject) => {
 						tId = setTimeout(() => {
-							try {
-								diag.fail(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` })
-							}
-							catch (e) { reject(e as never) }
+							const e = diag.help(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` })
+							reject(e)
 						}, cap)
 					}),
 				])
@@ -85,27 +83,19 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 			}
 		}
 
-		if (opts.signal?.aborted) return Promise.reject((() => {
-			try {
-				this.#diagnostic.fail('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
-			}
-			catch (e) { return e }
-		})() as Error)
+		if (opts.signal?.aborted) {
+			const e = this.#diagnostic.help('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
+			return Promise.reject(e)
+		}
 
 		const worker = async () => {
 			while (abortError == null) {
 				if (opts.signal?.aborted) {
-					try {
-						this.#diagnostic.fail('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
-					}
-					catch (e) { abortError = e }
+					abortError = this.#diagnostic.help('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
 					break
 				}
 				if (sharedEnd != null && Date.now() >= sharedEnd) {
-					try {
-						this.#diagnostic.fail('ORK1053', { scope: 'internal', message: 'QueueAdapter: shared deadline exceeded' })
-					}
-					catch (e) { abortError = e }
+					abortError = this.#diagnostic.help('ORK1053', { scope: 'internal', message: 'QueueAdapter: shared deadline exceeded' })
 					break
 				}
 				const idx = nextIdx++

@@ -163,17 +163,7 @@ export interface DiagnosticAdapterOptions {
 
 export type Token<T> = symbol & { readonly __t?: T }
 
-export function createToken<_T = unknown>(description: string): Token<_T> {
-	return Symbol(description) as Token<_T>
-}
-
 export type TokensOf<T extends Record<string, unknown>> = { [K in keyof T & string]: Token<T[K]> }
-
-export function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): Readonly<TokensOf<T>> {
-	const out: Partial<Record<keyof T & string, Token<unknown>>> = {}
-	for (const key of Object.keys(shape) as (keyof T & string)[]) out[key] = createToken(`${namespace}:${key}`)
-	return Object.freeze(out) as Readonly<TokensOf<T>>
-}
 
 // Utility token maps used by Container and helpers
 export type TokenRecord = Record<string, Token<unknown>>
@@ -216,90 +206,13 @@ export type ClassProviderWithTuple<T, A extends readonly unknown[]> = {
 	readonly useClass: new (...args: A) => T
 	readonly inject: InjectTuple<A>
 }
-export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithTuple<T, readonly unknown[]>
+export type ClassProviderWithObject<T, O extends Record<string, unknown>> = {
+	readonly useClass: new (deps: O) => T
+	readonly inject: InjectObject<O>
+}
+export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
 
 export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
-
-// ---------------------------
-// Narrowing helpers (type guards)
-// ---------------------------
-
-export function hasOwn<O extends object, K extends PropertyKey>(obj: O, key: K): obj is O & Record<K, unknown> {
-	return Object.prototype.hasOwnProperty.call(obj, key)
-}
-
-export function isToken(x: unknown): x is Token<unknown> {
-	return typeof x === 'symbol'
-}
-
-export function isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> {
-	return typeof p === 'object' && p !== null && hasOwn(p, 'useValue')
-}
-
-export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
-	return typeof p === 'object' && p !== null && hasOwn(p, 'useFactory')
-}
-
-export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
-	return typeof p === 'object' && p !== null && hasOwn(p, 'useClass')
-}
-
-export function isClassProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T> | ClassProvider<T>): p is ClassProviderWithTuple<T, A> {
-	return typeof p === 'object' && p !== null && hasOwn(p, 'useClass') && hasOwn(p, 'inject') && Array.isArray((p as { inject: unknown }).inject)
-}
-
-export function isClassProviderNoDeps<T>(p: Provider<T> | ClassProvider<T>): p is ClassProviderNoDeps<T> {
-	return isClassProvider(p) && !hasOwn(p as object, 'inject')
-}
-
-export function isFactoryProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T>): p is FactoryProviderWithTuple<T, A> {
-	return isFactoryProvider(p) && hasOwn(p, 'inject') && Array.isArray((p as { inject: unknown }).inject)
-}
-
-export function isFactoryProviderWithObject<T>(p: Provider<T>): p is FactoryProviderWithObject<T, Record<string, unknown>> {
-	return isFactoryProvider(p) && hasOwn(p, 'inject') && !Array.isArray((p as { inject: unknown }).inject)
-}
-
-export function isFactoryProviderNoDeps<T>(p: Provider<T>): p is FactoryProviderNoDeps<T> {
-	return isFactoryProvider(p) && !hasOwn(p, 'inject')
-}
-
-export function isZeroArg<T>(fn: FactoryProviderNoDeps<T>['useFactory']): fn is () => T {
-	return fn.length === 0
-}
-
-// ---------------------------
-// General runtime helpers (safe and shared)
-// ---------------------------
-
-export function getTag(x: unknown): string {
-	return Object.prototype.toString.call(x)
-}
-
-export function isAsyncFunction(fn: unknown): fn is (...args: unknown[]) => Promise<unknown> {
-	if (typeof fn !== 'function') return false
-	if (getTag(fn) === '[object AsyncFunction]') return true
-	const proto = Object.getPrototypeOf(fn)
-	const ctorName = typeof proto?.constructor?.name === 'string' ? proto.constructor.name : undefined
-	return ctorName === 'AsyncFunction'
-}
-
-export function isPromiseLike<T = unknown>(x: unknown): x is PromiseLike<T> {
-	if (x == null) return false
-	const t = typeof x
-	if (t !== 'object' && t !== 'function') return false
-	if (getTag(x) === '[object Promise]') return true
-	const maybeThen = (x as { then?: unknown }).then
-	return typeof maybeThen === 'function'
-}
-
-/** Safely invoke an optional function with arguments; swallows any errors. */
-export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unknown | Promise<unknown>) | undefined, ...args: TArgs): void {
-	try {
-		fn?.(...args)
-	}
-	catch { /* swallow */ }
-}
 
 // ---------------------------
 // Diagnostic and lifecycle types (shared)
@@ -345,19 +258,9 @@ export interface LifecycleErrorDetail {
 	error: Error
 }
 
+// ---------------------------
 // Runtime guard for LifecycleErrorDetail (narrowing only; browser/server safe)
-export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
-	if (typeof x !== 'object' || x === null) return false
-	const o = x as Record<string, unknown>
-	return (
-		typeof o.tokenDescription === 'string'
-		&& (o.phase === 'start' || o.phase === 'stop' || o.phase === 'destroy')
-		&& (o.context === 'normal' || o.context === 'rollback' || o.context === 'container')
-		&& typeof o.timedOut === 'boolean'
-		&& typeof o.durationMs === 'number' && Number.isFinite(o.durationMs)
-		&& (o.error instanceof Error)
-	)
-}
+// ---------------------------
 
 /** Duck-typed aggregate error shape used when aggregating lifecycle errors. */
 export type AggregateLifecycleError = Error & Readonly<{ details: ReadonlyArray<LifecycleErrorDetail>, errors: ReadonlyArray<Error>, code?: string, helpUrl?: string }>
@@ -406,14 +309,16 @@ export type ContainerGetter = {
 	/** Resolve via the default or named container (strict). */
 	resolve<T>(token: Token<T>, name?: string | symbol): T
 	resolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
+	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O
 
 	/** Get via the default or named container (optional). */
 	get<T>(token: Token<T>, name?: string | symbol): T | undefined
 	get<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
 
 	/** Run work in a child scope of the default or named container. */
-	using<T>(fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
-	using<T>(apply: (scope: Container) => void, fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
+	using(fn: (c: Container) => void | Promise<void>, name?: string | symbol): Promise<void>
+	using<T>(fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
+	using<T>(apply: (c: Container) => void | Promise<void>, fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
 }
 
 // ---------------------------
@@ -474,8 +379,3 @@ export interface RegisterOptions {
 
 // Internal node entry used by orchestrator
 export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }
-
-// Helper to format token symbols consistently
-export function tokenDescription(token: symbol): string {
-	return token.description ?? String(token)
-}

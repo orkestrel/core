@@ -1,6 +1,7 @@
 import type {
 	ClassProviderNoDeps,
 	ClassProviderWithTuple,
+	ClassProviderWithObject,
 	FactoryProviderNoDeps,
 	FactoryProviderWithObject,
 	FactoryProviderWithTuple,
@@ -34,9 +35,19 @@ import {
 	isFactoryProviderWithObject,
 	isFactoryProviderWithTuple,
 	isFactoryProviderNoDeps,
+	isFactoryProviderWithContainer,
 	tokenDescription,
 	safeInvoke,
-} from './types.js'
+	hasSchema,
+	arrayOf,
+	isLifecycleErrorDetail,
+	isRawProviderValue,
+	isClassProvider,
+	isClassProviderWithTuple,
+	isClassProviderWithObject,
+	isClassProviderWithContainer,
+	isClassProviderNoDeps,
+} from './helpers.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
 import { RegistryAdapter } from './adapters/registry.js'
@@ -44,7 +55,7 @@ import { LayerAdapter } from './adapters/layer.js'
 import { QueueAdapter } from './adapters/queue.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import { LoggerAdapter } from './adapters/logger'
-import { HELP, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES } from './diagnostics.js'
+import { HELP, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES } from './constants.js'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
@@ -253,9 +264,8 @@ export class Orchestrator {
 			await this.container.destroy()
 		}
 		catch (e) {
-			const maybeAgg = e as { details?: LifecycleErrorDetail[] }
-			if (maybeAgg && Array.isArray(maybeAgg.details)) {
-				errors.push(...maybeAgg.details)
+			if (hasSchema(e, { details: arrayOf(isLifecycleErrorDetail) })) {
+				errors.push(...e.details)
 			}
 			else if (e instanceof Error) {
 				errors.push({ tokenDescription: 'container', phase: 'destroy', context: 'container', timedOut: false, durationMs: 0, error: e })
@@ -272,16 +282,24 @@ export class Orchestrator {
 
 	// Provider guard adjacent to register
 	private guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
-		if (isValueProvider(provider)) {
-			const v = provider.useValue
-			if (isPromiseLike(v)) {
-				this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${tokenDescription(token)}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
+		const desc = tokenDescription(token)
+		// Raw value first – disallow Promise-like values
+		if (isRawProviderValue(provider)) {
+			if (isPromiseLike(provider)) {
+				this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with a Promise value. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
 			}
 			return provider
 		}
+		// value provider
+		if (isValueProvider(provider)) {
+			const v = provider.useValue
+			if (isPromiseLike(v)) {
+				this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
+			}
+			return provider
+		}
+		// factory providers
 		if (isFactoryProvider(provider)) {
-			const desc = tokenDescription(token)
-			// Wrap useFactory variant to assert sync-only behavior while preserving original signatures
 			if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) {
 				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
 				return { useFactory: wrapped, inject: provider.inject }
@@ -290,13 +308,32 @@ export class Orchestrator {
 				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
 				return { useFactory: wrapped, inject: provider.inject }
 			}
+			if (isFactoryProviderWithContainer<T>(provider)) {
+				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
+				return { useFactory: wrapped }
+			}
 			if (isFactoryProviderNoDeps<T>(provider)) {
-				const uf = provider.useFactory
-				const wrapped = wrapFactory(this.#diagnostic, uf as (...args: readonly unknown[]) => unknown, desc) as typeof uf
-				return { useFactory: wrapped } as Provider<T>
+				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
+				return { useFactory: wrapped }
 			}
 		}
-		return provider
+		// class providers – currently no async hazard to wrap; just verify known shapes
+		if (isClassProvider(provider)) {
+			if (isClassProviderWithTuple<T, readonly unknown[]>(provider)) {
+				return { useClass: provider.useClass, inject: provider.inject }
+			}
+			if (isClassProviderWithObject<T>(provider)) {
+				return { useClass: provider.useClass, inject: provider.inject }
+			}
+			if (isClassProviderWithContainer<T>(provider)) {
+				return { useClass: provider.useClass }
+			}
+			if (isClassProviderNoDeps<T>(provider)) {
+				return { useClass: provider.useClass }
+			}
+		}
+		// Fallback invariant: unknown provider shape
+		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: unknown provider shape during guardProvider' })
 	}
 
 	// Kahn-style O(V + E) layering with deterministic ordering
@@ -346,8 +383,11 @@ export class Orchestrator {
 	}
 
 	private now(): number {
-		const perfLike = (globalThis as unknown as { performance?: { now: () => number } }).performance
-		return typeof perfLike?.now === 'function' ? perfLike.now() : Date.now()
+		const g: unknown = globalThis
+		if (hasSchema(g, { performance: { now: (v: unknown): v is () => number => typeof v === 'function' } })) {
+			return g.performance.now()
+		}
+		return Date.now()
 	}
 
 	// Phase runner used by stop/destroy helpers
@@ -465,23 +505,24 @@ export const orchestrator = Object.assign(
 	},
 ) satisfies OrchestratorGetter
 
-function orchestratorUsing<T>(fn: (app: Orchestrator) => Promise<T> | T, name?: string | symbol): Promise<T>
-function orchestratorUsing<T>(apply: (app: Orchestrator) => void, fn: (app: Orchestrator) => Promise<T> | T, name?: string | symbol): Promise<T>
-function orchestratorUsing<T>(arg1: ((app: Orchestrator) => void) | ((app: Orchestrator) => Promise<T> | T), arg2?: ((app: Orchestrator) => Promise<T> | T) | (string | symbol), arg3?: string | symbol): Promise<T> {
-	let apply: ((app: Orchestrator) => void) | undefined
-	let fn: (app: Orchestrator) => Promise<T> | T
-	let name: string | symbol | undefined
+function orchestratorUsing(fn: (app: Orchestrator) => void | Promise<void>, name?: string | symbol): Promise<void>
+function orchestratorUsing<T>(fn: (app: Orchestrator) => T | Promise<T>, name?: string | symbol): Promise<T>
+function orchestratorUsing<T>(apply: (app: Orchestrator) => void | Promise<void>, fn: (app: Orchestrator) => T | Promise<T>, name?: string | symbol): Promise<T>
+function orchestratorUsing(
+	arg1: ((app: Orchestrator) => unknown) | ((app: Orchestrator) => Promise<unknown>),
+	arg2?: ((app: Orchestrator) => unknown) | ((app: Orchestrator) => Promise<unknown>) | (string | symbol),
+	arg3?: string | symbol,
+): Promise<unknown> {
+	const app = orchestratorRegistry.resolve(typeof arg2 === 'function' ? arg3 : arg2)
 	if (typeof arg2 === 'function') {
-		apply = arg1 as (app: Orchestrator) => void
-		fn = arg2 as (app: Orchestrator) => Promise<T> | T
-		name = arg3
+		return app.container.using(
+			async () => {
+				await arg1(app)
+			},
+			() => arg2(app),
+		)
 	}
-	else {
-		fn = arg1 as (app: Orchestrator) => Promise<T> | T
-		name = arg2 as (string | symbol | undefined)
-	}
-	const app = orchestratorRegistry.resolve(name)
-	return apply ? app.container.using(() => apply!(app), () => fn(app)) : app.container.using(() => fn(app))
+	return app.container.using(() => arg1(app))
 }
 
 function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>): Token<unknown>[] {
@@ -499,7 +540,7 @@ function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>)
 
 // Overloads to preserve inject inference for tuple/object providers
 export function register<T, A extends readonly unknown[]>(token: Token<T>, provider: ClassProviderWithTuple<T, A> | FactoryProviderWithTuple<T, A>, options?: RegisterOptions): OrchestratorRegistration<T>
-export function register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O>, options?: RegisterOptions): OrchestratorRegistration<T>
+export function register<T, O extends Record<string, unknown>>(token: Token<T>, provider: ClassProviderWithObject<T, O> | FactoryProviderWithObject<T, O>, options?: RegisterOptions): OrchestratorRegistration<T>
 export function register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, options?: RegisterOptions): OrchestratorRegistration<T>
 export function register<T>(token: Token<T>, provider: Provider<T>, options: RegisterOptions = {}): OrchestratorRegistration<T> {
 	const deps = normalizeDeps(options.dependencies)
@@ -511,6 +552,8 @@ export function register<T>(token: Token<T>, provider: Provider<T>, options: Reg
    Provider guard helpers (strict, eslint-safe)
 --------------------------- */
 
+function wrapFactory<R>(diag: DiagnosticPort, fn: () => R, tokenDesc: string): () => R
+function wrapFactory<R>(diag: DiagnosticPort, fn: (c: Container) => R, tokenDesc: string): (c: Container) => R
 function wrapFactory<A extends readonly unknown[], R>(diag: DiagnosticPort, fn: (...args: A) => R, tokenDesc: string): (...args: A) => R {
 	// disallow async functions immediately
 	if (isAsyncFunction(fn)) {

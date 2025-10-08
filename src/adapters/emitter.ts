@@ -1,7 +1,7 @@
 import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, EmitterListener, EventMap, LoggerPort } from '../types.js'
+import { safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger'
 import { DiagnosticAdapter } from './diagnostic'
-import { safeInvoke } from '../types.js'
 
 export class EmitterAdapter<EMap extends EventMap = EventMap> implements EmitterPort<EMap> {
 	// Internal registry: per-event sets of listener values (stored as unknown to avoid over-constraining types).

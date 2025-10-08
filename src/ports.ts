@@ -1,8 +1,8 @@
 import type { Token, TokensOf } from './types.js'
-import { createTokens, createToken } from './types.js'
+import { createTokens, createToken } from './helpers.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import { NoopLogger } from './adapters/logger'
-import { PORTS_MESSAGES } from './diagnostics.js'
+import { PORTS_MESSAGES } from './constants.js'
 
 /**
  * Create a set of Port tokens based on a shape.
@@ -28,17 +28,15 @@ export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): Read
  * Extend an existing base token set with an extension shape.
  */
 export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Readonly<Base & TokensOf<Ext>>
-export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(
-	baseOrExt: Base | Ext,
-	maybeExt?: Ext,
-): Readonly<TokensOf<Ext>> | Readonly<Base & TokensOf<Ext>> {
-	if (maybeExt === undefined) {
-		const ext = baseOrExt as Ext
+export function extendPorts(
+	...args: [Record<string, unknown>] | [Record<string, Token<unknown>>, Record<string, unknown>]
+): unknown {
+	if (args.length === 1) {
+		const [ext] = args
 		const newTokens = createTokens('ports', ext)
 		return Object.freeze({ ...newTokens })
 	}
-	const base = baseOrExt as Base
-	const ext = maybeExt
+	const [base, ext] = args
 	for (const k of Object.keys(ext)) {
 		if (k in base) {
 			new DiagnosticAdapter({ logger: new NoopLogger(), messages: PORTS_MESSAGES }).fail('ORK1040', { scope: 'internal', message: `extendPorts: duplicate port key '${k}'` })

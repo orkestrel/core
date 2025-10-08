@@ -254,4 +254,54 @@ test('Container suite', { concurrency: false }, async (t) => {
 		// resolve should also work via parent lookup
 		assert.equal(child.resolve(T), 99)
 	})
+
+	// NEW: Promise-handling for using
+	await t.test('using(fn) resolves promised return value', async () => {
+		const T = createToken<string>('using:return')
+		const root = new Container({ logger })
+		const out = await root.using(async (scope) => {
+			scope.register(T, { useValue: 'x' })
+			await Promise.resolve()
+			return scope.resolve(T) + '-done'
+		})
+		assert.equal(out, 'x-done')
+	})
+
+	await t.test('global container.using supports named containers and async apply/fn', async () => {
+		// reset registry state
+		for (const name of container.list()) container.clear(name, true)
+		const named = new Container({ logger })
+		container.set('tenantX', named)
+		const T = createToken<number>('n:val')
+		const out = await container.using(
+			async (scope) => {
+				// async apply without timers
+				await Promise.resolve()
+				scope.set(T, 41)
+			},
+			async (scope) => {
+				await Promise.resolve()
+				return scope.resolve(T) + 1
+			},
+			'tenantX',
+		)
+		assert.equal(out, 42)
+		// explicit: registration must not leak into the named container
+		assert.equal(named.get(T), undefined)
+	})
+
+	await t.test('global container.using(fn) with name runs in a child scope without leaking', async () => {
+		for (const name of container.list()) container.clear(name, true)
+		const named = new Container({ logger })
+		container.set('tenantY', named)
+		const T = createToken<string>('n:val2')
+		await container.using(async (scope) => {
+			// register and resolve inside scope
+			scope.set(T, 'scoped')
+			assert.equal(scope.resolve(T), 'scoped')
+			await Promise.resolve()
+		}, 'tenantY')
+		// explicit: nothing should remain registered on the named container
+		assert.equal(named.get(T), undefined)
+	})
 })

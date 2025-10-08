@@ -1,8 +1,8 @@
 import type { Token, LayerNode, LayerPort, LayerAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
-import { tokenDescription } from '../types.js'
+import { tokenDescription } from '../helpers.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { LoggerAdapter } from './logger'
-import { HELP, ORCHESTRATOR_MESSAGES } from '../diagnostics.js'
+import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
 
 /**
  * In-memory adapter for topological layering using Kahn's algorithm.
@@ -28,7 +28,7 @@ export class LayerAdapter implements LayerPort {
      */
 	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][] {
 		// Validate dependencies exist
-		const present = new Set<Token<unknown>>(nodes.map(n => n.token))
+		const present = new Set<symbol>(nodes.map(n => n.token))
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
 				if (!present.has(d)) {
@@ -42,31 +42,36 @@ export class LayerAdapter implements LayerPort {
 			}
 		}
 
-		// Build indegree and adjacency (dependents) preserving insertion order
-		const indeg = new Map<Token<T>, number>()
-		const adj = new Map<Token<T>, Token<T>[]>()
+		// Build typed map for tokens and adjacency keyed by symbol identity
+		const typed = new Map<symbol, Token<T>>()
+		for (const n of nodes) typed.set(n.token, n.token)
+
+		const indeg = new Map<symbol, number>()
+		const adj = new Map<symbol, symbol[]>()
 		for (const n of nodes) {
-			indeg.set(n.token as Token<T>, 0)
-			adj.set(n.token as Token<T>, [])
+			indeg.set(n.token, 0)
+			adj.set(n.token, [])
 		}
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
-				indeg.set(n.token as Token<T>, (indeg.get(n.token as Token<T>) ?? 0) + 1)
-				adj.get(d as Token<T>)!.push(n.token as Token<T>)
+				indeg.set(n.token, (indeg.get(n.token) ?? 0) + 1)
+				const arr = adj.get(d)
+				if (arr) arr.push(n.token)
 			}
 		}
 
 		// Initial frontier in insertion order
-		let frontier: Token<T>[] = nodes
-			.filter(n => (indeg.get(n.token as Token<T>) ?? 0) === 0)
-			.map(n => n.token as Token<T>)
+		let frontierSyms: symbol[] = nodes
+			.filter(n => (indeg.get(n.token) ?? 0) === 0)
+			.map(n => n.token)
 
 		const layers: Token<T>[][] = []
-		while (frontier.length) {
-			layers.push(frontier)
-			const next: Token<T>[] = []
-			for (const tk of frontier) {
-				const dependents = adj.get(tk)
+		while (frontierSyms.length) {
+			const layerTokens = frontierSyms.map(s => typed.get(s)).filter((t): t is Token<T> => t !== undefined)
+			layers.push(layerTokens)
+			const next: symbol[] = []
+			for (const s of frontierSyms) {
+				const dependents = adj.get(s)
 				if (!dependents) continue
 				for (const dep of dependents) {
 					const v = (indeg.get(dep) ?? 0) - 1
@@ -74,7 +79,7 @@ export class LayerAdapter implements LayerPort {
 					if (v === 0) next.push(dep)
 				}
 			}
-			frontier = next
+			frontierSyms = next
 		}
 
 		// Check for cycles

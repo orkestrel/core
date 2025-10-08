@@ -10,8 +10,8 @@ import type {
 	LoggerPort,
 } from './types.js'
 import { LoggerAdapter } from './adapters/logger'
-import { HELP, LIFECYCLE_MESSAGES } from './diagnostics.js'
-import { safeInvoke } from './types.js'
+import { HELP, LIFECYCLE_MESSAGES } from './constants.js'
+import { safeInvoke } from './helpers.js'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'

@@ -1,5 +1,5 @@
 import type { RegistryPort, RegistryAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
-import { HELP, REGISTRY_MESSAGES } from '../diagnostics.js'
+import { HELP, REGISTRY_MESSAGES } from '../constants.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { LoggerAdapter } from './logger'
 
@@ -38,7 +38,7 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 		if (v === undefined) {
 			this.#diagnostic.fail('ORK1002', { scope: 'registry', message: `No ${this.label} instance registered for '${String(key)}'`, helpUrl: HELP.registry, extra: { label: this.label, name: String(key) } })
 		}
-		return v as T
+		return v
 	}
 
 	set(name: string | symbol, value: T, lock = false): void {

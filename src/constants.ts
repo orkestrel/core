@@ -1,5 +1,5 @@
-// Centralized default message mappings for DiagnosticAdapter (split by domain)
-// Only message metadata; error creation/throwing is centralized in DiagnosticAdapter.
+// filepath: c:\Users\mikes\WebstormProjects\orkestrel\core\src\constants.ts
+// Centralized immutable constant values for the core package
 
 import type { DiagnosticMessage } from './types.js'
 
@@ -72,4 +72,4 @@ export const HELP = {
 	orchestrator: 'https://github.com/orkestrel/core/blob/main/docs/overview.md#orchestrator',
 	errors: 'https://github.com/orkestrel/core/blob/main/docs/tips.md#troubleshooting',
 	lifecycle: 'https://github.com/orkestrel/core/blob/main/docs/api.md#lifecycle',
-} as const
+}

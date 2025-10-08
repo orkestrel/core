@@ -18,6 +18,7 @@ import {
 	isAsyncFunction,
 	isPromiseLike,
 	safeInvoke,
+	isTokenRecord,
 } from '@orkestrel/core'
 
 test('types helpers suite', async (t) => {
@@ -113,5 +114,16 @@ test('types helpers suite', async (t) => {
 		safeInvoke(good)
 		safeInvoke(bad)
 		assert.equal(called, 1)
+	})
+
+	await t.test('isTokenRecord identifies objects with token values only', () => {
+		const A = createToken<number>('A')
+		const B = createToken<string>('B')
+		const good = { a: A, b: B }
+		assert.equal(isTokenRecord(good), true)
+		assert.equal(isTokenRecord([]), false)
+		assert.equal(isTokenRecord([A]), false)
+		assert.equal(isTokenRecord({ a: A, x: 1 }), false)
+		assert.equal(isTokenRecord({}), true)
 	})
 })

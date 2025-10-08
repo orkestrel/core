@@ -1,14 +1,25 @@
 import type {
 	DiagnosticAdapterOptions,
-	DiagnosticErrorContext,
 	DiagnosticPort,
-	LifecycleErrorDetail,
-	LogLevel,
+	DiagnosticErrorContext,
 	LoggerPort,
+	LogLevel,
+	LifecycleErrorDetail,
 	MessageMapEntry,
 } from '../types.js'
-import { safeInvoke } from '../types.js'
+import { safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger'
+
+class BaseError extends Error {
+	constructor(message: string, public code?: string, public helpUrl?: string) {
+		super(message)
+	}
+}
+class AggregateLifecycleError extends BaseError {
+	constructor(message: string, public details: LifecycleErrorDetail[], public errors: Error[], code?: string, helpUrl?: string) {
+		super(message, code, helpUrl)
+	}
+}
 
 /**
  * DiagnosticAdapter: a thin, safe delegator to a LoggerPort with keyed message overrides.
@@ -61,7 +72,7 @@ export class DiagnosticAdapter implements DiagnosticPort {
 		throw e
 	}
 
-	help(key: string, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): Error {
+	help(key: string, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): BaseError {
 		const { message: overrideMsg, helpUrl, name, ...rest } = context
 		const entry = this.#messages.get(key)
 		const msg = overrideMsg ?? entry?.message ?? key
@@ -70,12 +81,14 @@ export class DiagnosticAdapter implements DiagnosticPort {
 
 	aggregate(key: string, detailsOrErrors: ReadonlyArray<LifecycleErrorDetail | Error>, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): never {
 		const details = this.normalizeAggregateDetails(detailsOrErrors)
-		const e = this.help(key, context) as Error & { details?: LifecycleErrorDetail[], errors?: Error[] }
-		e.details = details
-		e.errors = details.map(d => d.error)
 		const entry = this.#messages.get(key)
 		const level = entry?.level ?? 'error'
 		const msg = (context.message ?? entry?.message ?? key)
+		const e = new AggregateLifecycleError(msg, details, details.map(d => d.error))
+		// prefer code if provided or if key is ORK-like
+		e.code = context.code ?? (/^ORK\d{4}$/.test(key) ? key : key)
+		if (context.helpUrl) e.helpUrl = context.helpUrl
+		if (context.name) e.name = context.name
 		safeInvoke(this.#logger.log.bind(this.#logger), level, msg, { err: this.shapeErr(e), ...context, details })
 		throw e
 	}
@@ -108,14 +121,11 @@ export class DiagnosticAdapter implements DiagnosticPort {
 		return { name: e.name, message: e.message, stack: e.stack }
 	}
 
-	private buildError(key: string, message: string, opts: { helpUrl?: string, name?: string, context?: DiagnosticErrorContext }): Error & { code?: string, helpUrl?: string } {
+	private buildError(key: string, message: string, opts: { helpUrl?: string, name?: string, context?: DiagnosticErrorContext }): BaseError {
 		const { helpUrl, name, context } = opts
-		const e = new Error(message) as Error & { code?: string, helpUrl?: string }
-		// Prefer provided context.code; otherwise if key looks like an ORK code, use it; else fall back to key for code.
-		const provided = context?.code as string | undefined
 		const orkLike = /^ORK\d{4}$/.test(key) ? key : undefined
-		e.code = provided ?? orkLike ?? key
-		if (helpUrl) e.helpUrl = helpUrl
+		const code = context?.code ?? orkLike ?? key
+		const e = new BaseError(message, code, helpUrl)
 		if (name) e.name = name
 		return e
 	}

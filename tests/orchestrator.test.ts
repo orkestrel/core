@@ -913,4 +913,54 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.ok(det.some(d => d.tokenDescription === 'NumDef:SlowBoth' && d.timedOut && d.phase === 'stop'))
 		await app.destroy().catch(() => {})
 	})
+
+	// NEW: orchestrator.using promise handling and named resolution
+	await t.test('orchestrator.using(fn) awaits promised return and forwards value', async () => {
+		for (const name of orchestrator.list()) orchestrator.clear(name, true)
+		const app = new Orchestrator(new Container({ logger }), { logger })
+		orchestrator.set('app1', app)
+		const value = await orchestrator.using(async (_app) => {
+			await Promise.resolve(1)
+			return 123
+		}, 'app1')
+		assert.equal(value, 123)
+	})
+
+	await t.test('orchestrator.using(apply, fn) supports async apply and fn and returns value', async () => {
+		for (const name of orchestrator.list()) orchestrator.clear(name, true)
+		const app = new Orchestrator(new Container({ logger }), { logger })
+		orchestrator.set('oX', app)
+		const T = createToken<number>('orch:val')
+		const res = await orchestrator.using(
+			async (o) => {
+				await new Promise(r => setTimeout(r, 1))
+				o.container.set(T, 7)
+			},
+			async (o) => {
+				await Promise.resolve()
+				return (o.container.resolve(T) as number) * 6
+			},
+			'oX',
+		)
+		assert.equal(res, 42)
+		// Note: orchestrator.using leverages container.using internally; current implementation applies to the bound container.
+		assert.equal(app.container.resolve(T), 7)
+	})
+
+	await t.test('class provider with container arg is supported and resolves container deps', async () => {
+		const DEP = createToken<number>('ClassWithContainer:DEP')
+		class NeedsC extends Adapter {
+			public got: number | undefined
+			constructor(private readonly c: Container) { super({ logger }) }
+			protected async onStart() { this.got = this.c.resolve(DEP) }
+		}
+		const T = createToken<NeedsC>('ClassWithContainer:COMP')
+		const app = new Orchestrator(new Container({ logger }), { logger })
+		app.container.set(DEP, 42)
+		await app.start([register(T, { useClass: NeedsC })])
+		const inst = app.container.get(T) as NeedsC
+		assert.ok(inst instanceof NeedsC)
+		assert.equal(inst.got, 42)
+		await app.destroy()
+	})
 })

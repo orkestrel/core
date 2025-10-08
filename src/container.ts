@@ -1,53 +1,57 @@
 import { Lifecycle } from './lifecycle.js'
 import { RegistryAdapter } from './adapters/registry.js'
-import { HELP, CONTAINER_MESSAGES } from './diagnostics.js'
+import { CONTAINER_MESSAGES, HELP } from './constants.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
-	Token,
-	ValueProvider,
-	FactoryProviderNoDeps,
-	FactoryProviderWithTuple,
-	FactoryProviderWithObject,
 	ClassProviderNoDeps,
+	ClassProviderWithObject,
 	ClassProviderWithTuple,
-	Provider,
-	InjectTuple,
-	InjectObject,
-	CtorNoDeps,
-	CtorWithContainer,
-	TokenRecord,
-	ResolvedMap,
-	OptionalResolvedMap,
 	ContainerOptions,
-	ResolvedProvider,
-	Registration,
-	ContainerGetter,
 	DiagnosticPort,
+	FactoryProviderNoDeps,
+	FactoryProviderWithObject,
+	FactoryProviderWithTuple,
+	InjectObject,
 	LoggerPort,
+	OptionalResolvedMap,
+	Provider,
+	Registration,
+	ResolvedMap,
+	ResolvedProvider,
+	Token,
+	TokenRecord,
+	ValueProvider,
+	ContainerGetter,
 } from './types.js'
 import {
-	isValueProvider,
-	isFactoryProvider,
 	isClassProvider,
+	isClassProviderNoDeps,
+	isClassProviderWithContainer,
+	isClassProviderWithObject,
 	isClassProviderWithTuple,
-	isFactoryProviderWithTuple,
-	isFactoryProviderWithObject,
+	isFactoryProvider,
 	isFactoryProviderNoDeps,
-	isZeroArg,
+	isFactoryProviderWithContainer,
+	isFactoryProviderWithObject,
+	isFactoryProviderWithTuple,
+	isRawProviderValue,
+	isToken,
+	isTokenRecord,
+	isValueProvider,
 	tokenDescription,
-} from './types.js'
+} from './helpers.js'
 import { LoggerAdapter } from './adapters/logger'
 
 /**
  * Minimal, strongly-typed DI container.
  *
  * - Registers providers (value, factory, class) under Tokens.
- * - Resolves single tokens or token maps, strictly (resolve) or optionally (get).
+ * - Resolves single tokens or token maps strictly (resolve) or optionally (get).
  * - Supports child scopes and scoped work via using.
  * - Destroys owned lifecycles on destroy().
  */
 export class Container {
-	private readonly registry: RegistryAdapter<Registration<unknown>>
+	readonly #registry: RegistryAdapter<Registration<unknown>>
 	private readonly parent?: Container
 	private destroyed = false
 	readonly #diagnostic: DiagnosticPort
@@ -57,7 +61,7 @@ export class Container {
 		this.parent = opts.parent
 		this.#logger = opts.logger ?? new LoggerAdapter()
 		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: CONTAINER_MESSAGES })
-		this.registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
+		this.#registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
@@ -66,7 +70,7 @@ export class Container {
 
 	// Concise overload set for strong contextual typing
 	register<T, A extends readonly unknown[]>(token: Token<T>, provider: FactoryProviderWithTuple<T, A> | ClassProviderWithTuple<T, A>, lock?: boolean): this
-	register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O>, lock?: boolean): this
+	register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O> | ClassProviderWithObject<T, O>, lock?: boolean): this
 	register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, lock?: boolean): this
 	/**
 	 * Register a provider under a token.
@@ -76,7 +80,7 @@ export class Container {
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, lock?: boolean): this {
 		this.assertNotDestroyed()
-		this.registry.set(token, { token, provider } as Registration<T>, lock)
+		this.#registry.set(token, { token, provider }, lock)
 		return this
 	}
 
@@ -85,59 +89,67 @@ export class Container {
 
 	/** Returns true when a provider is available for the token (searches parents). */
 	has<T>(token: Token<T>): boolean {
-		return !!this.registry.get(token) || (this.parent?.has(token) ?? false)
+		return !!this.#registry.get(token) || (this.parent?.has(token) ?? false)
 	}
+
+	// ---------------------------
+	// Strict resolve: token | token map | inject object
+	// ---------------------------
 
 	resolve<T>(token: Token<T>): T
 	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
-	/** Strictly resolve a single token or a map of tokens, throwing if any are missing. */
+	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>): O
 	resolve(tokenOrMap: Token<unknown> | TokenRecord): unknown {
-		if (typeof tokenOrMap !== 'object') {
-			// strict single-token retrieval
-			const reg = this.lookup(tokenOrMap as Token<unknown>)
+		if (isToken(tokenOrMap)) {
+			const reg = this.lookup(tokenOrMap)
 			if (!reg) {
-				this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tokenOrMap as symbol)}`, helpUrl: HELP.providers })
+				this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tokenOrMap)}`, helpUrl: HELP.providers })
 			}
 			return this.materialize(reg).value
 		}
-		// map retrieval (strict)
-		return this.retrievalMap(tokenOrMap, true)
+		if (isTokenRecord(tokenOrMap)) {
+			return this.retrievalMap(tokenOrMap, true)
+		}
+		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: resolve() called with invalid argument' })
 	}
 
 	get<T>(token: Token<T>): T | undefined
 	get<TMap extends TokenRecord>(tokens: TMap): OptionalResolvedMap<TMap>
 	/** Optionally resolve a single token or a map of tokens (missing entries return undefined). */
 	get(tokenOrMap: Token<unknown> | TokenRecord): unknown {
-		if (typeof tokenOrMap !== 'object') {
-			// loose single-token retrieval
-			const reg = this.lookup(tokenOrMap as Token<unknown>)
+		if (isToken(tokenOrMap)) {
+			const reg = this.lookup(tokenOrMap)
 			return reg ? this.materialize(reg).value : undefined
 		}
-		// map retrieval (loose)
-		return this.retrievalMap(tokenOrMap, false)
+		if (isTokenRecord(tokenOrMap)) {
+			return this.retrievalMap(tokenOrMap, false)
+		}
+		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: get() called with invalid argument' })
 	}
 
 	/** Create a child container that inherits providers from this container. */
 	createChild(): Container { return new Container({ parent: this, diagnostic: this.diagnostic, logger: this.logger }) }
 
 	// Overloads: using(fn) and using(apply, fn)
-	async using<T>(fn: (scope: Container) => Promise<T> | T): Promise<T>
-	async using<T>(apply: (scope: Container) => void, fn: (scope: Container) => Promise<T> | T): Promise<T>
+	async using(fn: (scope: Container) => void | Promise<void>): Promise<void>
+	async using<T>(fn: (scope: Container) => T | Promise<T>): Promise<T>
+	async using<T>(apply: (scope: Container) => void | Promise<void>, fn: (scope: Container) => T | Promise<T>): Promise<T>
 	/**
 	 * Run work inside an automatically destroyed child scope.
 	 * - using(fn): create child, run fn(child), destroy child.
 	 * - using(apply, fn): create child, run apply(child) to register overrides, then fn(child), destroy child.
 	 */
-	async using<T>(arg1: ((scope: Container) => void) | ((scope: Container) => Promise<T> | T), arg2?: (scope: Container) => Promise<T> | T): Promise<T> {
+	async using(
+		arg1: ((scope: Container) => unknown) | ((scope: Container) => Promise<unknown>),
+		arg2?: ((scope: Container) => unknown) | ((scope: Container) => Promise<unknown>),
+	): Promise<unknown> {
 		const scope = this.createChild()
 		try {
 			if (arg2) {
-				const apply = arg1 as (scope: Container) => void
-				apply(scope)
-				return await (arg2 as (scope: Container) => Promise<T> | T)(scope)
+				await Promise.resolve(arg1(scope))
+				return await arg2(scope)
 			}
-			const fn = arg1 as (scope: Container) => Promise<T> | T
-			return await fn(scope)
+			return await arg1(scope)
 		}
 		finally { await scope.destroy() }
 	}
@@ -147,8 +159,8 @@ export class Container {
 		if (this.destroyed) return
 		this.destroyed = true
 		const errors: Error[] = []
-		for (const key of this.registry.list()) {
-			const reg = this.registry.get(key as symbol) as Registration<unknown> | undefined
+		for (const key of this.#registry.list()) {
+			const reg = this.#registry.get(key)
 			if (!reg) continue
 			const resolved = reg.resolved
 			if (resolved?.lifecycle && resolved.disposable) {
@@ -170,7 +182,13 @@ export class Container {
 	// ---------------------------
 
 	private lookup<T>(token: Token<T>): Registration<T> | undefined {
-		return (this.registry.get(token) as Registration<T> | undefined) ?? this.parent?.lookup(token)
+		const here = this.#registry.get(token)
+		if (here && this.isRegistrationOf(here, token)) return here
+		return this.parent?.lookup(token)
+	}
+
+	private isRegistrationOf<T>(reg: Registration<unknown>, token: Token<T>): reg is Registration<T> {
+		return reg.token === token
 	}
 
 	private materialize<T>(reg: Registration<T>): ResolvedProvider<T> {
@@ -181,38 +199,49 @@ export class Container {
 	}
 
 	private instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
+		// Raw value branch first (strict non-provider object)
+		if (isRawProviderValue(provider)) {
+			return this.wrapLifecycle(provider, false)
+		}
+
 		if (isValueProvider(provider)) return this.wrapLifecycle(provider.useValue, false)
 
 		if (isFactoryProvider(provider)) {
 			if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) {
-				const args = this.resolveTuple(provider.inject)
+				const args = provider.inject.map(tk => this.resolve(tk))
 				return this.wrapLifecycle(provider.useFactory(...args), true)
 			}
 			if (isFactoryProviderWithObject(provider)) {
-				const deps = this.resolveObject(provider.inject)
+				const deps = this.resolve(provider.inject)
 				return this.wrapLifecycle(provider.useFactory(deps), true)
 			}
+			if (isFactoryProviderWithContainer<T>(provider)) {
+				return this.wrapLifecycle(provider.useFactory(this), true)
+			}
 			if (isFactoryProviderNoDeps<T>(provider)) {
-				const uf = provider.useFactory
-				return this.wrapLifecycle(isZeroArg(uf) ? uf() : uf(this), true)
+				return this.wrapLifecycle(provider.useFactory(), true)
 			}
 		}
 
 		if (isClassProvider(provider)) {
 			if (isClassProviderWithTuple<T, readonly unknown[]>(provider)) {
-				const args = this.resolveTuple(provider.inject)
+				const args = provider.inject.map(tk => this.resolve(tk))
 				return this.wrapLifecycle(new provider.useClass(...args), true)
 			}
-			const Ctor = (provider as ClassProviderNoDeps<T>).useClass
-			const arity = (Ctor as unknown as { length: number }).length
-			if (arity >= 1) {
-				return this.wrapLifecycle(new (Ctor as CtorWithContainer<T>)(this), true)
+			if (isClassProviderWithObject<T>(provider)) {
+				const deps = this.resolve(provider.inject)
+				return this.wrapLifecycle(new provider.useClass(deps), true)
 			}
-			return this.wrapLifecycle(new (Ctor as CtorNoDeps<T>)(), true)
+			if (isClassProviderWithContainer<T>(provider)) {
+				return this.wrapLifecycle(new provider.useClass(this), true)
+			}
+			if (isClassProviderNoDeps<T>(provider)) {
+				return this.wrapLifecycle(new provider.useClass(), true)
+			}
 		}
 
-		// Raw value
-		return this.wrapLifecycle(provider as T, false)
+		// Fallback invariant: should be covered by branches
+		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: unknown provider shape' })
 	}
 
 	private wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
@@ -242,88 +271,57 @@ export class Container {
 		}
 		return out
 	}
-
-	// Helpers to resolve inject shapes with strong typing
-	private resolveTuple<A extends readonly unknown[]>(inj: InjectTuple<A>): A {
-		return inj.map(t => this.resolve(t)) as unknown as A
-	}
-
-	private resolveObject<O extends Record<string, unknown>>(inj: InjectObject<O>): O {
-		const out: { [K in keyof O]?: O[K] } = {}
-		const keys = Object.keys(inj) as Array<keyof O>
-		for (const key of keys) {
-			const tk = inj[key] as Token<O[typeof key]>
-			out[key] = this.resolve(tk)
-		}
-		return out as O
-	}
 }
 
 // ---------------------------
-// Global container registry helper
+// Global container registry helper (orchestrator-style getter)
 // ---------------------------
 
 const containerRegistry = new RegistryAdapter<Container>({ label: 'container', default: { value: new Container() } })
 
 function containerResolve<T>(token: Token<T>, name?: string | symbol): T
 function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
+function containerResolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O
 function containerResolve(tokenOrMap: Token<unknown> | TokenRecord, name?: string | symbol): unknown {
 	const c = containerRegistry.resolve(name)
-	if (typeof tokenOrMap !== 'object') {
-		return c.resolve(tokenOrMap as Token<unknown>)
-	}
-	return c.resolve(tokenOrMap)
+	if (isTokenRecord(tokenOrMap)) return c.resolve(tokenOrMap)
+	if (isToken(tokenOrMap)) return c.resolve(tokenOrMap)
+	containerRegistry.diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: container.resolve called with invalid argument' })
 }
 
 function containerGet<T>(token: Token<T>, name?: string | symbol): T | undefined
 function containerGet<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): OptionalResolvedMap<TMap>
 function containerGet(tokenOrMap: Token<unknown> | TokenRecord, name?: string | symbol): unknown {
 	const c = containerRegistry.resolve(name)
-	if (typeof tokenOrMap !== 'object') {
-		return c.get(tokenOrMap as Token<unknown>)
-	}
-	return c.get(tokenOrMap)
+	if (isTokenRecord(tokenOrMap)) return c.get(tokenOrMap)
+	if (isToken(tokenOrMap)) return c.get(tokenOrMap)
+	containerRegistry.diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: container.get called with invalid argument' })
 }
 
-function containerUsing<T>(fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
-function containerUsing<T>(apply: (scope: Container) => void, fn: (scope: Container) => Promise<T> | T, name?: string | symbol): Promise<T>
-function containerUsing<T>(
-	arg1: ((scope: Container) => void) | ((scope: Container) => Promise<T> | T),
-	arg2?: ((scope: Container) => Promise<T> | T) | (string | symbol),
+function containerUsing(fn: (c: Container) => void | Promise<void>, name?: string | symbol): Promise<void>
+function containerUsing<T>(fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
+function containerUsing<T>(apply: (c: Container) => void | Promise<void>, fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
+function containerUsing(
+	arg1: ((c: Container) => unknown) | ((c: Container) => Promise<unknown>),
+	arg2?: ((c: Container) => unknown) | ((c: Container) => Promise<unknown>) | (string | symbol),
 	arg3?: string | symbol,
-): Promise<T> {
-	let apply: ((scope: Container) => void) | undefined
-	let fn: (scope: Container) => Promise<T> | T
-	let name: string | symbol | undefined
-
+): Promise<unknown> {
+	const c = containerRegistry.resolve(typeof arg2 === 'function' ? arg3 : arg2)
 	if (typeof arg2 === 'function') {
-		apply = arg1 as (scope: Container) => void
-		fn = arg2 as (scope: Container) => Promise<T> | T
-		name = arg3
+		return c.using(
+			async (scope) => { await arg1(scope) },
+			scope => arg2(scope),
+		)
 	}
-	else {
-		fn = arg1 as (scope: Container) => Promise<T> | T
-		name = arg2 as (string | symbol | undefined)
-	}
-	const c = containerRegistry.resolve(name)
-	return apply ? c.using(apply, fn) : c.using(fn)
+	return c.using(scope => arg1(scope))
 }
 
-/**
- * Global container getter.
- *
- * The default container is created at module load and registered under a symbol key.
- * You can register additional named containers via `container.set(name, instance, lock?)`.
- */
 export const container = Object.assign(
 	(name?: string | symbol): Container => containerRegistry.resolve(name),
 	{
-		set(name: string | symbol, c: Container, lock?: boolean) {
-			containerRegistry.set(name, c, lock)
-		},
-		clear(name?: string | symbol, force?: boolean) { return containerRegistry.clear(name, force) },
-		list() { return [...containerRegistry.list()] },
-
+		set(name: string | symbol, c: Container, lock?: boolean): void { containerRegistry.set(name, c, lock) },
+		clear(name?: string | symbol, force?: boolean): boolean { return containerRegistry.clear(name, force) },
+		list(): (string | symbol)[] { return [...containerRegistry.list()] },
 		resolve: containerResolve,
 		get: containerGet,
 		using: containerUsing,

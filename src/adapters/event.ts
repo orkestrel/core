@@ -1,5 +1,5 @@
 import type { EventHandler, EventPort, EventAdapterOptions, LoggerPort, DiagnosticPort } from '../types.js'
-import { safeInvoke } from '../types.js'
+import { safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger'
 import { DiagnosticAdapter } from './diagnostic'
 

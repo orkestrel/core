@@ -3,10 +3,8 @@ import { safeInvoke } from '../types.js'
 import { LoggerAdapter } from './logger'
 import { DiagnosticAdapter } from './diagnostic'
 
-type Handler<T> = (payload: T) => void | Promise<void>
-
 export class EventAdapter implements EventPort {
-	private readonly map = new Map<string, Set<Handler<unknown>>>()
+	private readonly map = new Map<string, Set<unknown>>()
 	private readonly onError?: (err: unknown, topic: string) => void
 	private readonly sequential: boolean
 
@@ -25,10 +23,12 @@ export class EventAdapter implements EventPort {
 
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
+	private isHandler<T>(v: unknown): v is EventHandler<T> { return typeof v === 'function' }
+
 	async publish<T>(topic: string, payload: T): Promise<void> {
 		const handlers = this.map.get(topic)
 		if (!handlers || handlers.size === 0) return
-		const arr = Array.from(handlers) as Array<Handler<T>>
+		const arr = Array.from(handlers).filter(this.isHandler<T>)
 		const handleErr = (err: unknown) => {
 			safeInvoke(this.onError, err, topic)
 			safeInvoke(this.#diagnostic.error.bind(this.#diagnostic), err, { scope: 'internal', extra: { topic, original: err, originalMessage: err instanceof Error ? err.message : String(err), originalStack: err instanceof Error ? err.stack : undefined } })
@@ -57,13 +57,13 @@ export class EventAdapter implements EventPort {
 	async subscribe<T>(topic: string, handler: EventHandler<T>): Promise<() => void | Promise<void>> {
 		let set = this.map.get(topic)
 		if (!set) {
-			set = new Set()
+			set = new Set<unknown>()
 			this.map.set(topic, set)
 		}
-		set.add(handler as Handler<unknown>)
+		set.add(handler)
 		return () => {
 			const s = this.map.get(topic)
-			if (s) s.delete(handler as Handler<unknown>)
+			if (s) s.delete(handler)
 			if (s && s.size === 0) this.map.delete(topic)
 		}
 	}

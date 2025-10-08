@@ -9,9 +9,13 @@ import type { Orchestrator } from './orchestrator.js'
 // Ports: Emitter (used by Lifecycle)
 // ---------------------------
 
-export interface EmitterPort<EMap extends Record<string, unknown[]> = Record<string, unknown[]>> {
-	on<E extends keyof EMap & string>(event: E, fn: (...args: EMap[E]) => void): this
-	off<E extends keyof EMap & string>(event: E, fn: (...args: EMap[E]) => void): this
+// Tuple-args event map contract used across Emitter APIs
+export type EventMap = Record<string, unknown[]>
+export type EmitterListener<EMap extends EventMap, E extends keyof EMap & string> = (...args: EMap[E]) => void
+
+export interface EmitterPort<EMap extends EventMap = EventMap> {
+	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
+	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
 	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void
 	removeAllListeners(): void
 }

@@ -118,7 +118,7 @@ export type DiagnosticScope = 'lifecycle' | 'orchestrator' | 'container' | 'regi
 
 export interface DiagnosticErrorContext {
 	readonly scope?: DiagnosticScope
-	readonly code?: OrkCode
+	readonly code?: string
 	readonly token?: string
 	readonly phase?: LifecyclePhase
 	readonly hook?: LifecycleHook
@@ -148,7 +148,7 @@ export type MessageMapEntry = Readonly<{ level?: LogLevel, message?: string }>
 export interface DiagnosticMessage extends MessageMapEntry { readonly key: string }
 
 export interface DiagnosticAdapterOptions {
-	readonly logger: LoggerPort
+	readonly logger?: LoggerPort
 	/** Optional list of keyed message overrides applied across logs, metrics, traces, events, and errors. */
 	readonly messages?: ReadonlyArray<DiagnosticMessage>
 }
@@ -350,7 +350,7 @@ export function isLifecycleErrorDetail(x: unknown): x is LifecycleErrorDetail {
 }
 
 /** Duck-typed aggregate error shape used when aggregating lifecycle errors. */
-export type AggregateLifecycleError = Error & Readonly<{ details: ReadonlyArray<LifecycleErrorDetail>, errors: ReadonlyArray<Error>, code?: OrkCode, helpUrl?: string }>
+export type AggregateLifecycleError = Error & Readonly<{ details: ReadonlyArray<LifecycleErrorDetail>, errors: ReadonlyArray<Error>, code?: string, helpUrl?: string }>
 
 // Lifecycle public types
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'

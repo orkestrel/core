@@ -2,7 +2,7 @@ import type { Token, LayerNode, LayerPort, LayerAdapterOptions, DiagnosticPort, 
 import { tokenDescription } from '../types.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { LoggerAdapter } from './logger'
-import { HELP } from '../diagnostics'
+import { HELP, ORCHESTRATOR_MESSAGES } from '../diagnostics.js'
 
 /**
  * In-memory adapter for topological layering using Kahn's algorithm.
@@ -14,7 +14,7 @@ export class LayerAdapter implements LayerPort {
 
 	constructor(options: LayerAdapterOptions = {}) {
 		this.#logger = options.logger ?? new LoggerAdapter()
-		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: ORCHESTRATOR_MESSAGES })
 	}
 
 	get logger(): LoggerPort { return this.#logger }

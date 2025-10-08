@@ -43,7 +43,7 @@ import { LayerAdapter } from './adapters/layer.js'
 import { QueueAdapter } from './adapters/queue.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import { LoggerAdapter } from './adapters/logger'
-import { HELP } from './diagnostics.js'
+import { HELP, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES } from './diagnostics.js'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
@@ -77,7 +77,7 @@ export class Orchestrator {
 			this.tracer = maybeOpts?.tracer
 			this.timeouts = maybeOpts?.timeouts ?? {}
 			this.#logger = maybeOpts?.logger ?? new LoggerAdapter()
-			this.#diagnostic = maybeOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+			this.#diagnostic = maybeOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: [...ORCHESTRATOR_MESSAGES, ...LIFECYCLE_MESSAGES, ...INTERNAL_MESSAGES] })
 			this.#layer = maybeOpts?.layer ?? new LayerAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
 			this.#queue = maybeOpts?.queue ?? new QueueAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
 		}
@@ -86,7 +86,7 @@ export class Orchestrator {
 			this.tracer = containerOrOpts?.tracer
 			this.timeouts = containerOrOpts?.timeouts ?? {}
 			this.#logger = containerOrOpts?.logger ?? new LoggerAdapter()
-			this.#diagnostic = containerOrOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+			this.#diagnostic = containerOrOpts?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: [...ORCHESTRATOR_MESSAGES, ...LIFECYCLE_MESSAGES, ...INTERNAL_MESSAGES] })
 			this.#layer = containerOrOpts?.layer ?? new LayerAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
 			this.#queue = containerOrOpts?.queue ?? new QueueAdapter({ logger: this.#logger, diagnostic: this.#diagnostic })
 			// Ensure the internal container uses the same logger/diagnostic so components inherit them

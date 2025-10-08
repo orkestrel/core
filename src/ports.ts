@@ -2,6 +2,7 @@ import type { Token, TokensOf } from './types.js'
 import { createTokens, createToken } from './types.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import { NoopLogger } from './adapters/logger'
+import { PORTS_MESSAGES } from './diagnostics.js'
 
 /**
  * Create a set of Port tokens based on a shape.
@@ -40,7 +41,7 @@ export function extendPorts<Base extends Record<string, Token<unknown>>, Ext ext
 	const ext = maybeExt
 	for (const k of Object.keys(ext)) {
 		if (k in base) {
-			new DiagnosticAdapter({ logger: new NoopLogger() }).fail('ORK1040', { scope: 'internal', message: `extendPorts: duplicate port key '${k}'` })
+			new DiagnosticAdapter({ logger: new NoopLogger(), messages: PORTS_MESSAGES }).fail('ORK1040', { scope: 'internal', message: `extendPorts: duplicate port key '${k}'` })
 		}
 	}
 	const newTokens = createTokens('ports', ext)

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { isLifecycleErrorDetail, DiagnosticAdapter } from '@orkestrel/core'
+import { isLifecycleErrorDetail, DiagnosticAdapter, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES, CONTAINER_MESSAGES, REGISTRY_MESSAGES, QUEUE_MESSAGES, PORTS_MESSAGES } from '@orkestrel/core'
 import type { LoggerPort, LogLevel, LifecycleErrorDetail } from '@orkestrel/core'
 
 class FakeLogger implements LoggerPort {
@@ -114,5 +114,66 @@ test('Diagnostics suite', async (t) => {
 		d.error(new Error('original'))
 		assert.equal(logger.entries[0].level, 'error')
 		assert.equal(logger.entries[0].message, 'oops mapped')
+	})
+
+	// Domain message maps resolution
+	await t.test('orchestrator + lifecycle + internal message maps', () => {
+		const logger = new FakeLogger()
+		const d = new DiagnosticAdapter({ logger, messages: [...ORCHESTRATOR_MESSAGES, ...LIFECYCLE_MESSAGES, ...INTERNAL_MESSAGES] })
+		// orchestrator code
+		d.error(new Error('x'), { code: 'ORK1007' as unknown as never })
+		assert.equal(logger.entries.at(-1)?.message, 'Orchestrator: duplicate registration')
+		// lifecycle help
+		const e = d.help('ORK1021')
+		assert.match(e.message, /Lifecycle: hook timed out/i)
+		// internal fail logs then throws
+		logger.entries = []
+		try {
+			d.fail('ORK1099')
+		}
+		catch (err) {
+			assert.equal(logger.entries[0]?.message, 'Internal invariant')
+			assert.ok(err instanceof Error)
+		}
+	})
+
+	await t.test('container message map', () => {
+		const logger = new FakeLogger()
+		const d = new DiagnosticAdapter({ logger, messages: CONTAINER_MESSAGES })
+		try {
+			d.fail('ORK1005')
+		}
+		catch { /* empty */ }
+		assert.equal(logger.entries[0]?.message, 'Container: already destroyed')
+	})
+
+	await t.test('registry message map', () => {
+		const logger = new FakeLogger()
+		const d = new DiagnosticAdapter({ logger, messages: REGISTRY_MESSAGES })
+		try {
+			d.fail('ORK1001')
+		}
+		catch { /* empty */ }
+		assert.equal(logger.entries[0]?.message, 'Registry: no default instance')
+	})
+
+	await t.test('queue message map', () => {
+		const logger = new FakeLogger()
+		const d = new DiagnosticAdapter({ logger, messages: QUEUE_MESSAGES })
+		try {
+			d.fail('ORK1050')
+		}
+		catch { /* empty */ }
+		assert.equal(logger.entries[0]?.message, 'Queue: capacity exceeded')
+	})
+
+	await t.test('ports message map', () => {
+		const logger = new FakeLogger()
+		const d = new DiagnosticAdapter({ logger, messages: PORTS_MESSAGES })
+		try {
+			d.fail('ORK1040')
+		}
+		catch { /* empty */ }
+		assert.equal(logger.entries[0]?.message, 'Ports: duplicate key')
 	})
 })

@@ -10,7 +10,7 @@ import type {
 	LoggerPort,
 } from './types.js'
 import { LoggerAdapter } from './adapters/logger'
-import { HELP } from './diagnostics.js'
+import { HELP, LIFECYCLE_MESSAGES } from './diagnostics.js'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
@@ -26,7 +26,7 @@ export abstract class Lifecycle {
 		this.emitInitial = opts.emitInitial ?? true
 		// Initialize logger/diagnostic first so dependent adapters inherit them
 		this.#logger = opts.logger ?? new LoggerAdapter()
-		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: LIFECYCLE_MESSAGES })
 		this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>({ logger: this.#logger, diagnostic: this.#diagnostic })
 		this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1, logger: this.#logger, diagnostic: this.#diagnostic })
 	}

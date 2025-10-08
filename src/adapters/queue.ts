@@ -1,6 +1,7 @@
 import type { QueuePort, QueueAdapterOptions, QueueRunOptions, LoggerPort, DiagnosticPort } from '../types.js'
 import { LoggerAdapter } from './logger'
 import { DiagnosticAdapter } from './diagnostic'
+import { QUEUE_MESSAGES } from '../diagnostics.js'
 
 export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	private readonly items: T[] = []
@@ -12,7 +13,7 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	constructor(options: QueueAdapterOptions = {}) {
 		this.capacity = options.capacity
 		this.#logger = options?.logger ?? new LoggerAdapter()
-		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: QUEUE_MESSAGES })
 		this.defaults = {
 			concurrency: options.concurrency,
 			deadline: options.deadline,

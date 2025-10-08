@@ -1,5 +1,5 @@
 import type { RegistryPort, RegistryAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
-import { HELP } from '../diagnostics.js'
+import { HELP, REGISTRY_MESSAGES } from '../diagnostics.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { LoggerAdapter } from './logger'
 
@@ -14,7 +14,7 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	constructor(options: RegistryAdapterOptions<T> = {}) {
 		this.label = options.label ?? 'registry'
 		this.#logger = options.logger ?? new LoggerAdapter()
-		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: REGISTRY_MESSAGES })
 		if (options.default) {
 			this.defaultKey = options.default.key ?? Symbol(`${this.label}.default`)
 			this.store.set(this.defaultKey, options.default.value)

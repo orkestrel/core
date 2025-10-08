@@ -1,6 +1,6 @@
 import { Lifecycle } from './lifecycle.js'
 import { RegistryAdapter } from './adapters/registry.js'
-import { HELP } from './diagnostics.js'
+import { HELP, CONTAINER_MESSAGES } from './diagnostics.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
 	Token,
@@ -56,7 +56,7 @@ export class Container {
 	constructor(opts: ContainerOptions = {}) {
 		this.parent = opts.parent
 		this.#logger = opts.logger ?? new LoggerAdapter()
-		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: CONTAINER_MESSAGES })
 		this.registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 

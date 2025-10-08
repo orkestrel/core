@@ -10,16 +10,18 @@ class FakeLogger implements LoggerPort {
 	}
 }
 
+const logger = new FakeLogger()
+
 test('Diagnostics suite', async (t) => {
 	await t.test('Timeout-like error via DiagnosticAdapter.help', () => {
-		const d = new DiagnosticAdapter({ logger: new FakeLogger() })
+		const d = new DiagnosticAdapter({ logger })
 		const err = d.help('ORK1021', { name: 'TimeoutError', message: 'Hook \'start\' timed out after 123ms' })
 		assert.match(err.message, /timed out/i)
 		assert.equal(err.name, 'TimeoutError')
 	})
 
 	await t.test('aggregate collects errors and surfaces .details/.errors', () => {
-		const d = new DiagnosticAdapter({ logger: new FakeLogger() })
+		const d = new DiagnosticAdapter({ logger })
 		const e1 = new Error('boom1')
 		const e2 = new Error('boom2')
 		try {

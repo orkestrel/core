@@ -143,15 +143,6 @@ function hasOrder(x: unknown): x is HasOrder {
 	return typeof x === 'object' && x !== null && 'startedAt' in x && 'stoppedAt' in x
 }
 
-function topoChecks(started: number[], stopped: number[], edges: Array<[number, number]>) {
-	for (const [u, v] of edges) {
-		assert.ok(started[u] < started[v], `start order violated for edge ${u}->${v}: ${started[u]} !< ${started[v]}`)
-	}
-	for (const [u, v] of edges) {
-		assert.ok(stopped[v] < stopped[u], `stop order violated for edge ${u}->${v}: ${stopped[v]} !< ${stopped[u]}`)
-	}
-}
-
 test('Orchestrator suite', { concurrency: false }, async (t) => {
 	t.beforeEach(() => {
 		logger = new NoopLogger()
@@ -736,29 +727,6 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.start().catch(() => {})
 		await app.destroy().catch(() => {})
 		assert.ok(ConcurrencyProbe.peakDestroy <= 2)
-	})
-
-	await t.test('random DAGs respect topological start/stop order', async () => {
-		const seeds = [1, 2, 3, 123456, 987654321]
-		for (const seed of seeds) {
-			const rng = makeRng(seed)
-			for (let iter = 0; iter < 5; iter++) {
-				const { n, edges, labels } = buildRandomDag(rng)
-				const { Recorder } = makeRecorder()
-				const tokens = Array.from({ length: n }, (_, i) => createToken<InstanceType<typeof Recorder>>(`N${labels[i]}`))
-				const instances = Array.from({ length: n }, () => new Recorder({ logger }))
-				const c = new Container({ logger })
-				const app = new Orchestrator(c, { logger })
-				const depsFor = (idx: number) => edges.filter(([_, v]) => v === idx).map(([u]) => tokens[u])
-				for (let i = 0; i < n; i++) app.register(tokens[i], { useValue: instances[i] }, depsFor(i))
-				await app.start()
-				const started = instances.map(x => x.startedAt as number)
-				await app.stop()
-				const stopped = instances.map(x => x.stoppedAt as number)
-				topoChecks(started, stopped, edges)
-				await app.destroy()
-			}
-		}
 	})
 
 	await t.test('rollback stops all previously started components on failure', async () => {

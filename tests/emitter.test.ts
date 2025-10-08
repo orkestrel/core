@@ -1,10 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { EmitterAdapter } from '@orkestrel/core'
+import { EmitterAdapter, NoopLogger } from '@orkestrel/core'
+
+const logger = new NoopLogger()
 
 test('Emitter suite', async (t) => {
 	await t.test('on/emit calls listeners with args', () => {
-		const em = new EmitterAdapter()
+		const em = new EmitterAdapter({ logger })
 		let called = 0
 		let payload: unknown[] = []
 
@@ -19,7 +21,7 @@ test('Emitter suite', async (t) => {
 	})
 
 	await t.test('off removes a specific listener', () => {
-		const em = new EmitterAdapter()
+		const em = new EmitterAdapter({ logger })
 		let a = 0
 		let b = 0
 		function la() {
@@ -39,7 +41,7 @@ test('Emitter suite', async (t) => {
 	})
 
 	await t.test('removeAllListeners clears all', () => {
-		const em = new EmitterAdapter()
+		const em = new EmitterAdapter({ logger })
 		let count = 0
 		function l() {
 			count++

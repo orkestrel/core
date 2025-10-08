@@ -2,9 +2,11 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventAdapter, NoopLogger } from '@orkestrel/core'
 
+const logger = new NoopLogger()
+
 test('Event suite', async (t) => {
 	await t.test('subscribe/publish sequentially and unsubscribe', async () => {
-		const ev = new EventAdapter({ logger: new NoopLogger() })
+		const ev = new EventAdapter({ logger })
 		const seen: number[] = []
 		const unsub = await ev.subscribe<number>('t', (n) => {
 			seen.push(n)
@@ -21,7 +23,7 @@ test('Event suite', async (t) => {
 		let errCount = 0
 		const ev = new EventAdapter({ onError: () => {
 			errCount++
-		}, sequential: false, logger: new NoopLogger() })
+		}, sequential: false, logger })
 		await ev.subscribe('t', async () => {
 			throw new Error('boom')
 		})
@@ -35,7 +37,7 @@ test('Event suite', async (t) => {
 	})
 
 	await t.test('topics return active topics and clean up', async () => {
-		const bus = new EventAdapter({ logger: new NoopLogger() })
+		const bus = new EventAdapter({ logger })
 		assert.deepEqual(bus.topics(), [])
 		const offA = await bus.subscribe('A', async () => {
 			// no-op
@@ -59,7 +61,7 @@ test('Event suite', async (t) => {
 	})
 
 	await t.test('handler can unsubscribe itself during publish', async () => {
-		const bus = new EventAdapter({ logger: new NoopLogger() })
+		const bus = new EventAdapter({ logger })
 		let calls = 0
 		const off = await bus.subscribe('self', async () => {
 			calls++

@@ -1,6 +1,7 @@
 import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, LoggerPort } from '../types.js'
 import { LoggerAdapter } from './logger'
 import { DiagnosticAdapter } from './diagnostic'
+import { safeInvoke } from '../types.js'
 
 export class EmitterAdapter<EMap extends Record<string, unknown[]> = Record<string, unknown[]>> implements EmitterPort<EMap> {
 	private listeners: Partial<{ [K in keyof EMap]: Set<(...args: EMap[K]) => void> }> = {}
@@ -38,10 +39,7 @@ export class EmitterAdapter<EMap extends Record<string, unknown[]> = Record<stri
 		// snapshot to avoid issues if listeners add/remove during iteration
 		const listeners = Array.from(set)
 		for (const fn of listeners) {
-			try {
-				fn(...args)
-			}
-			catch { /* swallow listener errors */ }
+			safeInvoke(fn, ...args)
 		}
 	}
 

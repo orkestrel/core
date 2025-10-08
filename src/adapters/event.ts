@@ -1,4 +1,5 @@
 import type { EventHandler, EventPort, EventAdapterOptions, LoggerPort, DiagnosticPort } from '../types.js'
+import { safeInvoke } from '../types.js'
 import { LoggerAdapter } from './logger'
 import { DiagnosticAdapter } from './diagnostic'
 
@@ -28,13 +29,17 @@ export class EventAdapter implements EventPort {
 		const handlers = this.map.get(topic)
 		if (!handlers || handlers.size === 0) return
 		const arr = Array.from(handlers) as Array<Handler<T>>
+		const handleErr = (err: unknown) => {
+			safeInvoke(this.onError, err, topic)
+			safeInvoke(this.#diagnostic.error.bind(this.#diagnostic), err, { scope: 'internal', extra: { topic, original: err, originalMessage: err instanceof Error ? err.message : String(err), originalStack: err instanceof Error ? err.stack : undefined } })
+		}
 		if (this.sequential) {
 			for (const h of arr) {
 				try {
 					await h(payload)
 				}
 				catch (err) {
-					this.safeError(err, topic)
+					handleErr(err)
 				}
 			}
 			return
@@ -44,7 +49,7 @@ export class EventAdapter implements EventPort {
 				await h(payload)
 			}
 			catch (err) {
-				this.safeError(err, topic)
+				handleErr(err)
 			}
 		}))
 	}
@@ -65,19 +70,5 @@ export class EventAdapter implements EventPort {
 
 	topics(): ReadonlyArray<string> {
 		return Array.from(this.map.keys())
-	}
-
-	private safeError(err: unknown, topic: string): void {
-		try {
-			this.onError?.(err, topic)
-		}
-		catch { /* swallow */ }
-		// Also emit via diagnostics for richer telemetry (guarded)
-		try {
-			const msg = err instanceof Error ? err.message : String(err)
-			const stk = err instanceof Error ? err.stack : undefined
-			this.#diagnostic.error(err, { scope: 'internal', extra: { topic, original: err, originalMessage: msg, originalStack: stk } })
-		}
-		catch { /* swallow */ }
 	}
 }

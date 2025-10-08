@@ -7,6 +7,7 @@ import type {
 	LoggerPort,
 	MessageMapEntry,
 } from '../types.js'
+import { safeInvoke } from '../types.js'
 import { LoggerAdapter } from './logger'
 
 /**
@@ -39,14 +40,14 @@ export class DiagnosticAdapter implements DiagnosticPort {
 
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void {
 		const resolved = this.resolve(message, { level, message })
-		this.safeLog(resolved.level ?? level, resolved.message ?? message, fields)
+		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? level, resolved.message ?? message, fields)
 	}
 
 	error(err: unknown, context: DiagnosticErrorContext = {}): void {
 		const e = err instanceof Error ? err : new Error(String(err))
 		const key = String(context.code ?? e.name ?? 'error')
 		const resolved = this.resolve(key, { level: 'error', message: e.message })
-		this.safeLog(resolved.level ?? 'error', resolved.message ?? e.message, { err: this.shapeErr(e), ...context })
+		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'error', resolved.message ?? e.message, { err: this.shapeErr(e), ...context })
 	}
 
 	fail(key: string, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): never {
@@ -56,7 +57,7 @@ export class DiagnosticAdapter implements DiagnosticPort {
 		const msg = overrideMsg ?? entry?.message ?? key
 		const e = this.buildError(key, msg, { helpUrl, name, context: rest })
 		// Emit and throw; include code when it is an ORK*-style code or explicitly provided.
-		this.safeLog(level, msg, { err: this.shapeErr(e), ...rest, ...(e.code ? { code: e.code } : {}) })
+		safeInvoke(this.#logger.log.bind(this.#logger), level, msg, { err: this.shapeErr(e), ...rest, ...(e.code ? { code: e.code } : {}) })
 		throw e
 	}
 
@@ -75,23 +76,23 @@ export class DiagnosticAdapter implements DiagnosticPort {
 		const entry = this.#messages.get(key)
 		const level = entry?.level ?? 'error'
 		const msg = (context.message ?? entry?.message ?? key)
-		this.safeLog(level, msg, { err: this.shapeErr(e), ...context, details })
+		safeInvoke(this.#logger.log.bind(this.#logger), level, msg, { err: this.shapeErr(e), ...context, details })
 		throw e
 	}
 
 	metric(name: string, value: number, tags: Record<string, string | number | boolean> = {}): void {
 		const resolved = this.resolve(name, { level: 'info', message: name })
-		this.safeLog(resolved.level ?? 'info', resolved.message ?? name, { value, ...tags })
+		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'info', resolved.message ?? name, { value, ...tags })
 	}
 
 	trace(name: string, payload: Record<string, unknown> = {}): void {
 		const resolved = this.resolve(name, { level: 'debug', message: name })
-		this.safeLog(resolved.level ?? 'debug', resolved.message ?? name, payload)
+		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'debug', resolved.message ?? name, payload)
 	}
 
 	event(name: string, payload: Record<string, unknown> = {}): void {
 		const resolved = this.resolve(name, { level: 'info', message: name })
-		this.safeLog(resolved.level ?? 'info', resolved.message ?? name, payload)
+		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'info', resolved.message ?? name, payload)
 	}
 
 	// ---------------------------
@@ -101,13 +102,6 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	private resolve(key: string, fallback: MessageMapEntry): MessageMapEntry {
 		const entry = this.#messages.get(key)
 		return entry ? { level: entry.level ?? fallback.level, message: entry.message ?? fallback.message } : fallback
-	}
-
-	private safeLog(level: LogLevel, message: string, fields?: Record<string, unknown>): void {
-		try {
-			this.#logger.log(level, message, fields)
-		}
-		catch { /* swallow */ }
 	}
 
 	private shapeErr(e: Error): { name: string, message: string, stack?: string } {

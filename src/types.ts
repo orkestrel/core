@@ -289,6 +289,14 @@ export function isPromiseLike<T = unknown>(x: unknown): x is PromiseLike<T> {
 	return typeof maybeThen === 'function'
 }
 
+/** Safely invoke an optional function with arguments; swallows any errors. */
+export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unknown | Promise<unknown>) | undefined, ...args: TArgs): void {
+	try {
+		fn?.(...args)
+	}
+	catch { /* swallow */ }
+}
+
 // ---------------------------
 // Diagnostic and lifecycle types (shared)
 // ---------------------------
@@ -320,8 +328,6 @@ export type OrkCode
 		| 'ORK1052' // Queue: task timed out
 		| 'ORK1053' // Queue: shared deadline exceeded
 		| 'ORK1099' // Internal invariant
-
-export interface DiagnosticInfo { code: OrkCode, message: string, helpUrl?: string }
 
 export type LifecyclePhase = 'start' | 'stop' | 'destroy'
 export type LifecycleHook = 'create' | 'start' | 'stop' | 'destroy'

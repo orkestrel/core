@@ -35,6 +35,7 @@ import {
 	isFactoryProviderWithTuple,
 	isFactoryProviderNoDeps,
 	tokenDescription,
+	safeInvoke,
 } from './types.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
@@ -157,24 +158,16 @@ export class Orchestrator {
 			for (const { token: tkn, lc, result: r } of results) {
 				if (r.ok) {
 					successes.push({ token: tkn, lc, durationMs: r.durationMs })
-					this.safeCall(this.events?.onComponentStart, { token: tkn, durationMs: r.durationMs })
-					try {
-						this.diagnostic.event('orchestrator.component.start', { token: tokenDescription(tkn), durationMs: r.durationMs })
-					}
-					catch {
-						// swallow
-					}
+					safeInvoke(this.events?.onComponentStart, { token: tkn, durationMs: r.durationMs })
+					// success path diagnostic event
+					safeInvoke(this.diagnostic.event.bind(this.diagnostic), 'orchestrator.component.start', { token: tokenDescription(tkn), durationMs: r.durationMs })
 				}
 				else {
 					const detail: LifecycleErrorDetail = { tokenDescription: tokenDescription(tkn), phase: 'start', context: 'normal', timedOut: r.timedOut ?? false, durationMs: r.durationMs, error: r.error }
 					failures.push(detail)
-					this.safeCall(this.events?.onComponentError, detail)
-					try {
-						this.diagnostic.error(detail.error, { scope: 'orchestrator', token: detail.tokenDescription, phase: 'start', timedOut: detail.timedOut, durationMs: detail.durationMs, extra: { original: detail.error, originalMessage: detail.error.message, originalStack: detail.error.stack } })
-					}
-					catch {
-						// swallow
-					}
+					safeInvoke(this.events?.onComponentError, detail)
+					// failure path diagnostic error
+					safeInvoke(this.diagnostic.error.bind(this.diagnostic), detail.error, { scope: 'orchestrator', token: detail.tokenDescription, phase: 'start', timedOut: detail.timedOut, durationMs: detail.durationMs, extra: { original: detail.error, originalMessage: detail.error.message, originalStack: detail.error.stack } })
 				}
 			}
 			if (failures.length > 0) {
@@ -250,15 +243,11 @@ export class Orchestrator {
 				if (r.errors) errors.push(...r.errors)
 			}
 			const layerIdx = forwardLayers.length - 1 - i
-			if (stopOutcomes.length) this.safeCall(this.tracer?.onPhase, { phase: 'stop', layer: layerIdx, outcomes: stopOutcomes })
-			if (destroyOutcomes.length) this.safeCall(this.tracer?.onPhase, { phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes })
-			try {
-				if (stopOutcomes.length) this.diagnostic.event('orchestrator.phase', { phase: 'stop', layer: layerIdx, outcomes: stopOutcomes })
-				if (destroyOutcomes.length) this.diagnostic.event('orchestrator.phase', { phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes })
-			}
-			catch {
-				// swallow
-			}
+			if (stopOutcomes.length) safeInvoke(this.tracer?.onPhase, { phase: 'stop', layer: layerIdx, outcomes: stopOutcomes })
+			if (destroyOutcomes.length) safeInvoke(this.tracer?.onPhase, { phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes })
+			// diagnostics for phases guarded
+			safeInvoke(this.diagnostic.event.bind(this.diagnostic), 'orchestrator.phase', { phase: 'stop', layer: layerIdx, outcomes: stopOutcomes.length ? stopOutcomes : undefined })
+			safeInvoke(this.diagnostic.event.bind(this.diagnostic), 'orchestrator.phase', { phase: 'destroy', layer: layerIdx, outcomes: destroyOutcomes.length ? destroyOutcomes : undefined })
 		}
 		try {
 			await this.container.destroy()
@@ -317,13 +306,9 @@ export class Orchestrator {
 		const layers = this.layer.compute(nodes)
 		this.layers = layers
 		// tracing: emit computed layers once (guarded)
-		this.safeCall(this.tracer?.onLayers, { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
-		try {
-			this.diagnostic.trace('orchestrator.layers', { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
-		}
-		catch {
-			// swallow
-		}
+		safeInvoke(this.tracer?.onLayers, { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
+		// diagnostic trace guarded
+		safeInvoke(this.diagnostic.trace.bind(this.diagnostic), 'orchestrator.layers', { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
 		return layers
 	}
 
@@ -407,13 +392,9 @@ export class Orchestrator {
 			const out = toOutcome(r)
 			if (out) outcomes.push(out)
 		}
-		if (outcomes.length) this.safeCall(this.tracer?.onPhase, { phase, layer: layerIdxForward, outcomes })
-		try {
-			if (outcomes.length) this.diagnostic.event('orchestrator.phase', { phase, layer: layerIdxForward, outcomes })
-		}
-		catch {
-			// swallow
-		}
+		if (outcomes.length) safeInvoke(this.tracer?.onPhase, { phase, layer: layerIdxForward, outcomes })
+		// diagnostic event guarded
+		safeInvoke(this.diagnostic.event.bind(this.diagnostic), 'orchestrator.phase', { phase, layer: layerIdxForward, outcomes: outcomes.length ? outcomes : undefined })
 		return results
 	}
 
@@ -421,23 +402,13 @@ export class Orchestrator {
 	private async stopToken(tk: Token<unknown>, inst: Lifecycle, timeout: number | undefined, context: LifecycleContext): Promise<{ outcome: Outcome, error?: LifecycleErrorDetail }> {
 		const r = await this.runPhase(inst, 'stop', timeout)
 		if (r.ok) {
-			this.safeCall(this.events?.onComponentStop, { token: tk, durationMs: r.durationMs })
-			try {
-				this.diagnostic.event('orchestrator.component.stop', { token: tokenDescription(tk), durationMs: r.durationMs, context })
-			}
-			catch {
-				// swallow
-			}
+			safeInvoke(this.events?.onComponentStop, { token: tk, durationMs: r.durationMs })
+			safeInvoke(this.diagnostic.event.bind(this.diagnostic), 'orchestrator.component.stop', { token: tokenDescription(tk), durationMs: r.durationMs, context })
 			return { outcome: { token: tokenDescription(tk), ok: true, durationMs: r.durationMs } }
 		}
 		const d: LifecycleErrorDetail = { tokenDescription: tokenDescription(tk), phase: 'stop', context, timedOut: r.timedOut ?? false, durationMs: r.durationMs, error: r.error }
-		this.safeCall(this.events?.onComponentError, d)
-		try {
-			this.diagnostic.error(d.error, { scope: 'orchestrator', token: d.tokenDescription, phase: 'stop', timedOut: d.timedOut, durationMs: d.durationMs, extra: { original: d.error, originalMessage: d.error.message, originalStack: d.error.stack } })
-		}
-		catch {
-			// swallow
-		}
+		safeInvoke(this.events?.onComponentError, d)
+		safeInvoke(this.diagnostic.error.bind(this.diagnostic), d.error, { scope: 'orchestrator', token: d.tokenDescription, phase: 'stop', timedOut: d.timedOut, durationMs: d.durationMs, extra: { original: d.error, originalMessage: d.error.message, originalStack: d.error.stack } })
 		return { outcome: { token: tokenDescription(tk), ok: false, durationMs: r.durationMs, timedOut: r.timedOut }, error: d }
 	}
 
@@ -453,37 +424,20 @@ export class Orchestrator {
 		if (inst.state !== 'destroyed') {
 			const r2 = await this.runPhase(inst, 'destroy', destroyTimeout)
 			if (r2.ok) {
-				this.safeCall(this.events?.onComponentDestroy, { token: tk, durationMs: r2.durationMs })
-				try {
-					this.diagnostic.event('orchestrator.component.destroy', { token: tokenDescription(tk), durationMs: r2.durationMs })
-				}
-				catch {
-					// swallow
-				}
+				safeInvoke(this.events?.onComponentDestroy, { token: tk, durationMs: r2.durationMs })
+				safeInvoke(this.diagnostic.event.bind(this.diagnostic), 'orchestrator.component.destroy', { token: tokenDescription(tk), durationMs: r2.durationMs })
 				out.destroyOutcome = { token: tokenDescription(tk), ok: true, durationMs: r2.durationMs }
 			}
 			else {
 				const d2: LifecycleErrorDetail = { tokenDescription: tokenDescription(tk), phase: 'destroy', context: 'normal', timedOut: r2.timedOut ?? false, durationMs: r2.durationMs, error: r2.error }
-				this.safeCall(this.events?.onComponentError, d2)
-				try {
-					this.diagnostic.error(d2.error, { scope: 'orchestrator', token: d2.tokenDescription, phase: 'destroy', timedOut: d2.timedOut, durationMs: d2.durationMs, extra: { original: d2.error, originalMessage: d2.error.message, originalStack: d2.error.stack } })
-				}
-				catch {
-					// swallow
-				}
+				safeInvoke(this.events?.onComponentError, d2)
+				safeInvoke(this.diagnostic.error.bind(this.diagnostic), d2.error, { scope: 'orchestrator', token: d2.tokenDescription, phase: 'destroy', timedOut: d2.timedOut, durationMs: d2.durationMs, extra: { original: d2.error, originalMessage: d2.error.message, originalStack: d2.error.stack } })
 				out.destroyOutcome = { token: tokenDescription(tk), ok: false, durationMs: r2.durationMs, timedOut: r2.timedOut }
 				localErrors.push(d2)
 			}
 		}
 		if (localErrors.length) out.errors = localErrors
 		return out
-	}
-
-	private safeCall<TArgs extends unknown[]>(fn: ((...args: TArgs) => void | Promise<void>) | undefined, ...args: TArgs): void {
-		try {
-			fn?.(...args)
-		}
-		catch { /* swallow */ }
 	}
 
 	/** Dedupe dependencies and remove self-dependency while preserving order. */

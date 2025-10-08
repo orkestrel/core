@@ -11,6 +11,7 @@ import type {
 } from './types.js'
 import { LoggerAdapter } from './adapters/logger'
 import { HELP, LIFECYCLE_MESSAGES } from './diagnostics.js'
+import { safeInvoke } from './types.js'
 
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
@@ -43,12 +44,7 @@ export abstract class Lifecycle {
 		this._state = next
 		this.emitter.emit('transition', next)
 		// diagnostics event (guarded)
-		try {
-			this.diagnostics.event('lifecycle.transition', { state: next })
-		}
-		catch {
-			// swallow
-		}
+		safeInvoke(this.diagnostics.event.bind(this.diagnostics), 'lifecycle.transition', { state: next })
 	}
 
 	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
@@ -75,12 +71,7 @@ export abstract class Lifecycle {
 			await this.queue.run(tasks, { deadline: this.timeouts, concurrency: 1 })
 			this.setState(target)
 			this.emitter.emit(hookName)
-			try {
-				this.diagnostics.event('lifecycle.hook', { hook: hookName, to: target })
-			}
-			catch {
-				// swallow
-			}
+			safeInvoke(this.diagnostics.event.bind(this.diagnostics), 'lifecycle.hook', { hook: hookName, to: target })
 		}
 		catch (err) {
 			// Map queue timeouts/shared-deadline errors to a named TimeoutError-like error; pass through others
@@ -89,14 +80,9 @@ export abstract class Lifecycle {
 				? this.diagnostics.help('ORK1021', { name: 'TimeoutError', message: `Hook '${hookName}' timed out after ${this.timeouts}ms`, hook: hookName, timedOut: true })
 				: this.diagnostics.help('ORK1022', { name: 'HookError', message: `Hook '${hookName}' failed`, hook: hookName })
 			this.emitter.emit('error', wrapped)
-			try {
-				const originalMessage = (err instanceof Error) ? err.message : undefined
-				const originalStack = (err instanceof Error) ? err.stack : undefined
-				this.diagnostics.error(wrapped, { scope: 'lifecycle', hook: hookName, timedOut: isTimeout, extra: { original: err, originalMessage, originalStack } })
-			}
-			catch {
-				// swallow
-			}
+			const originalMessage = (err instanceof Error) ? err.message : undefined
+			const originalStack = (err instanceof Error) ? err.stack : undefined
+			safeInvoke(this.diagnostics.error.bind(this.diagnostics), wrapped, { scope: 'lifecycle', hook: hookName, timedOut: isTimeout, extra: { original: err, originalMessage, originalStack } })
 			return Promise.reject(wrapped)
 		}
 	}

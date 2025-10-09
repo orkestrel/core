@@ -54,15 +54,37 @@ import { RegistryAdapter } from './adapters/registry.js'
 import { LayerAdapter } from './adapters/layer.js'
 import { QueueAdapter } from './adapters/queue.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
-import { LoggerAdapter } from './adapters/logger.js'
+import { LoggerAdapter } from './adapters/logger'
 import { HELP, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES } from './constants.js'
 
 /**
  * Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
  *
- * - Enforces async provider guards at registration time.
- * - Aggregates errors per phase with stable diagnostics codes.
- * - Supports telemetry via events and optional debug tracing of layers/phases.
+ * Responsibilities
+ * - Validates dependency graphs (unknown dependencies and cycles are rejected).
+ * - Guards providers to ensure synchronous creation (no async factories/values).
+ * - Executes lifecycle phases in topological layers with optional concurrency and per-phase timeouts.
+ * - Aggregates failures per phase with stable diagnostic codes.
+ * - Supports telemetry via events and an optional tracer.
+ *
+ * Quick start
+ * -----------
+ * ```ts
+ * import { Orchestrator, Container, Adapter, createToken, register } from '@orkestrel/core'
+ *
+ * class A extends Adapter {}
+ * class B extends Adapter {}
+ * const TA = createToken<A>('A')
+ * const TB = createToken<B>('B')
+ *
+ * const c = new Container()
+ * const app = new Orchestrator(c)
+ * await app.start([
+ *   register(TA, { useFactory: () => new A() }),
+ *   register(TB, { useFactory: () => new B() }, { dependencies: [TA] }),
+ * ])
+ * await app.destroy()
+ * ```
  */
 export class Orchestrator {
 	readonly #container: Container
@@ -81,6 +103,10 @@ export class Orchestrator {
 	 * - Pass a Container to bind to an existing one.
 	 * - Or pass options to construct with a new internal Container.
 	 * - Or pass both.
+	 * @param containerOrOpts
+	 * @param maybeOpts
+	 * @returns -
+	 * @example
 	 */
 	constructor(containerOrOpts?: Container | OrchestratorOptions, maybeOpts?: OrchestratorOptions) {
 		if (containerOrOpts instanceof Container) {
@@ -107,16 +133,35 @@ export class Orchestrator {
 	}
 
 	// Public API
+
 	/** Get the underlying Container bound to this orchestrator. */
 	get container(): Container { return this.#container }
+
+	/** Layering adapter used to compute dependency layers. */
 	get layer(): LayerPort { return this.#layer }
+
+	/** Queue adapter used to run per-layer jobs with optional concurrency. */
 	get queue(): QueuePort { return this.#queue }
+
+	/** Logger port in use (propagated to internal adapters when not provided). */
 	get logger(): LoggerPort { return this.#logger }
+
+	/** Diagnostic port for logging, metrics, traces, and errors. */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
 	 * Register a component provider with optional explicit dependencies/timeouts.
 	 * Throws on duplicate registrations or async provider shapes.
+	 *
+	 * @typeParam T - Token value type.
+	 * @param token - Component token to register.
+	 * @param provider - Provider implementation (value/factory/class).
+	 * @param dependencies - Tokens this component depends on (topological order).
+	 * @param timeouts - Per-component timeouts (number for all phases, or per-phase object).
+	 *
+	 * @example
+	 * app.register(TOKEN, { useFactory: () => new MyAdapter() }, [DEP1, DEP2], { onStart: 1000 })
+	 * @returns -
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
 		if (this.nodes.has(token)) {
@@ -130,9 +175,15 @@ export class Orchestrator {
 	}
 
 	/**
-	 * Start all components in dependency order. Optionally register additional components first.
-	 * On failure, previously started components are rolled back (stopped) in reverse order.
-	 * Aggregates errors with code ORK1013.
+	 * Start all components in dependency order.
+	 *
+	 * - Optionally provides additional registration entries to register and start in one call.
+	 * - On failure, previously started components are rolled back (stopped) in reverse order.
+	 * - Aggregates errors with code ORK1013.
+	 *
+	 * @param regs - Optional registration entries to register before starting.
+	 * @returns -
+	 * @example
 	 */
 	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
 		// Register any provided components first
@@ -203,7 +254,11 @@ export class Orchestrator {
 		}
 	}
 
-	/** Stop started components in reverse dependency order; aggregates ORK1014 on failure. */
+	/**
+	 * Stop started components in reverse dependency order.
+	 * Aggregates ORK1014 on failure.
+	 * @example
+	 */
 	async stop(): Promise<void> {
 		const forwardLayers = this.topoLayers()
 		const layers = forwardLayers.slice().reverse()
@@ -229,6 +284,11 @@ export class Orchestrator {
 	/**
 	 * Stop (when needed) and destroy all components, then destroy the container.
 	 * Aggregates ORK1017 on failure and includes container cleanup errors.
+	 *
+	 * @example
+	 * ```ts
+	 * await app.destroy() // ensures stop then destroy for all Lifecycle components
+	 * ```
 	 */
 	async destroy(): Promise<void> {
 		const forwardLayers = this.topoLayers()
@@ -280,7 +340,7 @@ export class Orchestrator {
 	// Internals (helpers)
 	// ---------------------------
 
-	// Provider guard adjacent to register
+	// Guard provider shapes against async values and functions immediately upon registration
 	private guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
 		const desc = tokenDescription(token)
 		// Raw value first – disallow Promise-like values
@@ -349,11 +409,13 @@ export class Orchestrator {
 		return layers
 	}
 
+	// Group tokens by reverse layer order to drive stop/destroy phases correctly
 	private groupByLayerOrder(tokens: ReadonlyArray<Token<unknown>>): Token<unknown>[][] {
 		const layers = this.topoLayers()
 		return this.layer.group(tokens, layers)
 	}
 
+	// Retrieve node metadata for a token or fail if unknown (internal invariant)
 	private getNodeEntry(token: Token<unknown>): NodeEntry {
 		const n = this.nodes.get(token)
 		if (!n) {
@@ -362,6 +424,7 @@ export class Orchestrator {
 		return n
 	}
 
+	// Resolve per-node or default timeouts for a phase
 	private getTimeout(token: Token<unknown>, phase: LifecyclePhase): number | undefined {
 		const perNode = this.getNodeEntry(token).timeouts
 		let fromNode: number | undefined
@@ -382,6 +445,7 @@ export class Orchestrator {
 		return fromNode ?? fromDefault
 	}
 
+	// monotonic-ish clock helper (prefers performance.now when available)
 	private now(): number {
 		const g: unknown = globalThis
 		if (hasSchema(g, { performance: { now: (v: unknown): v is () => number => typeof v === 'function' } })) {
@@ -480,7 +544,12 @@ export class Orchestrator {
 		return out
 	}
 
-	/** Dedupe dependencies and remove self-dependency while preserving order. */
+	/**
+	 * Dedupe dependencies and remove self-dependency while preserving order.
+	 * @param token
+	 * @param dependencies
+	 * @returns -
+	 */
 	private normalizeDependencies(token: Token<unknown>, dependencies: ReadonlyArray<Token<unknown>>): Token<unknown>[] {
 		const seen = new Set<Token<unknown>>()
 		const out: Token<unknown>[] = []
@@ -499,6 +568,16 @@ const orchestratorRegistry = new RegistryAdapter<Orchestrator>({ label: 'orchest
  * Global orchestrator getter.
  * - Returns the default or a named orchestrator instance bound to a container.
  * - Manage instances via set/clear/list; use using() to run scoped work.
+ *
+ * Example
+ * -------
+ * ```ts
+ * import { orchestrator, createToken, register, Container } from '@orkestrel/core'
+ *
+ * const app = orchestrator()
+ * const T = createToken<number>('val')
+ * await app.container.using(scope => scope.set(T, 7))
+ * ```
  */
 export const orchestrator = Object.assign(
 	(name?: string | symbol): Orchestrator => orchestratorRegistry.resolve(name),
@@ -552,6 +631,17 @@ export function register<T>(token: Token<T>, provider: T | ValueProvider<T> | Fa
  * - Accepts tuple or object inject providers, or value/no-deps providers.
  * - options.dependencies: array or record of tokens; self-dependencies are ignored and duplicates are deduped.
  * - options.timeouts: per-node timeouts (number or per-phase object).
+ *
+ * @typeParam T - Token value type.
+ * @param token - The component token.
+ * @param provider - Provider implementation (value/factory/class).
+ * @param options - Optional dependencies and timeouts.
+ * @returns A registration entry suitable for Orchestrator.start([...]).
+ *
+ * @example
+ * const entry = register(TOKEN, { useClass: Impl, inject: [DEP_A, DEP_B] }, { dependencies: [DEP_A, DEP_B] })
+ * await app.start([entry])
+ * ```
  */
 export function register<T>(token: Token<T>, provider: Provider<T>, options: RegisterOptions = {}): OrchestratorRegistration<T> {
 	const deps = normalizeDeps(options.dependencies)

@@ -12,7 +12,7 @@ class MyAdapter extends Adapter {
 	protected async onDestroy(): Promise<void> { this.calls.push('destroy') }
 }
 
-test('Adapter base class suite', async (t) => {
+test('Adapter suite', async (t) => {
 	await t.test('inherits Lifecycle behavior and invokes protected hooks', async () => {
 		const a = new MyAdapter({ logger })
 		assert.equal(a.state, 'created')

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { isLifecycleErrorDetail, DiagnosticAdapter, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES, CONTAINER_MESSAGES, REGISTRY_MESSAGES, QUEUE_MESSAGES, PORTS_MESSAGES } from '@orkestrel/core'
-import type { LoggerPort, LogLevel, LifecycleErrorDetail } from '@orkestrel/core'
+import { DiagnosticAdapter, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES, CONTAINER_MESSAGES, REGISTRY_MESSAGES, QUEUE_MESSAGES, PORTS_MESSAGES, isAggregateLifecycleError } from '@orkestrel/core'
+import type { LoggerPort, LogLevel } from '@orkestrel/core'
 
 class FakeLogger implements LoggerPort {
 	public entries: { level: LogLevel, message: string, fields?: Record<string, unknown> }[] = []
@@ -12,7 +12,7 @@ class FakeLogger implements LoggerPort {
 
 const logger = new FakeLogger()
 
-test('Diagnostics suite', async (t) => {
+test('Diagnostic suite', async (t) => {
 	await t.test('Timeout-like error via DiagnosticAdapter.help', () => {
 		const d = new DiagnosticAdapter({ logger })
 		const err = d.help('ORK1021', { name: 'TimeoutError', message: 'Hook \'start\' timed out after 123ms' })
@@ -29,7 +29,8 @@ test('Diagnostics suite', async (t) => {
 			assert.fail('should throw')
 		}
 		catch (e) {
-			const agg = e as Error & { details?: LifecycleErrorDetail[], errors?: Error[] }
+			assert.ok(isAggregateLifecycleError(e))
+			const agg = e
 			assert.equal(agg.message, 'agg')
 			assert.ok(Array.isArray(agg.details))
 			assert.equal(agg.details?.length, 2)
@@ -38,19 +39,18 @@ test('Diagnostics suite', async (t) => {
 		}
 	})
 
-	await t.test('isLifecycleErrorDetail returns true for valid details', () => {
-		const e1: LifecycleErrorDetail = { tokenDescription: 'A', phase: 'start', context: 'normal', durationMs: 5, error: new Error('x'), timedOut: false }
-		const e2: LifecycleErrorDetail = { tokenDescription: 'B', phase: 'stop', context: 'rollback', durationMs: 1, error: new Error('y'), timedOut: true }
-		assert.equal(isLifecycleErrorDetail(e1), true)
-		assert.equal(isLifecycleErrorDetail(e2), true)
-	})
-
-	await t.test('isLifecycleErrorDetail returns false for invalid shapes', () => {
-		assert.equal(isLifecycleErrorDetail(null), false)
-		assert.equal(isLifecycleErrorDetail({}), false)
-		assert.equal(isLifecycleErrorDetail({ tokenDescription: 'x' }), false)
-		assert.equal(isLifecycleErrorDetail({ tokenDescription: 'x', phase: 'start', context: 'normal', timedOut: false, durationMs: 'nope', error: new Error('z') }), false)
-		assert.equal(isLifecycleErrorDetail({ tokenDescription: 'x', phase: 'start', context: 'normal', timedOut: false, durationMs: 1, error: 'err' }), false)
+	// Tiny shape guard spot-checks for convenience
+	await t.test('isAggregateLifecycleError shape checks (valid/invalid)', () => {
+		const d = new DiagnosticAdapter({ logger })
+		try {
+			d.aggregate('ORK1017', [new Error('x')], { message: 'agg' })
+			assert.fail('should throw')
+		}
+		catch (e) {
+			assert.equal(isAggregateLifecycleError(e), true)
+		}
+		assert.equal(isAggregateLifecycleError(null), false)
+		assert.equal(isAggregateLifecycleError({}), false)
 	})
 
 	// DiagnosticAdapter tests (unified messages mapping)

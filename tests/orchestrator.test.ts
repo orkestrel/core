@@ -1,10 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type {
-	AggregateLifecycleError,
-	Provider } from '@orkestrel/core'
+import type { Provider } from '@orkestrel/core'
 import { NoopLogger,
 	Orchestrator, orchestrator, createToken, Container, Adapter, register, tokenDescription, QueueAdapter,
+	isAggregateLifecycleError, isLifecycleErrorDetail,
 } from '@orkestrel/core'
 
 let logger: NoopLogger
@@ -51,9 +50,13 @@ class SlowStart extends Adapter {
 	}
 }
 
-class FailingStop extends Adapter {
-	protected async onStop(): Promise<void> {
-		throw new Error('stop-fail')
+class FailingStopDestroyComponent extends Adapter {
+	protected async onStop() {
+		throw new Error('stop-bad')
+	}
+
+	protected async onDestroy() {
+		throw new Error('destroy-bad')
 	}
 }
 
@@ -194,7 +197,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			const e2 = err as WithDiag
 			assert.equal(e2.code, 'ORK1009')
 			if (typeof e2.helpUrl === 'string') {
-				assert.ok(e2.helpUrl.includes('/docs/overview.md'))
+				assert.ok(e2.helpUrl.includes('/docs/api/index.html'), `helpUrl should include '/docs/api/index.html'; actual: ${e2.helpUrl}`)
 			}
 			return true
 		})
@@ -211,17 +214,9 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		orch.register(BAD, { useValue: bad }, [GOOD])
 		await assert.rejects(async () => orch.start(), (err: unknown) => {
 			// verify aggregate code and that details include ORK1022 for the failing start
-			if (typeof err === 'object' && err !== null) {
-				const maybeDetails = (err as { details?: unknown }).details
-				if (Array.isArray(maybeDetails)) {
-					const hasHookFail = maybeDetails.some((d) => {
-						if (typeof d !== 'object' || d === null) return false
-						const e = (d as { error?: unknown }).error
-						const code = (e && typeof e === 'object' && 'code' in e) ? (e as { code?: unknown }).code : undefined
-						return typeof code === 'string' && code === 'ORK1022'
-					})
-					if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated start error details')
-				}
+			if (isAggregateLifecycleError(err)) {
+				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')
+				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated start error details')
 			}
 			return true
 		})
@@ -260,14 +255,8 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			// removed formatted prefix assertion
 			type WithDiag = Error & { code?: string }
 			assert.equal((err as WithDiag).code, 'ORK1017')
-			const details = (err as { details?: unknown }).details
-			if (Array.isArray(details)) {
-				const hasHookFail = details.some((d) => {
-					if (typeof d !== 'object' || d === null) return false
-					const e = (d as { error?: unknown }).error
-					const code = (e && typeof e === 'object' && 'code' in e) ? (e as { code?: unknown }).code : undefined
-					return typeof code === 'string' && code === 'ORK1022'
-				})
+			if (isAggregateLifecycleError(err)) {
+				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')
 				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated destroy error details')
 			}
 			return true
@@ -328,8 +317,10 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		// removed formatted prefix assertion
 		type WithDiag = Error & { code?: string }
 		assert.equal((err as WithDiag).code, 'ORK1013')
-		const details = (err as AggregateLifecycleError).details
+		assert.ok(isAggregateLifecycleError(err))
+		const details = err.details
 		assert.ok(Array.isArray(details))
+		assert.ok(details.every(isLifecycleErrorDetail))
 		assert.ok(details.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
 		assert.ok(details.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
 	})
@@ -350,38 +341,34 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		// removed formatted prefix assertion
 		type WithDiag2 = Error & { code?: string }
 		assert.equal((err as WithDiag2).code, 'ORK1014')
-		const details = (err as AggregateLifecycleError).details
+		assert.ok(isAggregateLifecycleError(err))
+		const details = err.details
 		assert.ok(Array.isArray(details))
+		assert.ok(details.every(isLifecycleErrorDetail))
 		assert.ok(details.some(d => d.tokenDescription === 'SLOW_STOP' && d.phase === 'stop' && d.timedOut && Number.isFinite(d.durationMs)))
 		assert.ok(details.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
 	})
 
-	await t.test('stop aggregates multiple stop failures', async () => {
-		const F1 = createToken<FailingStop>('F1')
-		const F2 = createToken<FailingStop>('F2')
-		const orch = new Orchestrator(new Container({ logger }), { logger })
-		orch.register(F1, { useFactory: () => new FailingStop({ logger }) })
-		orch.register(F2, { useFactory: () => new FailingStop({ logger }) })
-		await orch.start()
-		await assert.rejects(() => orch.stop(), (err: unknown) => {
+	await t.test('destroy() aggregates stop and destroy errors', async () => {
+		const FB = createToken<FailingStopDestroyComponent>('FB')
+		const app = new Orchestrator(new Container({ logger }), { logger })
+		await app.start([register(FB, { useFactory: () => new FailingStopDestroyComponent({ logger }) })])
+		await assert.rejects(() => app.destroy(), (err: unknown) => {
 			assert.ok(err instanceof Error)
-			assert.match((err as Error).message, /Errors during stop/)
+			assert.match((err as Error).message, /Errors during destroy/)
 			// removed formatted prefix assertion
-			type WithDiag3 = Error & { code?: string }
-			assert.equal((err as WithDiag3).code, 'ORK1014')
-			const details = (err as { details?: unknown }).details
-			if (Array.isArray(details)) {
-				const hasHookFail = details.some((d) => {
-					if (typeof d !== 'object' || d === null) return false
-					const e = (d as { error?: unknown }).error
-					const code = (e && typeof e === 'object' && 'code' in e) ? (e as { code?: unknown }).code : undefined
-					return typeof code === 'string' && code === 'ORK1022'
-				})
-				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated stop error details')
-			}
+			type WithDiag = Error & { code?: string }
+			assert.equal((err as WithDiag).code, 'ORK1017')
+			assert.ok(isAggregateLifecycleError(err))
+			const details = err.details
+			assert.ok(Array.isArray(details))
+			assert.ok(details.every(isLifecycleErrorDetail))
+			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'stop'))
+			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'destroy'))
 			return true
 		})
-		await orch.destroy().catch(() => {})
+
+		await app.destroy().catch(() => {})
 	})
 
 	await t.test('async provider guard: useValue Promise throws at registration', () => {
@@ -566,33 +553,6 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.equal(b.stopped, true)
 		assert.equal(a.state, 'destroyed')
 		assert.equal(b.state, 'destroyed')
-	})
-
-	await t.test('destroy() aggregates stop and destroy errors', async () => {
-		class FailBoth extends Adapter {
-			protected async onStop() {
-				throw new Error('stop-bad')
-			}
-
-			protected async onDestroy() {
-				throw new Error('destroy-bad')
-			}
-		}
-		const FB = createToken<FailBoth>('FB')
-		const app = new Orchestrator(new Container({ logger }), { logger })
-		await app.start([register(FB, { useFactory: () => new FailBoth({ logger }) })])
-		await assert.rejects(() => app.destroy(), (err: unknown) => {
-			assert.ok(err instanceof Error)
-			assert.match((err as Error).message, /Errors during destroy/)
-			// removed formatted prefix assertion
-			type WithDiag = Error & { code?: string }
-			assert.equal((err as WithDiag).code, 'ORK1017')
-			const details = (err as AggregateLifecycleError).details
-			assert.ok(Array.isArray(details))
-			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'stop'))
-			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'destroy'))
-			return true
-		})
 	})
 
 	await t.test('tracer emits layers and per-phase outcomes', async () => {
@@ -908,7 +868,8 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			stopErr = e
 		}
 		assert.ok(stopErr instanceof Error)
-		const det = (stopErr as AggregateLifecycleError).details
+		assert.ok(isAggregateLifecycleError(stopErr))
+		const det = stopErr.details
 		assert.ok(Array.isArray(det))
 		assert.ok(det.some(d => d.tokenDescription === 'NumDef:SlowBoth' && d.timedOut && d.phase === 'stop'))
 		await app.destroy().catch(() => {})

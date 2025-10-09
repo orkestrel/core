@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createToken, Container, container, Adapter, NoopLogger } from '@orkestrel/core'
+import { createToken, Container, container, Adapter, NoopLogger, isAggregateLifecycleError } from '@orkestrel/core'
 
 let logger: NoopLogger
 
@@ -138,7 +138,16 @@ test('Container suite', { concurrency: false }, async (t) => {
 		const inst = c.resolve(BAD)
 		await inst.start()
 		await inst.stop()
-		await assert.rejects(() => c.destroy(), /Errors during container destroy/)
+		await assert.rejects(() => c.destroy(), (err: unknown) => {
+			assert.ok(err instanceof Error)
+			assert.match((err as Error).message, /Errors during container destroy/)
+			assert.ok(isAggregateLifecycleError(err))
+			// container aggregate code
+			assert.equal((err as Error & { code?: string }).code, 'ORK1016')
+			assert.ok(err.details.length >= 1)
+			assert.equal(err.details.length, err.errors.length)
+			return true
+		})
 		// Second call should not throw (already destroyed)
 		await c.destroy()
 	})

@@ -7,24 +7,49 @@ import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
 /**
  * In-memory adapter for topological layering using Kahn's algorithm.
  * Provides deterministic O(V+E) layering with strict dependency validation.
+ *
+ * Example
+ * -------
+ * ```ts
+ * const layer = new LayerAdapter()
+ * const nodes = [
+ *   { token: A, dependencies: [] },
+ *   { token: B, dependencies: [A] },
+ * ]
+ * const layers = layer.compute(nodes) // [[A], [B]]
+ * ```
+ *
+ * @throws ORK1008 if a dependency references an unknown token
+ * @throws ORK1009 if a cycle is detected in the dependency graph
  */
 export class LayerAdapter implements LayerPort {
 	readonly #logger: LoggerPort
 	readonly #diagnostic: DiagnosticPort
 
+	/**
+	 *
+	 * @param options
+	 * @returns -
+	 * @example
+	 */
 	constructor(options: LayerAdapterOptions = {}) {
 		this.#logger = options.logger ?? new LoggerAdapter()
 		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: ORCHESTRATOR_MESSAGES })
 	}
 
+	/** Logger backing this adapter. */
 	get logger(): LoggerPort { return this.#logger }
+
+	/** Diagnostic port used for validation errors and tracing. */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
      * Compute topological layers for the given nodes using Kahn's algorithm.
+     * @param nodes
      * @returns Array of layers, where each layer contains tokens with no remaining dependencies.
      * @throws ORK1008 if a dependency references an unknown token
      * @throws ORK1009 if a cycle is detected in the dependency graph
+	 * @example
      */
 	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][] {
 		// Validate dependencies exist
@@ -94,6 +119,10 @@ export class LayerAdapter implements LayerPort {
 	/**
      * Group tokens by their layer order in reverse (highest layer first).
      * Used for stop/destroy operations that need to process in reverse dependency order.
+     * @param tokens
+     * @param layers
+     * @returns -
+	 * @example
      */
 	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][] {
 		const layerIndex = new Map<Token<T>, number>()

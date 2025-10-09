@@ -40,15 +40,43 @@ import {
 	isValueProvider,
 	tokenDescription,
 } from './helpers.js'
-import { LoggerAdapter } from './adapters/logger.js'
+import { LoggerAdapter } from './adapters/logger'
 
 /**
- * Minimal, strongly-typed DI container.
+ * Minimal, strongly-typed DI container for tokens and providers.
  *
- * - Registers providers (value, factory, class) under Tokens.
- * - Resolves single tokens or token maps strictly (resolve) or optionally (get).
- * - Supports child scopes and scoped work via using.
- * - Destroys owned lifecycles on destroy().
+ * Features
+ * - Register value, factory, or class providers under token keys.
+ * - Resolve single tokens or maps strictly (throws on missing) or optionally (returns undefined).
+ * - Create child scopes that inherit providers; use using() to run scoped work with auto cleanup.
+ * - Destroy lifecycle-owning instances deterministically.
+ *
+ * Example
+ * -------
+ * ```ts
+ * import { Container, createToken } from '@orkestrel/core'
+ *
+ * const A = createToken<number>('A')
+ * const B = createToken<string>('B')
+ * const C = createToken<{ a: number, b: string }>('C')
+ *
+ * const c = new Container()
+ * c.set(A, 1)
+ * c.set(B, 'two')
+ * c.register(C, { useFactory: (a, b) => ({ a, b }), inject: [A, B] })
+ *
+ * const merged = c.resolve(C) // { a: 1, b: 'two' }
+ * const { a, b } = c.resolve({ a: A, b: B })
+ *
+ * await c.using(async (scope) => {
+ *   // scoped overrides
+ *   scope.set(A, 99)
+ *   const { a: scopedA } = scope.resolve({ a: A }) // 99
+ *   // scope destroyed automatically afterwards
+ * })
+ *
+ * await c.destroy() // stops and destroys owned Lifecycle instances
+ * ```
  */
 export class Container {
 	readonly #registry: RegistryAdapter<Registration<unknown>>
@@ -57,6 +85,10 @@ export class Container {
 	readonly #diagnostic: DiagnosticPort
 	readonly #logger: LoggerPort
 
+	/**
+	 * Construct a container with optional parent, logger, and diagnostic adapters.
+	 * @param opts
+	 */
 	constructor(opts: ContainerOptions = {}) {
 		this.parent = opts.parent
 		this.#logger = opts.logger ?? new LoggerAdapter()
@@ -64,19 +96,50 @@ export class Container {
 		this.#registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
+	/** Access the diagnostic port used by this container. */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
+	/** Access the logger port used by this container. */
 	get logger(): LoggerPort { return this.#logger }
 
-	// Concise overload set for strong contextual typing
+	// Overload: tuple-injected factory/class providers
+	/**
+	 *
+	 * @param token
+	 * @param provider
+	 * @param lock
+	 */
 	register<T, A extends readonly unknown[]>(token: Token<T>, provider: FactoryProviderWithTuple<T, A> | ClassProviderWithTuple<T, A>, lock?: boolean): this
+	// Overload: object-injected factory/class providers
+	/**
+	 *
+	 * @param token
+	 * @param provider
+	 * @param lock
+	 */
 	register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O> | ClassProviderWithObject<T, O>, lock?: boolean): this
+	// Overload: no-deps/class-or-factory-or-value providers
+	/**
+	 *
+	 * @param token
+	 * @param provider
+	 * @param lock
+	 */
 	register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, lock?: boolean): this
 	/**
 	 * Register a provider under a token.
-	 * @param token - The unique token.
-	 * @param provider - The provider (value/factory/class) or raw value.
+	 *
+	 * Supported shapes
+	 * - Value: { useValue }
+	 * - Factory: { useFactory } with optional inject tuple/object or container arg
+	 * - Class: { useClass } with optional inject tuple/object or container arg
+	 *
+	 * @typeParam T - Token value type.
+	 * @param token - The unique token to associate with the provider.
+	 * @param provider - The provider object or raw value.
 	 * @param lock - When true, prevents re-registration for the same token.
+	 * @returns this for chaining.
+	 * @example
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, lock?: boolean): this {
 		this.assertNotDestroyed()
@@ -84,21 +147,53 @@ export class Container {
 		return this
 	}
 
-	/** Shorthand for registering a value provider. */
+	/**
+	 * Shorthand for registering a value provider.
+	 * @param token
+	 * @param value
+	 * @param lock
+	 * @returns -
+	 * @example
+	 */
 	set<T>(token: Token<T>, value: T, lock?: boolean): void { this.register(token, { useValue: value }, lock) }
 
-	/** Returns true when a provider is available for the token (searches parents). */
+	/**
+	 * Returns true when a provider is available for the token (searches parent containers as well).
+	 * @param token
+	 * @returns -
+	 * @example
+	 */
 	has<T>(token: Token<T>): boolean {
 		return !!this.#registry.get(token) || (this.parent?.has(token) ?? false)
 	}
 
-	// ---------------------------
-	// Strict resolve: token | token map | inject object
-	// ---------------------------
-
+	// Overload: resolve a single token
+	/**
+	 *
+	 * @param token
+	 */
 	resolve<T>(token: Token<T>): T
+	// Overload: resolve a token map to a map of values
+	/**
+	 *
+	 * @param tokens
+	 */
 	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
+	// Overload: resolve an inject object to a plain object
+	/**
+	 *
+	 * @param tokens
+	 */
 	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>): O
+	/**
+	 * Strictly resolve a single token or a token map. Missing tokens cause ORK1006 failures.
+	 *
+	 * @param tokenOrMap - Token to resolve, or a record of tokens to resolve into a map.
+	 * @returns The resolved value for a token, or a map of resolved values when given a record.
+	 *
+	 * @example
+	 * const { a, b } = container.resolve({ a: A, b: B })
+	 */
 	resolve(tokenOrMap: Token<unknown> | TokenRecord): unknown {
 		if (isToken(tokenOrMap)) {
 			const reg = this.lookup(tokenOrMap)
@@ -113,9 +208,24 @@ export class Container {
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: resolve() called with invalid argument' })
 	}
 
+	// Overload: optionally get a single token
+	/**
+	 *
+	 * @param token
+	 */
 	get<T>(token: Token<T>): T | undefined
+	// Overload: optionally get a map of tokens
+	/**
+	 *
+	 * @param tokens
+	 */
 	get<TMap extends TokenRecord>(tokens: TMap): OptionalResolvedMap<TMap>
-	/** Optionally resolve a single token or a map of tokens (missing entries return undefined). */
+	/**
+	 * Optionally resolve a single token or a map of tokens; missing entries return undefined.
+	 * @param tokenOrMap
+	 * @returns -
+	 * @example
+	 */
 	get(tokenOrMap: Token<unknown> | TokenRecord): unknown {
 		if (isToken(tokenOrMap)) {
 			const reg = this.lookup(tokenOrMap)
@@ -130,14 +240,41 @@ export class Container {
 	/** Create a child container that inherits providers from this container. */
 	createChild(): Container { return new Container({ parent: this, diagnostic: this.diagnostic, logger: this.logger }) }
 
-	// Overloads: using(fn) and using(apply, fn)
+	// Overload: using(fn)
+	/**
+	 *
+	 * @param fn
+	 */
 	async using(fn: (scope: Container) => void | Promise<void>): Promise<void>
+	// Overload: using(fn) returning a value
+	/**
+	 *
+	 * @param fn
+	 */
 	async using<T>(fn: (scope: Container) => T | Promise<T>): Promise<T>
+	// Overload: using(apply, fn)
+	/**
+	 *
+	 * @param apply
+	 * @param fn
+	 */
 	async using<T>(apply: (scope: Container) => void | Promise<void>, fn: (scope: Container) => T | Promise<T>): Promise<T>
 	/**
 	 * Run work inside an automatically destroyed child scope.
-	 * - using(fn): create child, run fn(child), destroy child.
-	 * - using(apply, fn): create child, run apply(child) to register overrides, then fn(child), destroy child.
+	 *
+	 * - using(fn): create child, run fn(child), always destroy child afterwards.
+	 * - using(apply, fn): create child, run apply(child) to register overrides, then fn(child).
+	 *
+	 * @typeParam T - Return type of the work function.
+	 * @param arg1 - Work function, or an apply function when `arg2` is provided.
+	 * @param arg2 - Optional work function when using the (apply, fn) overload.
+	 * @returns The value returned by the work function, if any.
+	 *
+	 * @example
+	 * const out = await container.using(async (scope) => {
+	 *   scope.set(A, 41)
+	 *   return scope.resolve(A) + 1
+	 * }) // => 42
 	 */
 	async using(
 		arg1: ((scope: Container) => unknown) | ((scope: Container) => Promise<unknown>),
@@ -154,7 +291,7 @@ export class Container {
 		finally { await scope.destroy() }
 	}
 
-	/** Destroy owned lifecycles (stop if needed, then destroy). Idempotent. */
+	/** Destroy owned Lifecycle instances (stop if needed, then destroy). Idempotent. */
 	async destroy(): Promise<void> {
 		if (this.destroyed) return
 		this.destroyed = true
@@ -181,16 +318,32 @@ export class Container {
 	// Internals
 	// ---------------------------
 
+	/**
+	 * Lookup a registration by token, searching parent containers as needed.
+	 * @param token
+	 * @returns -
+	 */
 	private lookup<T>(token: Token<T>): Registration<T> | undefined {
 		const here = this.#registry.get(token)
 		if (here && this.isRegistrationOf(here, token)) return here
 		return this.parent?.lookup(token)
 	}
 
+	/**
+	 * Narrow a registration to its token type by identity.
+	 * @param reg
+	 * @param token
+	 * @returns -
+	 */
 	private isRegistrationOf<T>(reg: Registration<unknown>, token: Token<T>): reg is Registration<T> {
 		return reg.token === token
 	}
 
+	/**
+	 * Resolve or instantiate a provider tied to a registration (memoized).
+	 * @param reg
+	 * @returns -
+	 */
 	private materialize<T>(reg: Registration<T>): ResolvedProvider<T> {
 		if (reg.resolved) return reg.resolved
 		const resolved = this.instantiate(reg.provider)
@@ -198,6 +351,11 @@ export class Container {
 		return resolved
 	}
 
+	/**
+	 * Instantiate a provider (value/factory/class) and wrap lifecycle if present.
+	 * @param provider
+	 * @returns -
+	 */
 	private instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
 		// Raw value branch first (strict non-provider object)
 		if (isRawProviderValue(provider)) {
@@ -244,17 +402,29 @@ export class Container {
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: unknown provider shape' })
 	}
 
+	/**
+	 * Wrap a value with lifecycle metadata when it is a Lifecycle.
+	 * @param value
+	 * @param disposable
+	 * @returns -
+	 */
 	private wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
 		return value instanceof Lifecycle ? { value, lifecycle: value, disposable } : { value, disposable }
 	}
 
+	/** Ensure the container hasn't been destroyed before mutating state. */
 	private assertNotDestroyed(): void {
 		if (this.destroyed) {
 			this.#diagnostic.fail('ORK1005', { scope: 'container', message: 'Container already destroyed', helpUrl: HELP.container })
 		}
 	}
 
-	// Consolidated map retrieval for resolve()/get()
+	/**
+	 * Consolidated map retrieval for resolve()/get() (strict toggles error behavior).
+	 * @param tokens
+	 * @param strict
+	 * @returns -
+	 */
 	private retrievalMap(tokens: TokenRecord, strict: boolean): Record<string, unknown> {
 		const out: Record<string, unknown> = {}
 		for (const key of Object.keys(tokens)) {
@@ -317,12 +487,22 @@ function containerUsing(
 }
 
 /**
- * Global container instance.
+ * Global container getter and manager.
  *
- * - The default container instance is created automatically.
- * - Use `container.set()` to register additional containers or overrides.
- * - Use `container.resolve()` or `container.get()` to retrieve instances.
- * - Use `container.using()` to run scoped work with automatic cleanup.
+ * Usage
+ * -----
+ * ```ts
+ * import { container, createToken } from '@orkestrel/core'
+ *
+ * const A = createToken<number>('A')
+ * container().set(A, 7)
+ * const v = container.resolve(A) // 7
+ *
+ * await container.using(async (scope) => {
+ *   scope.set(A, 1)
+ *   // scoped registration does not leak
+ * })
+ * ```
  */
 export const container = Object.assign(
 	(name?: string | symbol): Container => containerRegistry.resolve(name),

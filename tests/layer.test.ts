@@ -57,7 +57,7 @@ function buildRandomDag(rng: ReturnType<typeof makeRng>) {
 	return { n, edges, labels }
 }
 
-test('LayerAdapter suite', async (t) => {
+test('Layer suite', async (t) => {
 	await t.test('compute returns deterministic topological layers (Kahn)', () => {
 		const layer = new LayerAdapter({ logger })
 		const layers = layer.compute(nodes())

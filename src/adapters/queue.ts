@@ -6,6 +6,18 @@ import { QUEUE_MESSAGES } from '../constants.js'
 /**
  * QueueAdapter: in-memory queue and task runner with concurrency, per-task timeouts, and shared deadlines.
  * - run() preserves result order and can be aborted via AbortSignal.
+ *
+ * Example
+ * -------
+ * ```ts
+ * const q = new QueueAdapter({ concurrency: 2 })
+ * const results = await q.run([
+ *   async () => 1,
+ *   async () => 2,
+ *   async () => 3,
+ * ], { timeout: 100 })
+ * // results: [1,2,3]
+ * ```
  */
 export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	private readonly items: T[] = []
@@ -14,6 +26,12 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	readonly #logger: LoggerPort
 	readonly #diagnostic: DiagnosticPort
 
+	/**
+	 *
+	 * @param options
+	 * @returns -
+	 * @example
+	 */
 	constructor(options: QueueAdapterOptions = {}) {
 		this.capacity = options.capacity
 		this.#logger = options?.logger ?? new LoggerAdapter()
@@ -26,10 +44,19 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 		}
 	}
 
+	/** Logger backing this adapter. */
 	get logger(): LoggerPort { return this.#logger }
 
+	/** Diagnostic port used for telemetry and error signaling. */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
+	/**
+	 * Enqueue a single item to the in-memory FIFO queue.
+	 * @param item
+	 * @throws ORK1050 when capacity is set and exceeded.
+	 * @returns -
+	 * @example
+	 */
 	async enqueue(item: T): Promise<void> {
 		if (typeof this.capacity === 'number' && this.items.length >= this.capacity) {
 			this.#diagnostic.fail('ORK1050', { scope: 'internal', message: 'QueueAdapter: capacity exceeded' })
@@ -37,9 +64,21 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 		this.items.push(item)
 	}
 
+	/** Dequeue and return the next item, or undefined when empty. */
 	async dequeue(): Promise<T | undefined> { return this.items.length ? this.items.shift() : undefined }
+
+	/** Return the number of items currently enqueued. */
 	async size(): Promise<number> { return this.items.length }
 
+	/**
+	 * Run a set of tasks with optional concurrency, per-task timeouts, and a shared deadline.
+	 * - When both timeout and deadline are provided, the effective cap is the lower of the two per task.
+	 * - If the shared deadline elapses, execution aborts early with code ORK1053.
+	 * @param tasks
+	 * @param options
+	 * @returns -
+	 * @example
+	 */
 	async run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options: QueueRunOptions = {}): Promise<ReadonlyArray<R>> {
 		const opts: QueueRunOptions = { ...this.defaults, ...options }
 		const n = tasks.length

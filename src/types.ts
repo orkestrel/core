@@ -1,6 +1,3 @@
-// Centralized types and helpers shared across the core package
-// NOTE: Only import types from other modules to avoid runtime cycles.
-
 import type { Container } from './container.js'
 import type { Lifecycle } from './lifecycle.js'
 import type { Orchestrator } from './orchestrator.js'
@@ -11,12 +8,28 @@ import type { Orchestrator } from './orchestrator.js'
 
 // Tuple-args event map contract used across Emitter APIs
 export type EventMap = Record<string, unknown[]>
+/** Listener function for a specific event name in an EventMap. */
 export type EmitterListener<EMap extends EventMap, E extends keyof EMap & string> = (...args: EMap[E]) => void
 
+/**
+ * Minimal interface for an event emitter with typed tuple-args events.
+ */
 export interface EmitterPort<EMap extends EventMap = EventMap> {
+	/**
+	 *
+	 */
 	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
+	/**
+	 *
+	 */
 	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
+	/**
+	 *
+	 */
 	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void
+	/**
+	 *
+	 */
 	removeAllListeners(): void
 }
 
@@ -29,16 +42,31 @@ export interface EmitterAdapterOptions {
 // Ports: Event (topic-based pub/sub)
 // ---------------------------
 
+/** Handler for a published payload on a topic. */
 export type EventHandler<T> = (payload: T) => void | Promise<void>
 
+/** Topic-based async pub/sub port. */
 export interface EventPort<EMap extends Record<string, unknown> = Record<string, unknown>> {
+	/**
+	 *
+	 */
 	publish<E extends keyof EMap & string>(topic: E, payload: EMap[E]): Promise<void>
+	/**
+	 *
+	 */
 	subscribe<E extends keyof EMap & string>(topic: E, handler: EventHandler<EMap[E]>): Promise<() => void | Promise<void>>
+	/**
+	 *
+	 */
 	topics(): ReadonlyArray<string>
 }
 
 export interface EventAdapterOptions {
+	/**
+	 *
+	 */
 	readonly onError?: (err: unknown, topic: string) => void
+	/** When true (default), handlers run sequentially; set false to run concurrently. */
 	readonly sequential?: boolean
 	readonly logger?: LoggerPort
 	readonly diagnostic?: DiagnosticPort
@@ -53,8 +81,15 @@ export interface LayerNode<T = unknown> {
 	readonly dependencies: readonly Token<unknown>[]
 }
 
+/** Topological layering contract used by the orchestrator. */
 export interface LayerPort {
+	/**
+	 *
+	 */
 	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][]
+	/**
+	 *
+	 */
 	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][]
 }
 
@@ -62,10 +97,24 @@ export interface LayerPort {
 // Ports: Queue
 // ---------------------------
 
+/**
+ * Asynchronous queue and task runner interface.
+ * Implementations should preserve input order of results.
+ */
 export interface QueuePort<T = unknown> {
+	/**
+	 *
+	 */
 	enqueue(item: T): Promise<void>
+	/**
+	 *
+	 */
 	dequeue(): Promise<T | undefined>
+	/**
+	 *
+	 */
 	size(): Promise<number>
+	/** Run a set of tasks with optional concurrency/timeout/deadline controls. */
 	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: QueueRunOptions): Promise<ReadonlyArray<R>>
 }
 
@@ -89,10 +138,25 @@ export interface QueueAdapterOptions extends QueueRunOptions {
 // ---------------------------
 
 export interface RegistryPort<T> {
+	/**
+	 *
+	 */
 	get(name?: string | symbol): T | undefined
+	/**
+	 *
+	 */
 	resolve(name?: string | symbol): T
+	/**
+	 *
+	 */
 	set(name: string | symbol, value: T, lock?: boolean): void
+	/**
+	 *
+	 */
 	clear(name?: string | symbol, force?: boolean): boolean
+	/**
+	 *
+	 */
 	list(): ReadonlyArray<string | symbol>
 }
 
@@ -115,6 +179,9 @@ export interface LayerAdapterOptions {
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 export interface LoggerPort {
+	/**
+	 *
+	 */
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
 }
 
@@ -134,7 +201,13 @@ export interface DiagnosticErrorContext {
 }
 
 export interface DiagnosticPort {
+	/**
+	 *
+	 */
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
+	/**
+	 *
+	 */
 	error(err: unknown, context?: DiagnosticErrorContext): void
 	/** Construct an Error using the provided key/code and optional message, emit it, then throw. */
 	fail(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
@@ -142,8 +215,17 @@ export interface DiagnosticPort {
 	aggregate(key: string, details: ReadonlyArray<LifecycleErrorDetail | Error>, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
 	/** Build a helpful Error using a known key/code with mapped message and optional hints, without throwing. */
 	help(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): Error
+	/**
+	 *
+	 */
 	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void
+	/**
+	 *
+	 */
 	trace(name: string, payload?: Record<string, unknown>): void
+	/**
+	 *
+	 */
 	event(name: string, payload?: Record<string, unknown>): void
 }
 
@@ -161,8 +243,13 @@ export interface DiagnosticAdapterOptions {
 // Tokens
 // ---------------------------
 
+/**
+ * A unique token used to register and resolve providers and values in a Container.
+ * Backed by a Symbol for identity; the optional description is used for diagnostics.
+ */
 export type Token<T> = symbol & { readonly __t?: T }
 
+/** Map a shape's property types to Tokens of those types. */
 export type TokensOf<T extends Record<string, unknown>> = { [K in keyof T & string]: Token<T[K]> }
 
 // Utility token maps used by Container and helpers
@@ -174,25 +261,30 @@ export type OptionalResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]:
 // Provider type definitions
 // ---------------------------
 
+/** Provide a concrete value directly under a token. */
 export interface ValueProvider<T> { readonly useValue: T }
 
 export type InjectTuple<A extends readonly unknown[]> = { readonly [K in keyof A]: Token<A[K]> }
 export type InjectObject<O extends Record<string, unknown>> = Readonly<{ [K in keyof O]: Token<O[K]> }>
 
+/** Synchronous factory function providers (no deps or container arg). */
 export type FactoryProviderNoDeps<T>
 	= | { readonly useFactory: () => T }
 		| { readonly useFactory: (container: Container) => T }
 
+/** Tuple-injected factory provider. */
 export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
 	readonly useFactory: (...args: A) => T
 	readonly inject: InjectTuple<A>
 }
 
+/** Object-injected factory provider. */
 export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useFactory: (deps: O) => T
 	readonly inject: InjectObject<O>
 }
 
+/** Union of factory provider shapes. */
 export type FactoryProvider<T>
 	= | FactoryProviderNoDeps<T>
 		| FactoryProviderWithTuple<T, readonly unknown[]>
@@ -201,17 +293,22 @@ export type FactoryProvider<T>
 export type CtorNoDeps<T> = new () => T
 export type CtorWithContainer<T> = new (container: Container) => T
 
+/** Class provider without explicit inject; constructor may accept a Container or no args. */
 export type ClassProviderNoDeps<T> = { readonly useClass: CtorNoDeps<T> | CtorWithContainer<T> }
+/** Tuple-injected class provider. */
 export type ClassProviderWithTuple<T, A extends readonly unknown[]> = {
 	readonly useClass: new (...args: A) => T
 	readonly inject: InjectTuple<A>
 }
+/** Object-injected class provider. */
 export type ClassProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useClass: new (deps: O) => T
 	readonly inject: InjectObject<O>
 }
+/** Union of class provider shapes. */
 export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
 
+/** Union of all provider shapes or a raw value. */
 export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
 
 // ---------------------------
@@ -266,6 +363,7 @@ export interface LifecycleErrorDetail {
 export type AggregateLifecycleError = Error & Readonly<{ details: ReadonlyArray<LifecycleErrorDetail>, errors: ReadonlyArray<Error>, code?: string, helpUrl?: string }>
 
 // Lifecycle public types
+/** Lifecycle finite states. */
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
 export interface LifecycleOptions {
 	readonly timeouts?: number
@@ -308,16 +406,31 @@ export type ContainerGetter = {
 
 	/** Resolve via the default or named container (strict). */
 	resolve<T>(token: Token<T>, name?: string | symbol): T
+	/**
+	 *
+	 */
 	resolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
+	/**
+	 *
+	 */
 	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O
 
 	/** Get via the default or named container (optional). */
 	get<T>(token: Token<T>, name?: string | symbol): T | undefined
+	/**
+	 *
+	 */
 	get<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
 
 	/** Run work in a child scope of the default or named container. */
 	using(fn: (c: Container) => void | Promise<void>, name?: string | symbol): Promise<void>
+	/**
+	 *
+	 */
 	using<T>(fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
+	/**
+	 *
+	 */
 	using<T>(apply: (c: Container) => void | Promise<void>, fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
 }
 
@@ -328,6 +441,9 @@ export type ContainerGetter = {
 /** Per-phase timeouts in milliseconds. */
 export type PhaseTimeouts = Readonly<{ onStart?: number, onStop?: number, onDestroy?: number }>
 
+/**
+ *
+ */
 export type Task<T> = () => Promise<T>
 
 export type PhaseResultOk = Readonly<{ ok: true, durationMs: number }>
@@ -350,13 +466,31 @@ export interface OrchestratorRegistration<T> {
 export interface OrchestratorOptions {
 	readonly timeouts?: number | PhaseTimeouts
 	readonly events?: {
+		/**
+		 *
+		 */
 		onComponentStart?: (info: { token: Token<unknown>, durationMs: number }) => void
+		/**
+		 *
+		 */
 		onComponentStop?: (info: { token: Token<unknown>, durationMs: number }) => void
+		/**
+		 *
+		 */
 		onComponentDestroy?: (info: { token: Token<unknown>, durationMs: number }) => void
+		/**
+		 *
+		 */
 		onComponentError?: (detail: LifecycleErrorDetail) => void
 	}
 	readonly tracer?: {
+		/**
+		 *
+		 */
 		onLayers?: (payload: { layers: string[][] }) => void
+		/**
+		 *
+		 */
 		onPhase?: (payload: { phase: LifecyclePhase, layer: number, outcomes: Outcome[] }) => void
 	}
 	readonly layer?: LayerPort
@@ -365,10 +499,20 @@ export interface OrchestratorOptions {
 	readonly diagnostic?: DiagnosticPort
 }
 
+/** Callable getter/manager for global Orchestrator instances. */
 export type OrchestratorGetter = {
 	(name?: string | symbol): Orchestrator
+	/**
+	 *
+	 */
 	set(name: string | symbol, o: Orchestrator, lock?: boolean): void
+	/**
+	 *
+	 */
 	clear(name: string | symbol, force?: boolean): boolean
+	/**
+	 *
+	 */
 	list(): (string | symbol)[]
 }
 

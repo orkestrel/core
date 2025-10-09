@@ -180,4 +180,10 @@ test('Queue suite', async (t) => {
 		})
 		assert.ok(started >= 1)
 	})
+
+	await t.test('run with no tasks returns empty array', async () => {
+		const q = new QueueAdapter({ logger })
+		const out = await q.run([])
+		assert.deepEqual(out, [])
+	})
 })

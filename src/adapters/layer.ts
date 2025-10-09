@@ -5,52 +5,91 @@ import { LoggerAdapter } from './logger.js'
 import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
 
 /**
- * In-memory adapter for topological layering using Kahn's algorithm.
- * Provides deterministic O(V+E) layering with strict dependency validation.
+ * Topological layering adapter using Kahn's algorithm for dependency ordering.
  *
- * Example
- * -------
+ * Computes deterministic layers from a dependency graph in O(V+E) time. Each layer contains
+ * nodes with no remaining dependencies on earlier layers. Validates that all dependencies
+ * exist and detects cycles in the graph. Preserves insertion order within each layer for
+ * determinism.
+ *
+ * @example
  * ```ts
+ * import { LayerAdapter, createToken } from '@orkestrel/core'
+ * const A = createToken('A')
+ * const B = createToken('B')
+ * const C = createToken('C')
  * const layer = new LayerAdapter()
  * const nodes = [
  *   { token: A, dependencies: [] },
  *   { token: B, dependencies: [A] },
+ *   { token: C, dependencies: [A, B] },
  * ]
- * const layers = layer.compute(nodes) // [[A], [B]]
+ * const layers = layer.compute(nodes)
+ * // => [[A], [B], [C]]
  * ```
  *
- * @throws ORK1008 if a dependency references an unknown token
- * @throws ORK1009 if a cycle is detected in the dependency graph
+ * @remarks
+ * Throws ORK1008 if a dependency references an unknown token.
+ * Throws ORK1009 if a cycle is detected in the dependency graph.
  */
 export class LayerAdapter implements LayerPort {
 	readonly #logger: LoggerPort
 	readonly #diagnostic: DiagnosticPort
 
 	/**
+	 * Construct a LayerAdapter with optional logger and diagnostic ports.
 	 *
-	 * @param options
-	 * @returns -
+	 * @param options - Configuration options
+	 * @param options.logger - Optional logger port for diagnostics
+	 * @param options.diagnostic - Optional diagnostic port for validation errors
+	 *
 	 * @example
+	 * ```ts
+	 * const layer = new LayerAdapter({ logger: customLogger })
+	 * ```
 	 */
 	constructor(options: LayerAdapterOptions = {}) {
 		this.#logger = options.logger ?? new LoggerAdapter()
 		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: ORCHESTRATOR_MESSAGES })
 	}
 
-	/** Logger backing this adapter. */
+	/**
+	 * Access the logger port used by this layer adapter.
+	 *
+	 * @returns The configured LoggerPort instance
+	 */
 	get logger(): LoggerPort { return this.#logger }
 
-	/** Diagnostic port used for validation errors and tracing. */
+	/**
+	 * Access the diagnostic port used by this layer adapter for validation errors and tracing.
+	 *
+	 * @returns The configured DiagnosticPort instance
+	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
-     * Compute topological layers for the given nodes using Kahn's algorithm.
-     * @param nodes
-     * @returns Array of layers, where each layer contains tokens with no remaining dependencies.
-     * @throws ORK1008 if a dependency references an unknown token
-     * @throws ORK1009 if a cycle is detected in the dependency graph
+	 * Compute topological layers for the given dependency graph using Kahn's algorithm.
+	 *
+	 * Produces an array of layers where each layer contains tokens that have no remaining
+	 * dependencies on previous layers. Tokens within a layer are ordered by insertion order
+	 * in the input nodes array. Validates that all dependencies exist and detects cycles.
+	 *
+	 * @typeParam T - Token value type
+	 * @param nodes - Array of nodes, each with a token and its dependencies
+	 * @returns Array of layers, each layer is an array of tokens with no remaining dependencies
+	 * @throws Error with code ORK1008 if a dependency references an unknown token
+	 * @throws Error with code ORK1009 if a cycle is detected in the dependency graph
+	 *
 	 * @example
-     */
+	 * ```ts
+	 * const layers = layer.compute([
+	 *   { token: Database, dependencies: [] },
+	 *   { token: UserService, dependencies: [Database] },
+	 *   { token: ApiServer, dependencies: [UserService] },
+	 * ])
+	 * // => [[Database], [UserService], [ApiServer]]
+	 * ```
+	 */
 	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][] {
 		// Validate dependencies exist
 		const present = new Set<symbol>(nodes.map(n => n.token))
@@ -117,13 +156,26 @@ export class LayerAdapter implements LayerPort {
 	}
 
 	/**
-     * Group tokens by their layer order in reverse (highest layer first).
-     * Used for stop/destroy operations that need to process in reverse dependency order.
-     * @param tokens
-     * @param layers
-     * @returns -
+	 * Group tokens by their layer index in reverse order (highest layer first).
+	 *
+	 * Used for stop and destroy operations that need to process components in reverse
+	 * dependency order. Tokens are grouped by their layer index from the original layering,
+	 * then sorted in descending order so dependent components are processed before their
+	 * dependencies.
+	 *
+	 * @typeParam T - Token value type
+	 * @param tokens - Array of tokens to group
+	 * @param layers - Original forward layers computed by `compute()`
+	 * @returns Array of token groups in reverse layer order
+	 *
 	 * @example
-     */
+	 * ```ts
+	 * const layers = [[A], [B], [C]]
+	 * const tokensToStop = [B, C]
+	 * const groups = layer.group(tokensToStop, layers)
+	 * // => [[C], [B]] (reverse order for safe teardown)
+	 * ```
+	 */
 	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][] {
 		const layerIndex = new Map<Token<T>, number>()
 		layers.forEach((layer, idx) => layer.forEach(tk => layerIndex.set(tk, idx)))

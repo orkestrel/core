@@ -4,19 +4,22 @@ import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 
 /**
- * EventAdapter: topic-based async pub/sub.
- * - Sequential mode (default) invokes handlers one-by-one.
- * - Concurrent mode invokes handlers in parallel and isolates errors via onError/diagnostic.
+ * Topic-based asynchronous publish-subscribe event bus.
  *
- * Example
- * -------
+ * Provides an in-memory event bus where handlers can subscribe to topics and publishers can emit payloads.
+ * Supports both sequential (default) and concurrent handler invocation modes. Errors thrown by handlers
+ * are isolated and reported via the optional onError callback and diagnostic port.
+ *
+ * @example
  * ```ts
- * const bus = new EventAdapter({ sequential: true })
- * const unsubscribe = await bus.subscribe('user:created', async (payload: { id: string }) => {
- *   // handle
+ * import { EventAdapter } from '@orkestrel/core'
+ * type Events = { 'user:created': { id: string, name: string }, 'user:deleted': { id: string } }
+ * const bus = new EventAdapter<Events>({ sequential: true })
+ * const unsubscribe = await bus.subscribe('user:created', async (payload) => {
+ *   console.log('User created:', payload.id, payload.name)
  * })
- * await bus.publish('user:created', { id: 'u1' })
- * await unsubscribe() // remove handler
+ * await bus.publish('user:created', { id: 'u1', name: 'Alice' })
+ * await unsubscribe()
  * ```
  */
 export class EventAdapter implements EventPort {
@@ -28,10 +31,21 @@ export class EventAdapter implements EventPort {
 	readonly #diagnostic: DiagnosticPort
 
 	/**
+	 * Construct an EventAdapter with optional configuration.
 	 *
-	 * @param options
-	 * @returns -
+	 * @param options - Configuration options for the event adapter
+	 * @param options.onError - Optional callback invoked when a handler throws an error
+	 * @param options.sequential - When true (default), handlers are invoked sequentially; when false, handlers run concurrently
+	 * @param options.logger - Optional logger port for diagnostics
+	 * @param options.diagnostic - Optional diagnostic port for telemetry
+	 *
 	 * @example
+	 * ```ts
+	 * const bus = new EventAdapter({
+	 *   sequential: false,
+	 *   onError: (err, topic) => console.error(`Error in ${topic}:`, err)
+	 * })
+	 * ```
 	 */
 	constructor(options: EventAdapterOptions = {}) {
 		this.onError = options.onError
@@ -42,25 +56,36 @@ export class EventAdapter implements EventPort {
 	}
 
 	/**
+	 * Access the logger port used by this event adapter.
 	 *
-	 * @example
+	 * @returns The configured LoggerPort instance
 	 */
 	get logger(): LoggerPort { return this.#logger }
 
 	/**
+	 * Access the diagnostic port used by this event adapter.
 	 *
-	 * @example
+	 * @returns The configured DiagnosticPort instance
 	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
+	/** Type guard to narrow unknown values to EventHandler. */
 	private isHandler<T>(v: unknown): v is EventHandler<T> { return typeof v === 'function' }
 
 	/**
-	 * Publish a payload to a topic; handlers are awaited according to sequential/concurrent mode.
-	 * @param topic - Topic string
-	 * @param payload - Payload value for the topic
-	 * @returns -
+	 * Publish a payload to a topic, invoking all subscribed handlers.
+	 *
+	 * In sequential mode (default), handlers are awaited one-by-one in subscription order.
+	 * In concurrent mode, handlers are invoked in parallel via Promise.all.
+	 * Handler errors are isolated and reported via onError and diagnostic callbacks.
+	 *
+	 * @param topic - The topic name to publish to
+	 * @param payload - The payload value to pass to all subscribed handlers
+	 *
 	 * @example
+	 * ```ts
+	 * await bus.publish('user:created', { id: 'u123', name: 'Bob' })
+	 * ```
 	 */
 	async publish<T>(topic: string, payload: T): Promise<void> {
 		const handlers = this.map.get(topic)
@@ -92,11 +117,23 @@ export class EventAdapter implements EventPort {
 	}
 
 	/**
-	 * Subscribe a handler for a topic. Returns a function to unsubscribe.
-	 * @param topic - Topic string
-	 * @param handler - Async or sync handler invoked with the topic payload
-	 * @returns Unsubscribe function (may be awaited)
+	 * Subscribe a handler function to a topic.
+	 *
+	 * The handler will be invoked whenever a payload is published to the topic.
+	 * Returns an unsubscribe function to remove the handler later.
+	 *
+	 * @param topic - The topic name to subscribe to
+	 * @param handler - Handler function (sync or async) that receives the topic payload
+	 * @returns An async unsubscribe function that removes the handler when called
+	 *
 	 * @example
+	 * ```ts
+	 * const unsubscribe = await bus.subscribe('user:created', async (user) => {
+	 *   console.log('New user:', user.name)
+	 * })
+	 * // Later, to unsubscribe:
+	 * await unsubscribe()
+	 * ```
 	 */
 	async subscribe<T>(topic: string, handler: EventHandler<T>): Promise<() => void | Promise<void>> {
 		let set = this.map.get(topic)
@@ -112,7 +149,17 @@ export class EventAdapter implements EventPort {
 		}
 	}
 
-	/** List active topic names. */
+	/**
+	 * List all currently active topic names that have at least one subscriber.
+	 *
+	 * @returns A read-only array of topic name strings
+	 *
+	 * @example
+	 * ```ts
+	 * console.log('Active topics:', bus.topics())
+	 * // => ['user:created', 'user:deleted']
+	 * ```
+	 */
 	topics(): ReadonlyArray<string> {
 		return Array.from(this.map.keys())
 	}

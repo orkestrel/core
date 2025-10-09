@@ -84,7 +84,10 @@ Run locally
 npm run check
 npm run format
 npm test
+npm run build
 ```
+
+Note: This repo does not use CI or GitHub Workflows. Run these local gates before pushing or publishing. See [docs/contribute.md](docs/contribute.md).
 
 Publishing
 - `prepublishOnly` runs type-checks and build so only `src` is compiled to `dist`.

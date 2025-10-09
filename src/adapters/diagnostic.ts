@@ -8,7 +8,7 @@ import type {
 	MessageMapEntry,
 } from '../types.js'
 import { safeInvoke } from '../helpers.js'
-import { LoggerAdapter } from './logger'
+import { LoggerAdapter } from './logger.js'
 
 class BaseError extends Error {
 	constructor(message: string, public code?: string, public helpUrl?: string) {

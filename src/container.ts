@@ -40,7 +40,7 @@ import {
 	isValueProvider,
 	tokenDescription,
 } from './helpers.js'
-import { LoggerAdapter } from './adapters/logger'
+import { LoggerAdapter } from './adapters/logger.js'
 
 /**
  * Minimal, strongly-typed DI container.

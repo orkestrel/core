@@ -1,7 +1,7 @@
 import type { Token, TokensOf } from './types.js'
 import { createTokens, createToken } from './helpers.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
-import { NoopLogger } from './adapters/logger'
+import { NoopLogger } from './adapters/logger.js'
 import { PORTS_MESSAGES } from './constants.js'
 
 /**

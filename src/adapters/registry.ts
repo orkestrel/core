@@ -1,7 +1,7 @@
 import type { RegistryPort, RegistryAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
 import { HELP, REGISTRY_MESSAGES } from '../constants.js'
 import { DiagnosticAdapter } from './diagnostic.js'
-import { LoggerAdapter } from './logger'
+import { LoggerAdapter } from './logger.js'
 
 export class RegistryAdapter<T> implements RegistryPort<T> {
 	private readonly store = new Map<string | symbol, T>()

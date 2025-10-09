@@ -65,7 +65,7 @@ Determinism policy
 - Tests mirror source files: `tests/[file].test.ts`
 - Use real in‑memory adapters; no mocks/fakes/spies in core tests
 - Cover: success/failure/timeout, concurrency caps, ordering/determinism, aggregation
-- CI gates (local parity): typecheck clean, lint clean, tests green
+- No CI workflows in this repo — enforce the same gates locally before pushing or publishing: typecheck clean, lint clean, tests green
 
 ## Naming and tokens
 - Ports live behind tokens; use `tokenDescription` for diagnostics/tracing payloads
@@ -79,6 +79,7 @@ Determinism policy
 - Strict types: no `any`, no non‑null assertions; prefer `readonly` results
 - Update tests alongside code; add new cases to the existing file
 - Use the quick workflow commands before proposing changes
+- Do not add GitHub Workflows or external CI; stick to local gates and existing npm scripts
 
 ## Documentation
 - Top‑level guides live in `docs/`; keep filenames short and focused

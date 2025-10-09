@@ -16,6 +16,7 @@
     "docs",
     "README.md"
   ],
+  "sideEffects": false,
   "keywords": [
     "injection",
     "ioc",
@@ -45,7 +46,7 @@
   "scripts": {
     "clear": "node -e \"try{require('fs').rmSync(process.argv[1],{recursive:true,force:true})}catch(e){}\"",
     "build": "npm run clear dist && vite build && tsc -p tsconfig.build.json",
-    "test": "tsx --test tests\\**\\*.ts",
+    "test": "tsx --test \"tests/**/*.ts\"",
     "check": "tsc -p tsconfig.json",
     "format": "eslint . --fix",
     "prepublishOnly": "npm run check && npm run format && npm run test && npm run build"

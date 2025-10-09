@@ -54,7 +54,7 @@ import { RegistryAdapter } from './adapters/registry.js'
 import { LayerAdapter } from './adapters/layer.js'
 import { QueueAdapter } from './adapters/queue.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
-import { LoggerAdapter } from './adapters/logger'
+import { LoggerAdapter } from './adapters/logger.js'
 import { HELP, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES } from './constants.js'
 
 /**

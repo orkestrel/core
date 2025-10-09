@@ -1,7 +1,7 @@
 import type { EventHandler, EventPort, EventAdapterOptions, LoggerPort, DiagnosticPort } from '../types.js'
 import { safeInvoke } from '../helpers.js'
-import { LoggerAdapter } from './logger'
-import { DiagnosticAdapter } from './diagnostic'
+import { LoggerAdapter } from './logger.js'
+import { DiagnosticAdapter } from './diagnostic.js'
 
 export class EventAdapter implements EventPort {
 	private readonly map = new Map<string, Set<unknown>>()

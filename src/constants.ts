@@ -1,4 +1,3 @@
-// filepath: c:\Users\mikes\WebstormProjects\orkestrel\core\src\constants.ts
 // Centralized immutable constant values for the core package
 
 import type { DiagnosticMessage } from './types.js'

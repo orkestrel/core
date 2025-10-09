@@ -1,7 +1,7 @@
 import type { Token, LayerNode, LayerPort, LayerAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
 import { tokenDescription } from '../helpers.js'
 import { DiagnosticAdapter } from './diagnostic.js'
-import { LoggerAdapter } from './logger'
+import { LoggerAdapter } from './logger.js'
 import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
 
 /**

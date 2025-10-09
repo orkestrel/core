@@ -1,6 +1,6 @@
 import type { QueuePort, QueueAdapterOptions, QueueRunOptions, LoggerPort, DiagnosticPort } from '../types.js'
-import { LoggerAdapter } from './logger'
-import { DiagnosticAdapter } from './diagnostic'
+import { LoggerAdapter } from './logger.js'
+import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
 
 export class QueueAdapter<T = unknown> implements QueuePort<T> {

@@ -3,6 +3,10 @@ import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
 
+/**
+ * QueueAdapter: in-memory queue and task runner with concurrency, per-task timeouts, and shared deadlines.
+ * - run() preserves result order and can be aborted via AbortSignal.
+ */
 export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	private readonly items: T[] = []
 	private readonly capacity?: number

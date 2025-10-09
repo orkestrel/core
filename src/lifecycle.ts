@@ -13,6 +13,13 @@ import { LoggerAdapter } from './adapters/logger'
 import { HELP, LIFECYCLE_MESSAGES } from './constants.js'
 import { safeInvoke } from './helpers.js'
 
+/**
+ * Abstract deterministic lifecycle with hook timeouts and events.
+ *
+ * States: 'created' → 'started' → 'stopped' → 'destroyed'.
+ * Override protected hooks (onCreate/onStart/onStop/onDestroy/onTransition) to implement behavior.
+ * Use .on('transition' | 'create' | 'start' | 'stop' | 'destroy' | 'error') to observe lifecycle events.
+ */
 export abstract class Lifecycle {
 	private _state: LifecycleState = 'created'
 	private readonly timeouts: number

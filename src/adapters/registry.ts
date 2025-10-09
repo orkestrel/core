@@ -3,6 +3,11 @@ import { HELP, REGISTRY_MESSAGES } from '../constants.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { LoggerAdapter } from './logger.js'
 
+/**
+ * RegistryAdapter<T>: named instance registry with optional default and locking.
+ * - Supports string and symbol keys.
+ * - Prevents replacing the default or locked entries.
+ */
 export class RegistryAdapter<T> implements RegistryPort<T> {
 	private readonly store = new Map<string | symbol, T>()
 	private readonly locked = new Set<string | symbol>()

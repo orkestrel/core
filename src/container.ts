@@ -316,6 +316,14 @@ function containerUsing(
 	return c.using(scope => arg1(scope))
 }
 
+/**
+ * Global container instance.
+ *
+ * - The default container instance is created automatically.
+ * - Use `container.set()` to register additional containers or overrides.
+ * - Use `container.resolve()` or `container.get()` to retrieve instances.
+ * - Use `container.using()` to run scoped work with automatic cleanup.
+ */
 export const container = Object.assign(
 	(name?: string | symbol): Container => containerRegistry.resolve(name),
 	{

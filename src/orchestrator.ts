@@ -495,6 +495,11 @@ export class Orchestrator {
 
 const orchestratorRegistry = new RegistryAdapter<Orchestrator>({ label: 'orchestrator', default: { value: new Orchestrator(container()) } })
 
+/**
+ * Global orchestrator getter.
+ * - Returns the default or a named orchestrator instance bound to a container.
+ * - Manage instances via set/clear/list; use using() to run scoped work.
+ */
 export const orchestrator = Object.assign(
 	(name?: string | symbol): Orchestrator => orchestratorRegistry.resolve(name),
 	{
@@ -542,6 +547,12 @@ function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>)
 export function register<T, A extends readonly unknown[]>(token: Token<T>, provider: ClassProviderWithTuple<T, A> | FactoryProviderWithTuple<T, A>, options?: RegisterOptions): OrchestratorRegistration<T>
 export function register<T, O extends Record<string, unknown>>(token: Token<T>, provider: ClassProviderWithObject<T, O> | FactoryProviderWithObject<T, O>, options?: RegisterOptions): OrchestratorRegistration<T>
 export function register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, options?: RegisterOptions): OrchestratorRegistration<T>
+/**
+ * Helper to construct a registration entry with typed inject preservation.
+ * - Accepts tuple or object inject providers, or value/no-deps providers.
+ * - options.dependencies: array or record of tokens; self-dependencies are ignored and duplicates are deduped.
+ * - options.timeouts: per-node timeouts (number or per-phase object).
+ */
 export function register<T>(token: Token<T>, provider: Provider<T>, options: RegisterOptions = {}): OrchestratorRegistration<T> {
 	const deps = normalizeDeps(options.dependencies)
 	const dependencies = deps.filter(d => d !== token)

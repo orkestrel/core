@@ -3,6 +3,11 @@ import { safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 
+/**
+ * EmitterAdapter: minimal in-memory event emitter used by Lifecycle and others.
+ * - Stores per-event listeners as sets and invokes them synchronously.
+ * - Errors thrown by listeners are isolated via safeInvoke.
+ */
 export class EmitterAdapter<EMap extends EventMap = EventMap> implements EmitterPort<EMap> {
 	// Internal registry: per-event sets of listener values (stored as unknown to avoid over-constraining types).
 	private readonly listeners = new Map<keyof EMap & string, Set<unknown>>()

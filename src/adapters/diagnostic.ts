@@ -22,13 +22,9 @@ class AggregateLifecycleError extends BaseError {
 }
 
 /**
- * DiagnosticAdapter: a thin, safe delegator to a LoggerPort with keyed message overrides.
- *
- * Goals
- * - Keep API minimal but sufficient for core (log/error/fail/help/aggregate + metric/trace/event)
- * - Be replaceable (only depends on LoggerPort)
- * - Be safe (adapter never throws outward; failures are swallowed)
- * - Be deterministic (stable override resolution)
+ * DiagnosticAdapter: safe delegator to a LoggerPort with keyed message overrides.
+ * - Provides log/error/fail/help/aggregate and metric/trace/event methods.
+ * - Never throws outward except fail/aggregate which build and throw errors after logging.
  */
 export class DiagnosticAdapter implements DiagnosticPort {
 	readonly #logger: LoggerPort

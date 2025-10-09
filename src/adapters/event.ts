@@ -3,6 +3,11 @@ import { safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 
+/**
+ * EventAdapter: topic-based async pub/sub.
+ * - Sequential mode (default) invokes handlers one-by-one.
+ * - Concurrent mode invokes handlers in parallel and isolates errors via onError/diagnostic.
+ */
 export class EventAdapter implements EventPort {
 	private readonly map = new Map<string, Set<unknown>>()
 	private readonly onError?: (err: unknown, topic: string) => void

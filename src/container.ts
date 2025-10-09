@@ -86,8 +86,18 @@ export class Container {
 	readonly #logger: LoggerPort
 
 	/**
-	 * Construct a container with optional parent, logger, and diagnostic adapters.
-	 * @param opts
+	 * Construct a Container with optional parent, logger, and diagnostic adapters.
+	 *
+	 * @param opts - Configuration options
+	 * @param opts.parent - Optional parent container to inherit providers from
+	 * @param opts.logger - Optional logger port for diagnostics
+	 * @param opts.diagnostic - Optional diagnostic port for error reporting
+	 *
+	 * @example
+	 * ```ts
+	 * const parent = new Container()
+	 * const child = new Container({ parent })
+	 * ```
 	 */
 	constructor(opts: ContainerOptions = {}) {
 		this.parent = opts.parent
@@ -96,35 +106,25 @@ export class Container {
 		this.#registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
-	/** Access the diagnostic port used by this container. */
+	/**
+	 * Access the diagnostic port used by this container.
+	 *
+	 * @returns The configured DiagnosticPort instance
+	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
-	/** Access the logger port used by this container. */
+	/**
+	 * Access the logger port used by this container.
+	 *
+	 * @returns The configured LoggerPort instance
+	 */
 	get logger(): LoggerPort { return this.#logger }
 
-	// Overload: tuple-injected factory/class providers
-	/**
-	 *
-	 * @param token
-	 * @param provider
-	 * @param lock
-	 */
+	/** Overload: register with tuple-injected factory/class providers. */
 	register<T, A extends readonly unknown[]>(token: Token<T>, provider: FactoryProviderWithTuple<T, A> | ClassProviderWithTuple<T, A>, lock?: boolean): this
-	// Overload: object-injected factory/class providers
-	/**
-	 *
-	 * @param token
-	 * @param provider
-	 * @param lock
-	 */
+	/** Overload: register with object-injected factory/class providers. */
 	register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O> | ClassProviderWithObject<T, O>, lock?: boolean): this
-	// Overload: no-deps/class-or-factory-or-value providers
-	/**
-	 *
-	 * @param token
-	 * @param provider
-	 * @param lock
-	 */
+	/** Overload: register with no-deps/class-or-factory-or-value providers. */
 	register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, lock?: boolean): this
 	/**
 	 * Register a provider under a token.
@@ -149,41 +149,42 @@ export class Container {
 
 	/**
 	 * Shorthand for registering a value provider.
-	 * @param token
-	 * @param value
-	 * @param lock
-	 * @returns -
+	 *
+	 * @typeParam T - Token value type
+	 * @param token - The token to register the value under
+	 * @param value - The value to register
+	 * @param lock - When true, prevents re-registration for this token (default: false)
+	 *
 	 * @example
+	 * ```ts
+	 * container.set(ConfigToken, { apiUrl: 'https://api.example.com' })
+	 * ```
 	 */
 	set<T>(token: Token<T>, value: T, lock?: boolean): void { this.register(token, { useValue: value }, lock) }
 
 	/**
-	 * Returns true when a provider is available for the token (searches parent containers as well).
-	 * @param token
-	 * @returns -
+	 * Check if a provider is available for the token (searches parent containers).
+	 *
+	 * @typeParam T - Token value type
+	 * @param token - The token to check
+	 * @returns True if a provider is registered for the token, false otherwise
+	 *
 	 * @example
+	 * ```ts
+	 * if (container.has(ConfigToken)) {
+	 *   const config = container.resolve(ConfigToken)
+	 * }
+	 * ```
 	 */
 	has<T>(token: Token<T>): boolean {
 		return !!this.#registry.get(token) || (this.parent?.has(token) ?? false)
 	}
 
-	// Overload: resolve a single token
-	/**
-	 *
-	 * @param token
-	 */
+	/** Overload: resolve a single token strictly. */
 	resolve<T>(token: Token<T>): T
-	// Overload: resolve a token map to a map of values
-	/**
-	 *
-	 * @param tokens
-	 */
+	/** Overload: resolve a token map to a map of values. */
 	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
-	// Overload: resolve an inject object to a plain object
-	/**
-	 *
-	 * @param tokens
-	 */
+	/** Overload: resolve an inject object to a plain object. */
 	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>): O
 	/**
 	 * Strictly resolve a single token or a token map. Missing tokens cause ORK1006 failures.
@@ -208,17 +209,9 @@ export class Container {
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: resolve() called with invalid argument' })
 	}
 
-	// Overload: optionally get a single token
-	/**
-	 *
-	 * @param token
-	 */
+	/** Overload: optionally get a single token. */
 	get<T>(token: Token<T>): T | undefined
-	// Overload: optionally get a map of tokens
-	/**
-	 *
-	 * @param tokens
-	 */
+	/** Overload: optionally get a map of tokens. */
 	get<TMap extends TokenRecord>(tokens: TMap): OptionalResolvedMap<TMap>
 	/**
 	 * Optionally resolve a single token or a map of tokens; missing entries return undefined.
@@ -237,27 +230,24 @@ export class Container {
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: get() called with invalid argument' })
 	}
 
-	/** Create a child container that inherits providers from this container. */
+	/**
+	 * Create a child container that inherits providers from this container.
+	 *
+	 * @returns A new Container instance with this container as its parent
+	 *
+	 * @example
+	 * ```ts
+	 * const child = container.createChild()
+	 * child.set(OverrideToken, newValue)
+	 * ```
+	 */
 	createChild(): Container { return new Container({ parent: this, diagnostic: this.diagnostic, logger: this.logger }) }
 
-	// Overload: using(fn)
-	/**
-	 *
-	 * @param fn
-	 */
+	/** Overload: using(fn) - run work in a child scope. */
 	async using(fn: (scope: Container) => void | Promise<void>): Promise<void>
-	// Overload: using(fn) returning a value
-	/**
-	 *
-	 * @param fn
-	 */
+	/** Overload: using(fn) - run work in a child scope, returning a value. */
 	async using<T>(fn: (scope: Container) => T | Promise<T>): Promise<T>
-	// Overload: using(apply, fn)
-	/**
-	 *
-	 * @param apply
-	 * @param fn
-	 */
+	/** Overload: using(apply, fn) - apply setup, then run work in a child scope. */
 	async using<T>(apply: (scope: Container) => void | Promise<void>, fn: (scope: Container) => T | Promise<T>): Promise<T>
 	/**
 	 * Run work inside an automatically destroyed child scope.
@@ -291,7 +281,19 @@ export class Container {
 		finally { await scope.destroy() }
 	}
 
-	/** Destroy owned Lifecycle instances (stop if needed, then destroy). Idempotent. */
+	/**
+	 * Destroy owned Lifecycle instances (stop if needed, then destroy).
+	 *
+	 * Idempotent - safe to call multiple times. Iterates through all registered instances,
+	 * stops any that are started, and destroys all that are disposable.
+	 *
+	 * @throws AggregateLifecycleError with code ORK1016 if errors occur during destruction
+	 *
+	 * @example
+	 * ```ts
+	 * await container.destroy()
+	 * ```
+	 */
 	async destroy(): Promise<void> {
 		if (this.destroyed) return
 		this.destroyed = true
@@ -318,32 +320,19 @@ export class Container {
 	// Internals
 	// ---------------------------
 
-	/**
-	 * Lookup a registration by token, searching parent containers as needed.
-	 * @param token
-	 * @returns -
-	 */
+	/** Lookup a registration by token, searching parent containers as needed. */
 	private lookup<T>(token: Token<T>): Registration<T> | undefined {
 		const here = this.#registry.get(token)
 		if (here && this.isRegistrationOf(here, token)) return here
 		return this.parent?.lookup(token)
 	}
 
-	/**
-	 * Narrow a registration to its token type by identity.
-	 * @param reg
-	 * @param token
-	 * @returns -
-	 */
+	/** Narrow a registration to its token type by identity. */
 	private isRegistrationOf<T>(reg: Registration<unknown>, token: Token<T>): reg is Registration<T> {
 		return reg.token === token
 	}
 
-	/**
-	 * Resolve or instantiate a provider tied to a registration (memoized).
-	 * @param reg
-	 * @returns -
-	 */
+	/** Resolve or instantiate a provider tied to a registration (memoized). */
 	private materialize<T>(reg: Registration<T>): ResolvedProvider<T> {
 		if (reg.resolved) return reg.resolved
 		const resolved = this.instantiate(reg.provider)
@@ -351,11 +340,7 @@ export class Container {
 		return resolved
 	}
 
-	/**
-	 * Instantiate a provider (value/factory/class) and wrap lifecycle if present.
-	 * @param provider
-	 * @returns -
-	 */
+	/** Instantiate a provider (value/factory/class) and wrap lifecycle if present. */
 	private instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
 		// Raw value branch first (strict non-provider object)
 		if (isRawProviderValue(provider)) {
@@ -402,12 +387,7 @@ export class Container {
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: unknown provider shape' })
 	}
 
-	/**
-	 * Wrap a value with lifecycle metadata when it is a Lifecycle.
-	 * @param value
-	 * @param disposable
-	 * @returns -
-	 */
+	/** Wrap a value with lifecycle metadata when it is a Lifecycle. */
 	private wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
 		return value instanceof Lifecycle ? { value, lifecycle: value, disposable } : { value, disposable }
 	}
@@ -419,12 +399,7 @@ export class Container {
 		}
 	}
 
-	/**
-	 * Consolidated map retrieval for resolve()/get() (strict toggles error behavior).
-	 * @param tokens
-	 * @param strict
-	 * @returns -
-	 */
+	/** Consolidated map retrieval for resolve()/get() (strict toggles error behavior). */
 	private retrievalMap(tokens: TokenRecord, strict: boolean): Record<string, unknown> {
 		const out: Record<string, unknown> = {}
 		for (const key of Object.keys(tokens)) {

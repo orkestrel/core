@@ -129,17 +129,42 @@ TypeScript discipline
 - Prefer `readonly` in public types; avoid mutating outputs
 - Keep internal helpers private and well-typed; document invariants in comments
 
-Testing and QA
+### Guard utilities (runtime narrowing)
+Guards make runtime checks explicit and keep conditionals simple while informing the type system. Core guards live in `src/helpers.ts` and include:
+- Primitives and shapes: `isObject`, `isString`, `isBoolean`, `isFiniteNumber`
+- Collections and literals: `arrayOf(elemGuard)`, `literalOf('a', 'b')`
+- Safe key checks: `hasOwn(obj, ...keys)` (overloaded to preserve original object type)
+- Schema checks: `hasSchema(obj, schema)` with `FromSchema` inference for nested records
+- Tokens: `isToken`, `isTokenArray`, `isTokenRecord`
+- Providers: `isValueProvider`, `isFactoryProvider`, `isClassProvider` and their tuple/object/container/no‑dep variants
+- Async shape checks: `isAsyncFunction`, `isPromiseLike`
+- Domain guards: e.g., `isLifecycleErrorDetail` for aggregated lifecycle errors
+
+Use guards to narrow unions incrementally instead of branching with ad‑hoc property access or relying on casts. When a guard returns true, the compiler understands the refined type for that branch without assertions.
+
+### Typing ethos (strict, informative, incremental)
+Our types should be precise at the boundaries and helpful during implementation:
+- Strict by default: avoid `any`, non‑null assertions, and unsafe `as` casts
+- Preserve original intent: prefer narrowing and generics/overloads to “force” a type
+- Incremental refinement: start from the broad, known type and constrain it based on validated facts (via guards or structural checks)
+- Honest boundaries: accept `unknown` from the outside world, validate at the edges, and re‑expose typed results
+- Readability: prefer `readonly` in public APIs and avoid mutating outputs; keep helpers small and well‑typed
+
+This approach keeps code safe at runtime while preserving rich editor hints and making branch logic self‑documenting.
+
+---
+
+## Testing and QA
 - Use real in-memory adapters; do not mock/fake in core tests
 - Cover success/failure/timeout, concurrency caps, determinism (ordering), and aggregation behavior
 - For graph-like logic, include property-based checks on random DAGs when useful
 - CI gates: typecheck clean, lint clean, deterministic assertions
 
-Naming and tokens
+## Naming and tokens
 - Ports live behind tokens (e.g., `createPortToken` or `createPortTokens`)
 - Use `tokenDescription` for diagnostics and tracing payloads
 
-Change control
+## Change control
 - Keep ports stable; avoid breaking changes
 - If a port must evolve, add narrowly scoped methods backed by real use cases; document rationale
 

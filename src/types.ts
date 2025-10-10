@@ -16,29 +16,27 @@ export interface ValueProvider<T> { readonly useValue: T }
 export type InjectTuple<A extends readonly unknown[]> = { readonly [K in keyof A]: Token<A[K]> }
 export type InjectObject<O extends Record<string, unknown>> = Readonly<{ [K in keyof O]: Token<O[K]> }>
 
-export type FactoryProviderNoDeps<T>
-	= | { readonly useFactory: () => T }
-		| { readonly useFactory: (container: Container) => T }
-
+export type FactoryProviderNoDeps<T> = { readonly useFactory: () => T }
+export type FactoryProviderWithContainer<T> = { readonly useFactory: (container: Container) => T }
 export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
 	readonly useFactory: (...args: A) => T
 	readonly inject: InjectTuple<A>
 }
-
 export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useFactory: (deps: O) => T
 	readonly inject: InjectObject<O>
 }
-
 export type FactoryProvider<T>
 	= | FactoryProviderNoDeps<T>
+		| FactoryProviderWithContainer<T>
 		| FactoryProviderWithTuple<T, readonly unknown[]>
 		| FactoryProviderWithObject<T, Record<string, unknown>>
 
 export type CtorNoDeps<T> = new () => T
 export type CtorWithContainer<T> = new (container: Container) => T
 
-export type ClassProviderNoDeps<T> = { readonly useClass: CtorNoDeps<T> | CtorWithContainer<T> }
+export type ClassProviderNoDeps<T> = { readonly useClass: CtorNoDeps<T> }
+export type ClassProviderWithContainer<T> = { readonly useClass: CtorWithContainer<T> }
 export type ClassProviderWithTuple<T, A extends readonly unknown[]> = {
 	readonly useClass: new (...args: A) => T
 	readonly inject: InjectTuple<A>
@@ -47,7 +45,7 @@ export type ClassProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useClass: new (deps: O) => T
 	readonly inject: InjectObject<O>
 }
-export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
+export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithContainer<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
 
 export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
 
@@ -226,8 +224,11 @@ export type ContainerGetter = {
 	resolve<T>(token: Token<T>, name?: string | symbol): T
 	resolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
 	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O
+	resolve<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): A
 	get<T>(token: Token<T>, name?: string | symbol): T | undefined
 	get<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
+	get<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O | { [K in keyof O]: O[K] | undefined }
+	get<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): { [K in keyof A]: A[K] | undefined }
 	using(fn: (c: Container) => void | Promise<void>, name?: string | symbol): Promise<void>
 	using<T>(fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
 	using<T>(apply: (c: Container) => void | Promise<void>, fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>

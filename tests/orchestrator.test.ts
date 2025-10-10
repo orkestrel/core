@@ -768,6 +768,77 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy()
 	})
 
+	await t.test('infers dependencies from tuple inject for class provider when dependencies omitted', async () => {
+		let counter = 0
+		class Rec extends Adapter {
+			public startedAt: number | null = null; protected async onStart() {
+				this.startedAt = counter++
+			}
+		}
+		class WithDeps extends Adapter {
+			public startedAt: number | null = null
+			constructor(public readonly a: Rec, public readonly b: Rec) { super({ logger }) }
+			protected async onStart() { this.startedAt = counter++ }
+		}
+		const TA = createToken<Rec>('Infer:TA')
+		const TB = createToken<Rec>('Infer:TB')
+		const TC = createToken<WithDeps>('Infer:TC')
+		const c = new Container({ logger })
+		const app = new Orchestrator(c, { logger })
+		await app.start([
+			register(TA, { useFactory: () => new Rec({ logger }) }),
+			register(TB, { useFactory: () => new Rec({ logger }) }),
+			// dependencies omitted; should be inferred from inject tuple
+			register(TC, { useClass: WithDeps, inject: [TA, TB] }),
+		])
+		const a = c.get(TA) as Rec
+		const b = c.get(TB) as Rec
+		const withDeps = c.get(TC) as WithDeps
+		assert.ok(a && b && withDeps)
+		// injected identity preserved
+		assert.equal(withDeps.a, a)
+		assert.equal(withDeps.b, b)
+		// start order respects inferred deps
+		assert.ok((a.startedAt as number) < (withDeps.startedAt as number))
+		assert.ok((b.startedAt as number) < (withDeps.startedAt as number))
+		await app.destroy()
+	})
+
+	// NEW: inference from tuple inject without explicit dependencies (factory)
+	await t.test('infers dependencies from tuple inject for factory provider when dependencies omitted', async () => {
+		let counter = 0
+		class Rec extends Adapter {
+			public startedAt: number | null = null; protected async onStart() {
+				this.startedAt = counter++
+			}
+		}
+		class UsesDeps extends Adapter {
+			public startedAt: number | null = null
+			constructor(public readonly a: Rec, public readonly b: Rec) { super({ logger }) }
+			protected async onStart() { this.startedAt = counter++ }
+		}
+		const TA = createToken<Rec>('InferF:TA')
+		const TB = createToken<Rec>('InferF:TB')
+		const TD = createToken<UsesDeps>('InferF:TD')
+		const c = new Container({ logger })
+		const app = new Orchestrator(c, { logger })
+		await app.start([
+			register(TA, { useFactory: () => new Rec({ logger }) }),
+			register(TB, { useFactory: () => new Rec({ logger }) }),
+			// dependencies omitted; should be inferred from inject tuple
+			register(TD, { useFactory: (a, b) => new UsesDeps(a, b), inject: [TA, TB] }),
+		])
+		const a = c.get(TA) as Rec
+		const b = c.get(TB) as Rec
+		const dep = c.get(TD) as UsesDeps
+		assert.ok(a && b && dep)
+		assert.equal(dep.a, a)
+		assert.equal(dep.b, b)
+		assert.ok((a.startedAt as number) < (dep.startedAt as number))
+		assert.ok((b.startedAt as number) < (dep.startedAt as number))
+		await app.destroy()
+	})
+
 	await t.test('tracer start outcomes include failures', async () => {
 		class Good extends Adapter { protected async onStart() {} }
 		class Bad extends Adapter {

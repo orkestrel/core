@@ -1,13 +1,10 @@
 import type {
-	ClassProviderNoDeps,
 	ClassProviderWithTuple,
 	ClassProviderWithObject,
-	FactoryProviderNoDeps,
 	FactoryProviderWithObject,
 	FactoryProviderWithTuple,
 	Provider,
 	Token,
-	ValueProvider,
 	PhaseTimeouts,
 	Task,
 	PhaseResult,
@@ -28,25 +25,21 @@ import type {
 	LoggerPort,
 } from './types.js'
 import {
-	isFactoryProvider,
-	isValueProvider,
 	isPromiseLike,
 	isAsyncFunction,
-	isFactoryProviderWithObject,
-	isFactoryProviderWithTuple,
-	isFactoryProviderNoDeps,
-	isFactoryProviderWithContainer,
 	tokenDescription,
 	safeInvoke,
 	hasSchema,
 	arrayOf,
 	isLifecycleErrorDetail,
 	isRawProviderValue,
+	isFactoryProvider,
+	isFactoryProviderWithTuple,
+	isFactoryProviderWithObject,
 	isClassProvider,
 	isClassProviderWithTuple,
 	isClassProviderWithObject,
-	isClassProviderWithContainer,
-	isClassProviderNoDeps,
+	matchProvider, isValueProvider,
 } from './helpers.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
@@ -187,7 +180,10 @@ export class Orchestrator {
 		if (this.nodes.has(token)) {
 			this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
 		}
-		const normalized = this.normalizeDependencies(token, dependencies)
+		// Infer dependencies from provider shape (tuple/object inject) when not provided or empty
+		const inferred = inferDependencies(provider)
+		const baseDeps = (dependencies && dependencies.length) ? [...dependencies] : inferred
+		const normalized = normalizeDependencies(baseDeps).filter(d => d !== token)
 		this.nodes.set(token, { token, dependencies: normalized, timeouts })
 		const guarded = this.guardProvider(token, provider)
 		this.container.register(token, guarded)
@@ -217,7 +213,10 @@ export class Orchestrator {
 	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
 		// Register any provided components first
 		for (const e of regs) {
-			const deps = this.normalizeDependencies(e.token, e.dependencies ?? [])
+			// Infer dependencies when not provided
+			const inferred = inferDependencies(e.provider)
+			const baseDeps = (e.dependencies && e.dependencies.length) ? [...e.dependencies] : inferred
+			const deps = normalizeDependencies(baseDeps).filter(d => d !== e.token)
 			if (this.nodes.has(e.token)) {
 				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(e.token)}`, helpUrl: HELP.orchestrator })
 			}
@@ -377,57 +376,28 @@ export class Orchestrator {
 	// Guard provider shapes against async values and functions immediately upon registration.
 	private guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
 		const desc = tokenDescription(token)
-		// Raw value first – disallow Promise-like values
-		if (isRawProviderValue(provider)) {
-			if (isPromiseLike(provider)) {
-				this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with a Promise value. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
-			}
-			return provider
-		}
-		// value provider
-		if (isValueProvider(provider)) {
-			const v = provider.useValue
-			if (isPromiseLike(v)) {
-				this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
-			}
-			return provider
-		}
-		// factory providers
-		if (isFactoryProvider(provider)) {
-			if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) {
-				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
-				return { useFactory: wrapped, inject: provider.inject }
-			}
-			if (isFactoryProviderWithObject<T>(provider)) {
-				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
-				return { useFactory: wrapped, inject: provider.inject }
-			}
-			if (isFactoryProviderWithContainer<T>(provider)) {
-				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
-				return { useFactory: wrapped }
-			}
-			if (isFactoryProviderNoDeps<T>(provider)) {
-				const wrapped = wrapFactory(this.#diagnostic, provider.useFactory, desc)
-				return { useFactory: wrapped }
-			}
-		}
-		// class providers – currently no async hazard to wrap; just verify known shapes
-		if (isClassProvider(provider)) {
-			if (isClassProviderWithTuple<T, readonly unknown[]>(provider)) {
-				return { useClass: provider.useClass, inject: provider.inject }
-			}
-			if (isClassProviderWithObject<T>(provider)) {
-				return { useClass: provider.useClass, inject: provider.inject }
-			}
-			if (isClassProviderWithContainer<T>(provider)) {
-				return { useClass: provider.useClass }
-			}
-			if (isClassProviderNoDeps<T>(provider)) {
-				return { useClass: provider.useClass }
-			}
-		}
-		// Fallback invariant: unknown provider shape
-		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: unknown provider shape during guardProvider' })
+		return matchProvider<T, Provider<T>>(provider, {
+			raw: (value) => {
+				if (isPromiseLike(value)) {
+					this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with a Promise value. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
+				}
+				return provider
+			},
+			value: (p) => {
+				if (isPromiseLike(p.useValue)) {
+					this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
+				}
+				return p
+			},
+			factoryTuple: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
+			factoryObject: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject } as Provider<T>),
+			factoryContainer: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),
+			factoryNoDeps: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),
+			classTuple: p => ({ useClass: p.useClass, inject: p.inject }),
+			classObject: p => ({ useClass: p.useClass, inject: p.inject }) as Provider<T>,
+			classContainer: p => ({ useClass: p.useClass }),
+			classNoDeps: p => ({ useClass: p.useClass }),
+		})
 	}
 
 	// Kahn-style O(V + E) layering with deterministic ordering
@@ -577,18 +547,6 @@ export class Orchestrator {
 		if (localErrors.length) out.errors = localErrors
 		return out
 	}
-
-	// Dedupe dependencies and remove self-dependency while preserving order.
-	private normalizeDependencies(token: Token<unknown>, dependencies: ReadonlyArray<Token<unknown>>): Token<unknown>[] {
-		const seen = new Set<Token<unknown>>()
-		const out: Token<unknown>[] = []
-		for (const d of dependencies) {
-			if (!d || d === token || seen.has(d)) continue
-			seen.add(d)
-			out.push(d)
-		}
-		return out
-	}
 }
 
 const orchestratorRegistry = new RegistryAdapter<Orchestrator>({ label: 'orchestrator', default: { value: new Orchestrator(container()) } })
@@ -639,7 +597,7 @@ function orchestratorUsing(
 }
 
 // Normalize dependency shapes to an array and dedupe while preserving order.
-function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>): Token<unknown>[] {
+function normalizeDependencies(deps?: Token<unknown>[] | Record<string, Token<unknown>>): Token<unknown>[] {
 	if (!deps) return []
 	const arr = Array.isArray(deps) ? deps : Object.values(deps)
 	const seen = new Set<Token<unknown>>()
@@ -652,10 +610,25 @@ function normalizeDeps(deps?: Token<unknown>[] | Record<string, Token<unknown>>)
 	return out
 }
 
+// Infer dependencies from provider inject shapes (tuple/object) when present.
+function inferDependencies<T>(provider: Provider<T>): Token<unknown>[] {
+	if (isRawProviderValue(provider)) return []
+	if (isValueProvider(provider)) return []
+	if (isFactoryProvider(provider)) {
+		if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) return [...provider.inject]
+		if (isFactoryProviderWithObject(provider)) return Object.values(provider.inject)
+	}
+	if (isClassProvider(provider)) {
+		if (isClassProviderWithTuple<T, readonly unknown[]>(provider)) return [...provider.inject]
+		if (isClassProviderWithObject(provider)) return Object.values(provider.inject)
+	}
+	return []
+}
+
 // Overloads to preserve inject inference for tuple/object providers.
 export function register<T, A extends readonly unknown[]>(token: Token<T>, provider: ClassProviderWithTuple<T, A> | FactoryProviderWithTuple<T, A>, options?: RegisterOptions): OrchestratorRegistration<T>
 export function register<T, O extends Record<string, unknown>>(token: Token<T>, provider: ClassProviderWithObject<T, O> | FactoryProviderWithObject<T, O>, options?: RegisterOptions): OrchestratorRegistration<T>
-export function register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, options?: RegisterOptions): OrchestratorRegistration<T>
+export function register<T>(token: Token<T>, provider: Provider<T>, options?: RegisterOptions): OrchestratorRegistration<T>
 /**
  * Helper to construct a registration entry with typed inject preservation.
  * - Accepts tuple or object inject providers, or value/no-deps providers.
@@ -675,8 +648,9 @@ export function register<T>(token: Token<T>, provider: T | ValueProvider<T> | Fa
  * ```
  */
 export function register<T>(token: Token<T>, provider: Provider<T>, options: RegisterOptions = {}): OrchestratorRegistration<T> {
-	const deps = normalizeDeps(options.dependencies)
-	const dependencies = deps.filter(d => d !== token)
+	const provided = normalizeDependencies(options.dependencies)
+	const inferred = inferDependencies(provider)
+	const dependencies = (provided.length ? provided : inferred).filter(d => d !== token)
 	return { token, provider, dependencies, timeouts: options.timeouts }
 }
 

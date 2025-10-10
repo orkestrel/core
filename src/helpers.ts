@@ -12,8 +12,11 @@ import type {
 	Guard,
 	SchemaSpec,
 	FromSchema,
+	FactoryProviderWithContainer,
+	ClassProviderWithObject,
+	ClassProviderWithContainer,
+	ClassProviderNoDeps,
 } from './types.js'
-import type { Container } from './container.js'
 
 /**
  * Check whether a value is a non-null object (arrays included).
@@ -340,7 +343,7 @@ export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
  * ```
  */
 export function isClassProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T> | ClassProvider<T>): p is ClassProviderWithTuple<T, A> {
-	return isObject(p) && hasOwn(p, 'useClass', 'inject') && Array.isArray(p.inject)
+	return isObject(p) && hasOwn(p, 'useClass', 'inject') && isTokenArray(p.inject)
 }
 
 /**
@@ -356,8 +359,8 @@ export function isClassProviderWithTuple<T, A extends readonly unknown[]>(p: Pro
  * isClassProviderWithObject<number>({ useClass: S, inject: { a: Symbol('A'), b: Symbol('B') } } as any)
  * ```
  */
-export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>): p is ClassProvider<T> & { useClass: new (deps: Record<string, unknown>) => T, inject: Record<string, Token<unknown>> } {
-	return isClassProvider(p) && hasOwn(p, 'inject') && isObject(p.inject) && !Array.isArray(p.inject)
+export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>): p is ClassProviderWithObject<T, Record<string, unknown>> {
+	return isClassProvider(p) && hasOwn(p, 'inject') && isTokenRecord(p.inject)
 }
 
 /**
@@ -373,7 +376,7 @@ export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>):
  * isClassProviderWithContainer<number>({ useClass: S } as any)
  * ```
  */
-export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is ClassProvider<T> & { useClass: (new (c: Container) => T) } {
+export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is ClassProviderWithContainer<T> {
 	return !hasOwn(p, 'inject') && typeof p.useClass === 'function' && p.useClass.length >= 1
 }
 
@@ -390,7 +393,7 @@ export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is Class
  * isClassProviderNoDeps<number>({ useClass: S } as any)
  * ```
  */
-export function isClassProviderNoDeps<T>(p: ClassProvider<T>): p is { useClass: new () => T } {
+export function isClassProviderNoDeps<T>(p: ClassProvider<T>): p is ClassProviderNoDeps<T> {
 	return !hasOwn(p, 'inject') && typeof p.useClass === 'function' && p.useClass.length === 0
 }
 
@@ -409,7 +412,7 @@ export function isClassProviderNoDeps<T>(p: ClassProvider<T>): p is { useClass: 
  * ```
  */
 export function isFactoryProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T> | FactoryProvider<T>): p is FactoryProviderWithTuple<T, A> {
-	return isFactoryProvider(p) && hasOwn(p, 'inject') && Array.isArray(p.inject)
+	return isFactoryProvider(p) && hasOwn(p, 'inject') && isTokenArray(p.inject)
 }
 
 /**
@@ -426,7 +429,7 @@ export function isFactoryProviderWithTuple<T, A extends readonly unknown[]>(p: P
  * ```
  */
 export function isFactoryProviderWithObject<T>(p: Provider<T> | FactoryProvider<T>): p is FactoryProviderWithObject<T, Record<string, unknown>> {
-	return isFactoryProvider(p) && hasOwn(p, 'inject') && isObject(p.inject) && !Array.isArray(p.inject)
+	return isFactoryProvider(p) && hasOwn(p, 'inject') && isTokenRecord(p.inject)
 }
 
 /**
@@ -442,7 +445,7 @@ export function isFactoryProviderWithObject<T>(p: Provider<T> | FactoryProvider<
  * isFactoryProviderWithContainer<number>(p as any)
  * ```
  */
-export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is { useFactory: (c: Container) => T } {
+export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is FactoryProviderWithContainer<T> {
 	return !hasOwn(p, 'inject') && typeof p.useFactory === 'function' && p.useFactory.length >= 1
 }
 
@@ -459,7 +462,7 @@ export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is {
  * isZeroArg(fp.useFactory) // true
  * ```
  */
-export function isFactoryProviderNoDeps<T>(p: FactoryProvider<T>): p is { useFactory: () => T } {
+export function isFactoryProviderNoDeps<T>(p: FactoryProvider<T>): p is FactoryProviderNoDeps<T> {
 	return !hasOwn(p, 'inject') && typeof p.useFactory === 'function' && p.useFactory.length === 0
 }
 
@@ -651,4 +654,52 @@ export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleEr
 		errors: arrayOf((e: unknown): e is Error => e instanceof Error),
 	} satisfies SchemaSpec
 	return hasSchema(x, schema)
+}
+
+// Strictly-typed provider matcher to avoid duplication and casts
+export type ProviderMatchHandlers<T, R> = {
+	raw: (value: T) => R
+	value: (p: ValueProvider<T>) => R
+	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => R
+	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => R
+	factoryContainer: (p: FactoryProviderWithContainer<T>) => R
+	factoryNoDeps: (p: FactoryProviderNoDeps<T>) => R
+	classTuple: <A extends readonly unknown[]>(p: ClassProviderWithTuple<T, A>) => R
+	classObject: <O extends Record<string, unknown>>(p: ClassProviderWithObject<T, O>) => R
+	classContainer: (p: ClassProviderWithContainer<T>) => R
+	classNoDeps: (p: ClassProviderNoDeps<T>) => R
+}
+
+export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandlers<T, R>): R
+/**
+ * Pattern-match a provider into its specific shape at runtime with strong typing.
+ *
+ * Dispatches to the appropriate handler based on whether the provider is a raw value,
+ * a value provider, a factory provider (tuple/object/container/no-deps), or a class provider
+ * (tuple/object/container/no-deps).
+ *
+ * @typeParam T - Value type of the provider
+ * @typeParam R - Result type returned by each handler
+ * @param provider - The provider (raw value or provider object) to dispatch on
+ * @param h - The handler object with a function for each supported shape
+ * @returns The value returned by the invoked handler for the matched shape
+ * @example Use matchProvider to centralize branching on provider shape and return a unified result.
+ */
+export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandlers<T, R>): R {
+	if (isRawProviderValue(provider)) return h.raw(provider)
+	if (isValueProvider(provider)) return h.value(provider)
+	if (isFactoryProvider(provider)) {
+		if (isFactoryProviderWithTuple(provider)) return h.factoryTuple(provider)
+		if (isFactoryProviderWithObject(provider)) return h.factoryObject(provider)
+		if (isFactoryProviderWithContainer<T>(provider)) return h.factoryContainer(provider)
+		if (isFactoryProviderNoDeps<T>(provider)) return h.factoryNoDeps(provider)
+	}
+	if (isClassProvider(provider)) {
+		if (isClassProviderWithTuple(provider)) return h.classTuple(provider)
+		if (isClassProviderWithObject<T>(provider)) return h.classObject(provider)
+		if (isClassProviderWithContainer<T>(provider)) return h.classContainer(provider)
+		if (isClassProviderNoDeps<T>(provider)) return h.classNoDeps(provider)
+	}
+	// Defensive internal invariant
+	throw Object.assign(new Error('Invariant: unknown provider shape'), { code: 'ORK1099', scope: 'internal' })
 }

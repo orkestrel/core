@@ -193,7 +193,6 @@ test('Container suite', { concurrency: false }, async (t) => {
 		container.set('tenantA', namedC)
 		const A = createToken<number>('A')
 		const B = createToken<string>('B')
-		container().set(A, 1)
 		namedC.set(A, 2)
 		namedC.set(B, 'z')
 		const { a, b } = container('tenantA').resolve({ a: A, b: B })
@@ -312,5 +311,29 @@ test('Container suite', { concurrency: false }, async (t) => {
 		}, 'tenantY')
 		// explicit: nothing should remain registered on the named container
 		assert.equal(named.get(T), undefined)
+	})
+
+	await t.test('resolve with tuple returns values in order', () => {
+		const A = createToken<number>('tuple:A')
+		const B = createToken<string>('tuple:B')
+		const c = new Container({ logger })
+		c.set(A, 7)
+		c.set(B, 'eight')
+		const [a, b] = c.resolve([A, B] as const)
+		assert.equal(a, 7)
+		assert.equal(b, 'eight')
+	})
+
+	await t.test('get with tuple returns optional values in order', () => {
+		const A = createToken<number>('tuple2:A')
+		const B = createToken<string>('tuple2:B')
+		const C = createToken<boolean>('tuple2:C')
+		const c = new Container({ logger })
+		c.set(A, 1)
+		c.set(C, true)
+		const [a, b, cval] = c.get([A, B, C] as const)
+		assert.equal(a, 1)
+		assert.equal(b, undefined)
+		assert.equal(cval, true)
 	})
 })

@@ -12,6 +12,7 @@ import type {
 	FactoryProviderWithObject,
 	FactoryProviderWithTuple,
 	InjectObject,
+	InjectTuple,
 	LoggerPort,
 	OptionalResolvedMap,
 	Provider,
@@ -24,21 +25,11 @@ import type {
 	ContainerGetter,
 } from './types.js'
 import {
-	isClassProvider,
-	isClassProviderNoDeps,
-	isClassProviderWithContainer,
-	isClassProviderWithObject,
-	isClassProviderWithTuple,
-	isFactoryProvider,
-	isFactoryProviderNoDeps,
-	isFactoryProviderWithContainer,
-	isFactoryProviderWithObject,
-	isFactoryProviderWithTuple,
-	isRawProviderValue,
 	isToken,
+	isTokenArray,
 	isTokenRecord,
-	isValueProvider,
 	tokenDescription,
+	matchProvider,
 } from './helpers.js'
 import { LoggerAdapter } from './adapters/logger'
 
@@ -188,22 +179,25 @@ export class Container {
 
 	// Overload: resolve a single token strictly.
 	resolve<T>(token: Token<T>): T
-	// Overload: resolve a token map to a map of values.
-	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
 	// Overload: resolve an inject object to a plain object.
 	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>): O
+	// Overload: resolve an inject tuple to a tuple of values.
+	resolve<A extends readonly unknown[]>(tokens: InjectTuple<A>): A
+	// Overload: resolve a token map to a map of values.
+	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
 	/**
 	 * Strictly resolve a single token or a token map. Missing tokens cause ORK1006 failures.
 	 *
 	 * @param tokenOrMap - Token to resolve, or a record of tokens to resolve into a map.
-	 * @returns The resolved value for a token, or a map of resolved values when given a record.
+	 * @returns The resolved value for a token, or a map/tuple of resolved values when given a record/tuple.
 	 *
 	 * @example
 	 * ```ts
 	 * const { a, b } = container.resolve({ a: A, b: B })
+	 * const [a, b] = container.resolve([A, B] as const)
 	 * ```
 	 */
-	resolve(tokenOrMap: Token<unknown> | TokenRecord): unknown {
+	resolve(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>): unknown {
 		if (isToken(tokenOrMap)) {
 			const reg = this.lookup(tokenOrMap)
 			if (!reg) {
@@ -214,32 +208,43 @@ export class Container {
 		if (isTokenRecord(tokenOrMap)) {
 			return this.retrievalMap(tokenOrMap, true)
 		}
+		if (isTokenArray(tokenOrMap)) {
+			return this.retrievalTuple(tokenOrMap, true)
+		}
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: resolve() called with invalid argument' })
 	}
 
 	// Overload: optionally get a single token.
 	get<T>(token: Token<T>): T | undefined
+	// Overload: optionally get an inject tuple to a tuple of optional values.
+	get<A extends readonly unknown[]>(tokens: InjectTuple<A>): { [K in keyof A]: A[K] | undefined }
+	// Overload: optionally get an inject object to a plain object of optional values.
+	get<O extends Record<string, unknown>>(tokens: InjectObject<O>): { [K in keyof O]: O[K] | undefined }
 	// Overload: optionally get a map of tokens.
 	get<TMap extends TokenRecord>(tokens: TMap): OptionalResolvedMap<TMap>
 	/**
 	 * Optionally resolve a single token or a map of tokens; missing entries return undefined.
 	 *
-	 * @param tokenOrMap - Token to get, or a record of tokens to get into a map
-	 * @returns The value for a token or undefined, or a map of values (possibly undefined)
+	 * @param tokenOrMap - Token to get, or a record/tuple of tokens to get into a map/tuple
+	 * @returns The value for a token or undefined, or a map/tuple of values (possibly undefined)
 	 *
 	 * @example
 	 * ```ts
 	 * const maybeCfg = container.get(ConfigToken) // T | undefined
 	 * const { a, b } = container.get({ a: A, b: B }) // { a?: A, b?: B }
+	 * const [a, b] = container.get([A, B] as const) // [A | undefined, B | undefined]
 	 * ```
 	 */
-	get(tokenOrMap: Token<unknown> | TokenRecord): unknown {
+	get(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>): unknown {
 		if (isToken(tokenOrMap)) {
 			const reg = this.lookup(tokenOrMap)
 			return reg ? this.materialize(reg).value : undefined
 		}
 		if (isTokenRecord(tokenOrMap)) {
 			return this.retrievalMap(tokenOrMap, false)
+		}
+		if (isTokenArray(tokenOrMap)) {
+			return this.retrievalTuple(tokenOrMap, false)
 		}
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: get() called with invalid argument' })
 	}
@@ -354,49 +359,18 @@ export class Container {
 
 	// Instantiate a provider (value/factory/class) and wrap lifecycle if present.
 	private instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
-		// Raw value branch first (strict non-provider object)
-		if (isRawProviderValue(provider)) {
-			return this.wrapLifecycle(provider, false)
-		}
-
-		if (isValueProvider(provider)) return this.wrapLifecycle(provider.useValue, false)
-
-		if (isFactoryProvider(provider)) {
-			if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) {
-				const args = provider.inject.map(tk => this.resolve(tk))
-				return this.wrapLifecycle(provider.useFactory(...args), true)
-			}
-			if (isFactoryProviderWithObject(provider)) {
-				const deps = this.resolve(provider.inject)
-				return this.wrapLifecycle(provider.useFactory(deps), true)
-			}
-			if (isFactoryProviderWithContainer<T>(provider)) {
-				return this.wrapLifecycle(provider.useFactory(this), true)
-			}
-			if (isFactoryProviderNoDeps<T>(provider)) {
-				return this.wrapLifecycle(provider.useFactory(), true)
-			}
-		}
-
-		if (isClassProvider(provider)) {
-			if (isClassProviderWithTuple<T, readonly unknown[]>(provider)) {
-				const args = provider.inject.map(tk => this.resolve(tk))
-				return this.wrapLifecycle(new provider.useClass(...args), true)
-			}
-			if (isClassProviderWithObject<T>(provider)) {
-				const deps = this.resolve(provider.inject)
-				return this.wrapLifecycle(new provider.useClass(deps), true)
-			}
-			if (isClassProviderWithContainer<T>(provider)) {
-				return this.wrapLifecycle(new provider.useClass(this), true)
-			}
-			if (isClassProviderNoDeps<T>(provider)) {
-				return this.wrapLifecycle(new provider.useClass(), true)
-			}
-		}
-
-		// Fallback invariant: should be covered by branches
-		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: unknown provider shape' })
+		return matchProvider<T, ResolvedProvider<T>>(provider, {
+			raw: value => this.wrapLifecycle(value, false),
+			value: p => this.wrapLifecycle(p.useValue, false),
+			factoryTuple: p => this.wrapLifecycle(p.useFactory(...this.resolve(p.inject)), true),
+			factoryObject: p => this.wrapLifecycle(p.useFactory(this.resolve(p.inject)), true),
+			factoryContainer: p => this.wrapLifecycle(p.useFactory(this), true),
+			factoryNoDeps: p => this.wrapLifecycle(p.useFactory(), true),
+			classTuple: p => this.wrapLifecycle(new p.useClass(...this.resolve(p.inject)), true),
+			classObject: p => this.wrapLifecycle(new p.useClass(this.resolve(p.inject)), true),
+			classContainer: p => this.wrapLifecycle(new p.useClass(this), true),
+			classNoDeps: p => this.wrapLifecycle(new p.useClass(), true),
+		})
 	}
 
 	// Wrap a value with lifecycle metadata when it is a Lifecycle.
@@ -428,24 +402,47 @@ export class Container {
 		}
 		return out
 	}
+
+	// Consolidated tuple retrieval for resolve()/get() when given an array of tokens.
+	private retrievalTuple(tokens: ReadonlyArray<Token<unknown>>, strict: boolean): ReadonlyArray<unknown> {
+		const out: unknown[] = new Array(tokens.length)
+		for (let i = 0; i < tokens.length; i++) {
+			const tk = tokens[i]
+			const reg = this.lookup(tk)
+			if (!reg) {
+				if (strict) {
+					this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tk)}`, helpUrl: HELP.providers })
+				}
+				out[i] = undefined
+				continue
+			}
+			out[i] = this.materialize(reg).value
+		}
+		return out
+	}
 }
 
 const containerRegistry = new RegistryAdapter<Container>({ label: 'container', default: { value: new Container() } })
 
 function containerResolve<T>(token: Token<T>, name?: string | symbol): T
-function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
 function containerResolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O
-function containerResolve(tokenOrMap: Token<unknown> | TokenRecord, name?: string | symbol): unknown {
+function containerResolve<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): A
+function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
+function containerResolve(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>, name?: string | symbol): unknown {
 	const c = containerRegistry.resolve(name)
+	if (isTokenArray(tokenOrMap)) return c.resolve(tokenOrMap)
 	if (isTokenRecord(tokenOrMap)) return c.resolve(tokenOrMap)
 	if (isToken(tokenOrMap)) return c.resolve(tokenOrMap)
 	containerRegistry.diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: container.resolve called with invalid argument' })
 }
 
 function containerGet<T>(token: Token<T>, name?: string | symbol): T | undefined
+function containerGet<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): { [K in keyof A]: A[K] | undefined }
+function containerGet<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): { [K in keyof O]: O[K] | undefined }
 function containerGet<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): OptionalResolvedMap<TMap>
-function containerGet(tokenOrMap: Token<unknown> | TokenRecord, name?: string | symbol): unknown {
+function containerGet(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>, name?: string | symbol): unknown {
 	const c = containerRegistry.resolve(name)
+	if (isTokenArray(tokenOrMap)) return c.get(tokenOrMap)
 	if (isTokenRecord(tokenOrMap)) return c.get(tokenOrMap)
 	if (isToken(tokenOrMap)) return c.get(tokenOrMap)
 	containerRegistry.diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: container.get called with invalid argument' })

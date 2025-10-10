@@ -16,6 +16,8 @@ import type {
 	ClassProviderWithObject,
 	ClassProviderWithContainer,
 	ClassProviderNoDeps,
+	ProviderMatchHandlers,
+	ProviderMatchReturnHandlers,
 } from './types.js'
 
 /**
@@ -656,50 +658,65 @@ export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleEr
 	return hasSchema(x, schema)
 }
 
-// Strictly-typed provider matcher to avoid duplication and casts
-export type ProviderMatchHandlers<T, R> = {
-	raw: (value: T) => R
-	value: (p: ValueProvider<T>) => R
-	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => R
-	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => R
-	factoryContainer: (p: FactoryProviderWithContainer<T>) => R
-	factoryNoDeps: (p: FactoryProviderNoDeps<T>) => R
-	classTuple: <A extends readonly unknown[]>(p: ClassProviderWithTuple<T, A>) => R
-	classObject: <O extends Record<string, unknown>>(p: ClassProviderWithObject<T, O>) => R
-	classContainer: (p: ClassProviderWithContainer<T>) => R
-	classNoDeps: (p: ClassProviderNoDeps<T>) => R
-}
-
-export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandlers<T, R>): R
 /**
- * Pattern-match a provider into its specific shape at runtime with strong typing.
+ * Match a provider against its specific shape and dispatch to typed handlers.
  *
- * Dispatches to the appropriate handler based on whether the provider is a raw value,
- * a value provider, a factory provider (tuple/object/container/no-deps), or a class provider
- * (tuple/object/container/no-deps).
+ * @typeParam T - Value type produced by the provider
+ * @typeParam R - Return type when using return handlers (inferred)
+ * @param provider - Provider input (raw value or provider object)
+ * @param h - Handlers for each supported provider shape
+ * @returns When handlers return Provider<T>, the normalized Provider<T>; otherwise the custom type R
  *
- * @typeParam T - Value type of the provider
- * @typeParam R - Result type returned by each handler
- * @param provider - The provider (raw value or provider object) to dispatch on
- * @param h - The handler object with a function for each supported shape
- * @returns The value returned by the invoked handler for the matched shape
- * @example Use matchProvider to centralize branching on provider shape and return a unified result.
+ * @remarks
+ * Recognized shapes (checked in order):
+ * 1. raw value (not an object provider)
+ * 2. value provider: `{ useValue }`
+ * 3. factory providers: tuple | object | container | noDeps
+ * 4. class providers: tuple | object | container | noDeps
+ *
+ * @throws Error with code ORK1099 when the provider shape is unknown (internal invariant)
+ *
+ * @example
+ * ```ts
+ * const out = matchProvider(42, {
+ *   raw: v => ({ useValue: v }),
+ *   value: p => p,
+ *   factoryTuple: p => p,
+ *   factoryObject: p => p,
+ *   factoryContainer: p => p,
+ *   factoryNoDeps: p => p,
+ *   classTuple: p => p,
+ *   classObject: p => p,
+ *   classContainer: p => p,
+ *   classNoDeps: p => p,
+ * })
+ * ```
  */
-export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandlers<T, R>): R {
+export function matchProvider<T>(provider: Provider<T>, h: ProviderMatchHandlers<T>): Provider<T>
+export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchReturnHandlers<T, R>): R
+export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandlers<T> | ProviderMatchReturnHandlers<T, R>): Provider<T> | R {
+	// Raw value (not a provider object)
 	if (isRawProviderValue(provider)) return h.raw(provider)
+
+	// Value provider
 	if (isValueProvider(provider)) return h.value(provider)
+
+	// Factory providers
 	if (isFactoryProvider(provider)) {
 		if (isFactoryProviderWithTuple(provider)) return h.factoryTuple(provider)
 		if (isFactoryProviderWithObject(provider)) return h.factoryObject(provider)
-		if (isFactoryProviderWithContainer<T>(provider)) return h.factoryContainer(provider)
-		if (isFactoryProviderNoDeps<T>(provider)) return h.factoryNoDeps(provider)
+		if (isFactoryProviderWithContainer(provider)) return h.factoryContainer(provider)
+		if (isFactoryProviderNoDeps(provider)) return h.factoryNoDeps(provider)
 	}
+
+	// Class providers
 	if (isClassProvider(provider)) {
 		if (isClassProviderWithTuple(provider)) return h.classTuple(provider)
-		if (isClassProviderWithObject<T>(provider)) return h.classObject(provider)
-		if (isClassProviderWithContainer<T>(provider)) return h.classContainer(provider)
-		if (isClassProviderNoDeps<T>(provider)) return h.classNoDeps(provider)
+		if (isClassProviderWithObject(provider)) return h.classObject(provider)
+		if (isClassProviderWithContainer(provider)) return h.classContainer(provider)
+		if (isClassProviderNoDeps(provider)) return h.classNoDeps(provider)
 	}
-	// Defensive internal invariant
-	throw Object.assign(new Error('Invariant: unknown provider shape'), { code: 'ORK1099', scope: 'internal' })
+
+	// Unknown shape: throw an internal invariant error
+	throw Object.assign(new Error('Unknown provider shape'), { code: 'ORK1099', scope: 'internal' })
 }

@@ -16,6 +16,9 @@ export interface ValueProvider<T> { readonly useValue: T }
 export type InjectTuple<A extends readonly unknown[]> = { readonly [K in keyof A]: Token<A[K]> }
 export type InjectObject<O extends Record<string, unknown>> = Readonly<{ [K in keyof O]: Token<O[K]> }>
 
+// Enable safe bivariance for parameter types on function/constructor properties
+// export type Bivariant<T> = { readonly bivarianceHack: T }['bivarianceHack']
+
 export type FactoryProviderNoDeps<T> = { readonly useFactory: () => T }
 export type FactoryProviderWithContainer<T> = { readonly useFactory: (container: Container) => T }
 export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
@@ -24,6 +27,7 @@ export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
 }
 export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useFactory: (deps: O) => T
+	// readonly useFactory: Bivariant<(deps: O) => T>
 	readonly inject: InjectObject<O>
 }
 export type FactoryProvider<T>
@@ -43,11 +47,41 @@ export type ClassProviderWithTuple<T, A extends readonly unknown[]> = {
 }
 export type ClassProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useClass: new (deps: O) => T
+	// readonly useClass: Bivariant<new (deps: O) => T>
 	readonly inject: InjectObject<O>
 }
 export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithContainer<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
 
 export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
+
+// -----------------------------------------------------------------------------
+// Provider matching
+// -----------------------------------------------------------------------------
+export type ProviderMatchHandlers<T> = {
+	raw: (value: T) => Provider<T>
+	value: (p: ValueProvider<T>) => Provider<T>
+	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => FactoryProviderWithTuple<T, A>
+	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => FactoryProviderWithObject<T, O>
+	factoryContainer: (p: FactoryProviderWithContainer<T>) => FactoryProviderWithContainer<T>
+	factoryNoDeps: (p: FactoryProviderNoDeps<T>) => FactoryProviderNoDeps<T>
+	classTuple: <A extends readonly unknown[]>(p: ClassProviderWithTuple<T, A>) => ClassProviderWithTuple<T, A>
+	classObject: <O extends Record<string, unknown>>(p: ClassProviderWithObject<T, O>) => ClassProviderWithObject<T, O>
+	classContainer: (p: ClassProviderWithContainer<T>) => ClassProviderWithContainer<T>
+	classNoDeps: (p: ClassProviderNoDeps<T>) => ClassProviderNoDeps<T>
+}
+
+export type ProviderMatchReturnHandlers<T, R> = {
+	raw: (value: T) => R
+	value: (p: ValueProvider<T>) => R
+	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => R
+	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => R
+	factoryContainer: (p: FactoryProviderWithContainer<T>) => R
+	factoryNoDeps: (p: FactoryProviderNoDeps<T>) => R
+	classTuple: <A extends readonly unknown[]>(p: ClassProviderWithTuple<T, A>) => R
+	classObject: <O extends Record<string, unknown>>(p: ClassProviderWithObject<T, O>) => R
+	classContainer: (p: ClassProviderWithContainer<T>) => R
+	classNoDeps: (p: ClassProviderNoDeps<T>) => R
+}
 
 // -----------------------------------------------------------------------------
 // Utility guards and schema inference
@@ -227,7 +261,7 @@ export type ContainerGetter = {
 	resolve<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): A
 	get<T>(token: Token<T>, name?: string | symbol): T | undefined
 	get<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
-	get<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O | { [K in keyof O]: O[K] | undefined }
+	get<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): { [K in keyof O]: O[K] | undefined }
 	get<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): { [K in keyof A]: A[K] | undefined }
 	using(fn: (c: Container) => void | Promise<void>, name?: string | symbol): Promise<void>
 	using<T>(fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>

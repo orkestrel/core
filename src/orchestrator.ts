@@ -39,7 +39,8 @@ import {
 	isClassProvider,
 	isClassProviderWithTuple,
 	isClassProviderWithObject,
-	matchProvider, isValueProvider,
+	matchProvider,
+	isValueProvider,
 } from './helpers.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
@@ -376,7 +377,7 @@ export class Orchestrator {
 	// Guard provider shapes against async values and functions immediately upon registration.
 	private guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
 		const desc = tokenDescription(token)
-		return matchProvider<T, Provider<T>>(provider, {
+		return matchProvider(provider, {
 			raw: (value) => {
 				if (isPromiseLike(value)) {
 					this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with a Promise value. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
@@ -390,11 +391,11 @@ export class Orchestrator {
 				return p
 			},
 			factoryTuple: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
-			factoryObject: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject } as Provider<T>),
+			factoryObject: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
 			factoryContainer: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),
 			factoryNoDeps: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),
 			classTuple: p => ({ useClass: p.useClass, inject: p.inject }),
-			classObject: p => ({ useClass: p.useClass, inject: p.inject }) as Provider<T>,
+			classObject: p => ({ useClass: p.useClass, inject: p.inject }),
 			classContainer: p => ({ useClass: p.useClass }),
 			classNoDeps: p => ({ useClass: p.useClass }),
 		})

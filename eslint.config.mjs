@@ -86,6 +86,8 @@ const tsdocConfig = {
 }
 
 export default [
+	// Ignore top-level `api/` folder from linting
+	{ name: 'orkestrel/ignores', ignores: ['api/**'] },
 	...base,
 	orkTs,
 	// Enable example processing and defaults via built-in jsdoc config for ESLint 9

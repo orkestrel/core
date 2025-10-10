@@ -359,7 +359,7 @@ export class Container {
 
 	// Instantiate a provider (value/factory/class) and wrap lifecycle if present.
 	private instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
-		return matchProvider<T, ResolvedProvider<T>>(provider, {
+		return matchProvider(provider, {
 			raw: value => this.wrapLifecycle(value, false),
 			value: p => this.wrapLifecycle(p.useValue, false),
 			factoryTuple: p => this.wrapLifecycle(p.useFactory(...this.resolve(p.inject)), true),

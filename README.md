@@ -5,47 +5,21 @@ Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilitie
 - Package: `@orkestrel/core`
 - TypeScript-first, ESM-only
 - Works in Node and the browser
+- Requires Node 18+
 
-Quick links
-- Overview: [docs/overview.md](docs/overview.md)
-- Install: [docs/install.md](docs/install.md)
-- Start (Getting Started): [docs/start.md](docs/start.md)
-- Concepts: [docs/concepts.md](docs/concepts.md)
-- Patterns: [docs/patterns.md](docs/patterns.md)
-- Providers & Lifetimes: [docs/providers-and-lifetimes.md](docs/providers-and-lifetimes.md)
-- Types: [docs/types.md](docs/types.md)
-- Tips: [docs/tips.md](docs/tips.md)
-- Testing: [docs/testing.md](docs/testing.md)
-- FAQ & Troubleshooting: [docs/faq.md](docs/faq.md)
-- Ecosystems: [docs/ecosystems.md](docs/ecosystems.md)
-- Examples: [docs/examples.md](docs/examples.md)
-- API Reference: [docs/api.md](docs/api.md)
-- Contribute: [docs/contribute.md](docs/contribute.md)
-- Adapters:
-  - [docs/layer.md](docs/adapters/layer.md),
-  - [docs/registry.md](docs/adapters/registry.md),
-  - [docs/emitter.md](docs/adapters/emitter.md), 
-  - [docs/event.md](docs/adapters/event.md), 
-  - [docs/queue.md](docs/adapters/queue.md),
-
-## Quickstart (≈60 seconds)
-
-1) Install
-```sh
+## Install
+```
 npm install @orkestrel/core
 ```
 
-2) Define a port and token
+## Quickstart
+Define a port, register an implementation, start, use, and clean up.
+
 ```ts
-import { createPortTokens } from '@orkestrel/core'
+import { createPortTokens, orchestrator, register, container } from '@orkestrel/core'
 
 interface EmailPort { send(to: string, subject: string, body: string): Promise<void> }
 const Ports = createPortTokens({ email: {} as EmailPort })
-```
-
-3) Register and start
-```ts
-import { container, orchestrator, register } from '@orkestrel/core'
 
 class ConsoleEmail implements EmailPort {
   async send(to: string, subject: string, body: string) {
@@ -56,41 +30,41 @@ class ConsoleEmail implements EmailPort {
 await orchestrator().start([
   register(Ports.email, { useFactory: () => new ConsoleEmail() }),
 ])
-```
 
-4) Use and cleanup
-```ts
 await container().resolve(Ports.email).send('me@example.com', 'Hi', 'Welcome!')
-// Single-call shutdown: destroy() will stop components as needed, then destroy
+
+// Single-call shutdown: stop/destroy as needed
 await orchestrator().destroy()
 ```
 
-## Mental model (at a glance)
-- Ports: TypeScript interfaces that describe capabilities (Email, Logger, etc.).
-- Tokens: unique runtime identifiers for those port interfaces.
-- Container: tiny DI that registers providers (value/factory/class) and resolves singletons.
-- Orchestrator: starts/stops/destroys Lifecycle components in dependency order with timeouts and events.
-- Adapters: concrete implementations of ports; core defaults include LayerAdapter, RegistryAdapter, EmitterAdapter, EventAdapter, and QueueAdapter.
+## Concepts (at a glance)
+- Ports & Tokens: describe capabilities (Email, Logger, etc.) via tokens created with `createPortToken(s)`.
+- Container: tiny DI to register value/factory/class providers and resolve by token; supports child scopes via `using()`.
+- Orchestrator: registers components, validates dependencies, and runs lifecycles in layers with timeouts; includes a helper `register()` to build entries.
+- Adapters (in-memory): Layer, Queue, Emitter, Event, Registry, Diagnostic, Logger.
 
-Startup
-- See [Start](docs/start.md) for a quick way to wire and run your app, and [Patterns](docs/patterns.md) for alternatives.
+## Public API (selected)
+- Tokens: `createPortToken`, `createPortTokens`, `extendPorts`
+- Container: `Container` class, `container()` global getter (with `.resolve`, `.get`, `.using`, etc.)
+- Orchestrator: `Orchestrator` class, `orchestrator()` global getter (with `.start()`, `.stop()`, `.destroy()`)
+- Helper: `register(token, provider, options)` for typed registrations
+- Built-ins: `LayerAdapter`, `QueueAdapter`, `EmitterAdapter`, `EventAdapter`, `RegistryAdapter`, `DiagnosticAdapter`, `LoggerAdapter`
 
-Source
-- Public entrypoint: `src/index.ts`
-- Browse source: [`src/`](src)
+Notes
+- Providers are synchronous only (no async factories or Promise values). Put async work in `Lifecycle` hooks if you build lifecycle-owning components.
+- Deterministic order: dependencies are validated; start/stop/destroy run in computed layers.
+- Types are strict; surfaces are small and composable.
 
-Run locally
-```sh
-npm run check
-npm run format
-npm test
-npm run build
+## Develop locally
+```
+npm run check    // typecheck
+npm run format   // lint + autofix
+npm test         // unit tests
+npm run build    // build ESM + types
 ```
 
-Note: This repo does not use CI or GitHub Workflows. Run these local gates before pushing or publishing. See [docs/contribute.md](docs/contribute.md).
-
 Publishing
-- `prepublishOnly` runs type-checks and build so only `src` is compiled to `dist`.
+- `prepublishOnly` runs the same gates (check, format, test, docs, build) so only `dist` is shipped.
 
-Issues & Discussions
-- Please file issues and PRs with clear reproduction and expected behavior.
+Issues
+- https://github.com/orkestrel/core/issues

@@ -3,7 +3,7 @@
   "entryPoints": ["src/index.ts"],
   "out": "docs/api",
   "tsconfig": "tsconfig.json",
-  "readme": "docs/api.md",
+  "readme": "README.md",
   "excludePrivate": true,
   "excludeProtected": true,
   "excludeInternal": true,
@@ -13,4 +13,3 @@
   "includeVersion": false,
   "cleanOutputDir": true
 }
-

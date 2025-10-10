@@ -9,10 +9,11 @@ import type {
 	ClassProvider,
 	ClassProviderWithTuple,
 	AggregateLifecycleError,
+	Guard,
+	SchemaSpec,
+	FromSchema,
 } from './types.js'
 import type { Container } from './container.js'
-
-export type Guard<T> = (x: unknown) => x is T
 
 /**
  * Check whether a value is a non-null object (arrays included).
@@ -149,21 +150,6 @@ export function hasOwn(obj: unknown, ...keys: readonly PropertyKey[]): boolean {
 	for (const k of keys) if (!Object.prototype.hasOwnProperty.call(obj, k)) return false
 	return true
 }
-
-export type PrimitiveTag = 'string' | 'number' | 'boolean' | 'symbol' | 'bigint' | 'function' | 'object'
-export type SchemaSpec = Readonly<{ [k: string]: SchemaSpec | PrimitiveTag | Guard<unknown> }>
-export type ResolveRule<R>
-	= R extends 'string' ? string
-		: R extends 'number' ? number
-			: R extends 'boolean' ? boolean
-				: R extends 'symbol' ? symbol
-					: R extends 'bigint' ? bigint
-						: R extends 'function' ? (...args: unknown[]) => unknown
-							: R extends 'object' ? Record<string, unknown>
-								: R extends Guard<infer U> ? U
-									: R extends SchemaSpec ? FromSchema<R>
-										: never
-export type FromSchema<S extends SchemaSpec> = { [K in keyof S]: ResolveRule<S[K]> }
 
 /**
  * Check that a value matches an object schema at runtime, with static inference.
@@ -367,7 +353,7 @@ export function isClassProviderWithTuple<T, A extends readonly unknown[]>(p: Pro
  * @example
  * ```ts
  * class S { constructor(_deps: { a: number, b: string }) {} }
- * isClassProviderWithObject<number>({ useClass: S, inject: { a: Symbol('A'), b: Symbol('B') } as any })
+ * isClassProviderWithObject<number>({ useClass: S, inject: { a: Symbol('A'), b: Symbol('B') } } as any)
  * ```
  */
 export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>): p is ClassProvider<T> & { useClass: new (deps: Record<string, unknown>) => T, inject: Record<string, Token<unknown>> } {

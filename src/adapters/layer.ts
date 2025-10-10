@@ -37,7 +37,8 @@ export class LayerAdapter implements LayerPort {
 	 * @param options - Configuration options:
 	 * - logger: Optional logger port for diagnostics
 	 * - diagnostic: Optional diagnostic port for validation errors
-	 */
+     *
+     */
 	constructor(options: LayerAdapterOptions = {}) {
 		this.#logger = options.logger ?? new LoggerAdapter()
 		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: ORCHESTRATOR_MESSAGES })

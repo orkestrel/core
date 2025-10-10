@@ -2,126 +2,9 @@ import type { Container } from './container.js'
 import type { Lifecycle } from './lifecycle.js'
 import type { Orchestrator } from './orchestrator.js'
 
-export type EventMap = Record<string, unknown[]>
-export type EmitterListener<EMap extends EventMap, E extends keyof EMap & string> = (...args: EMap[E]) => void
-
-export interface EmitterPort<EMap extends EventMap = EventMap> {
-	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
-	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
-	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void
-	removeAllListeners(): void
-}
-
-export interface EmitterAdapterOptions {
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-export type EventHandler<T> = (payload: T) => void | Promise<void>
-
-export interface EventPort<EMap extends Record<string, unknown> = Record<string, unknown>> {
-	publish<E extends keyof EMap & string>(topic: E, payload: EMap[E]): Promise<void>
-	subscribe<E extends keyof EMap & string>(topic: E, handler: EventHandler<EMap[E]>): Promise<() => void | Promise<void>>
-	topics(): ReadonlyArray<string>
-}
-
-export interface EventAdapterOptions {
-	readonly onError?: (err: unknown, topic: string) => void
-	readonly sequential?: boolean
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-export interface LayerNode<T = unknown> {
-	readonly token: Token<T>
-	readonly dependencies: readonly Token<unknown>[]
-}
-
-export interface LayerPort {
-	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][]
-	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][]
-}
-
-export interface QueuePort<T = unknown> {
-	enqueue(item: T): Promise<void>
-	dequeue(): Promise<T | undefined>
-	size(): Promise<number>
-	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: QueueRunOptions): Promise<ReadonlyArray<R>>
-}
-
-export interface QueueRunOptions {
-	readonly concurrency?: number
-	readonly timeout?: number
-	readonly deadline?: number
-	readonly signal?: AbortSignal
-}
-
-export interface QueueAdapterOptions extends QueueRunOptions {
-	readonly capacity?: number
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-export interface RegistryPort<T> {
-	get(name?: string | symbol): T | undefined
-	resolve(name?: string | symbol): T
-	set(name: string | symbol, value: T, lock?: boolean): void
-	clear(name?: string | symbol, force?: boolean): boolean
-	list(): ReadonlyArray<string | symbol>
-}
-
-export interface RegistryAdapterOptions<T> {
-	readonly label?: string
-	readonly default?: { readonly key?: symbol, readonly value: T }
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-export interface LayerAdapterOptions {
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
-
-export interface LoggerPort {
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
-}
-
-export type DiagnosticScope = 'lifecycle' | 'orchestrator' | 'container' | 'registry' | 'internal'
-
-export interface DiagnosticErrorContext {
-	readonly scope?: DiagnosticScope
-	readonly code?: string
-	readonly token?: string
-	readonly phase?: LifecyclePhase
-	readonly hook?: LifecycleHook
-	readonly timedOut?: boolean
-	readonly durationMs?: number
-	readonly extra?: Record<string, unknown>
-	readonly details?: ReadonlyArray<LifecycleErrorDetail>
-}
-
-export interface DiagnosticPort {
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
-	error(err: unknown, context?: DiagnosticErrorContext): void
-	fail(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
-	aggregate(key: string, details: ReadonlyArray<LifecycleErrorDetail | Error>, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
-	help(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): Error
-	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void
-	trace(name: string, payload?: Record<string, unknown>): void
-	event(name: string, payload?: Record<string, unknown>): void
-}
-
-export type MessageMapEntry = Readonly<{ level?: LogLevel, message?: string }>
-
-export interface DiagnosticMessage extends MessageMapEntry { readonly key: string }
-
-export interface DiagnosticAdapterOptions {
-	readonly logger?: LoggerPort
-	readonly messages?: ReadonlyArray<DiagnosticMessage>
-}
-
+// -----------------------------------------------------------------------------
+// Tokens and provider model
+// -----------------------------------------------------------------------------
 export type Token<T> = symbol & { readonly __t?: T }
 export type TokensOf<T extends Record<string, unknown>> = { [K in keyof T & string]: Token<T[K]> }
 export type TokenRecord = Record<string, Token<unknown>>
@@ -168,37 +51,40 @@ export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithTuple<T
 
 export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
 
-export type OrkCode
-	= | 'ORK1001' // Registry: no default instance
-		| 'ORK1002' // Registry: no named instance
-		| 'ORK1003' // Registry: cannot replace default
-		| 'ORK1004' // Registry: cannot replace locked
-		| 'ORK1005' // Container: already destroyed
-		| 'ORK1006' // Container: no provider for token
-		| 'ORK1007' // Orchestrator: duplicate registration
-		| 'ORK1008' // Orchestrator: unknown dependency
-		| 'ORK1009' // Orchestrator: cycle detected
-		| 'ORK1010' // Orchestrator: async useValue
-		| 'ORK1011' // Orchestrator: async useFactory (async function)
-		| 'ORK1012' // Orchestrator: async useFactory (returned Promise)
-		| 'ORK1013' // Orchestrator: Errors during start
-		| 'ORK1014' // Orchestrator: Errors during stop
-		| 'ORK1015' // Orchestrator: Errors during destroyAll
-		| 'ORK1016' // Container: Errors during container destroy
-		| 'ORK1017' // Orchestrator: Errors during destroy (consolidated stop+destroy)
-		| 'ORK1020' // Lifecycle: invalid transition
-		| 'ORK1021' // Lifecycle: hook timed out
-		| 'ORK1022' // Lifecycle: hook failed
-		| 'ORK1040' // Ports: duplicate key
-		| 'ORK1050' // Queue: capacity exceeded
-		| 'ORK1051' // Queue: aborted
-		| 'ORK1052' // Queue: task timed out
-		| 'ORK1053' // Queue: shared deadline exceeded
-		| 'ORK1099' // Internal invariant
+// -----------------------------------------------------------------------------
+// Utility guards and schema inference
+// -----------------------------------------------------------------------------
+export type Guard<T> = (x: unknown) => x is T
+export type PrimitiveTag = 'string' | 'number' | 'boolean' | 'symbol' | 'bigint' | 'function' | 'object'
+export type SchemaSpec = Readonly<{ [k: string]: SchemaSpec | PrimitiveTag | Guard<unknown> }>
+export type ResolveRule<R>
+	= R extends 'string' ? string
+		: R extends 'number' ? number
+			: R extends 'boolean' ? boolean
+				: R extends 'symbol' ? symbol
+					: R extends 'bigint' ? bigint
+						: R extends 'function' ? (...args: unknown[]) => unknown
+							: R extends 'object' ? Record<string, unknown>
+								: R extends Guard<infer U> ? U
+									: R extends SchemaSpec ? FromSchema<R>
+										: never
+export type FromSchema<S extends SchemaSpec> = { [K in keyof S]: ResolveRule<S[K]> }
+
+// -----------------------------------------------------------------------------
+// Logging and diagnostics
+// -----------------------------------------------------------------------------
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+
+export interface LoggerPort {
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
+}
+
+export type DiagnosticScope = 'lifecycle' | 'orchestrator' | 'container' | 'registry' | 'internal'
 
 export type LifecyclePhase = 'start' | 'stop' | 'destroy'
 export type LifecycleHook = 'create' | 'start' | 'stop' | 'destroy'
 export type LifecycleContext = 'normal' | 'rollback' | 'container'
+
 export interface LifecycleErrorDetail {
 	tokenDescription: string
 	phase: LifecyclePhase
@@ -208,17 +94,104 @@ export interface LifecycleErrorDetail {
 	error: Error
 }
 
+export interface DiagnosticErrorContext {
+	readonly scope?: DiagnosticScope
+	readonly code?: string
+	readonly token?: string
+	readonly phase?: LifecyclePhase
+	readonly hook?: LifecycleHook
+	readonly timedOut?: boolean
+	readonly durationMs?: number
+	readonly extra?: Record<string, unknown>
+	readonly details?: ReadonlyArray<LifecycleErrorDetail>
+}
+
+export interface DiagnosticPort {
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
+	error(err: unknown, context?: DiagnosticErrorContext): void
+	fail(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
+	aggregate(key: string, details: ReadonlyArray<LifecycleErrorDetail | Error>, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
+	help(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): Error
+	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void
+	trace(name: string, payload?: Record<string, unknown>): void
+	event(name: string, payload?: Record<string, unknown>): void
+}
+
+export type MessageMapEntry = Readonly<{ level?: LogLevel, message?: string }>
+export interface DiagnosticMessage extends MessageMapEntry { readonly key: string }
+export interface DiagnosticAdapterOptions { readonly logger?: LoggerPort, readonly messages?: ReadonlyArray<DiagnosticMessage> }
+
 export type AggregateLifecycleError = Error & Readonly<{ details: ReadonlyArray<LifecycleErrorDetail>, errors: ReadonlyArray<Error>, code?: string, helpUrl?: string }>
 
-export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
-export interface LifecycleOptions {
-	readonly timeouts?: number
-	readonly emitInitial?: boolean
-	readonly emitter?: EmitterPort<LifecycleEventMap>
-	readonly queue?: QueuePort
+// -----------------------------------------------------------------------------
+// Emitter and event bus
+// -----------------------------------------------------------------------------
+export type EventMap = Record<string, unknown[]>
+export type EmitterListener<EMap extends EventMap, E extends keyof EMap & string> = (...args: EMap[E]) => void
+
+export interface EmitterPort<EMap extends EventMap = EventMap> {
+	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
+	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
+	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void
+	removeAllListeners(): void
+}
+
+export interface EmitterAdapterOptions { readonly logger?: LoggerPort, readonly diagnostic?: DiagnosticPort }
+
+export type EventHandler<T> = (payload: T) => void | Promise<void>
+
+export interface EventPort<EMap extends Record<string, unknown> = Record<string, unknown>> {
+	publish<E extends keyof EMap & string>(topic: E, payload: EMap[E]): Promise<void>
+	subscribe<E extends keyof EMap & string>(topic: E, handler: EventHandler<EMap[E]>): Promise<() => void | Promise<void>>
+	topics(): ReadonlyArray<string>
+}
+
+export interface EventAdapterOptions {
+	readonly onError?: (err: unknown, topic: string) => void
+	readonly sequential?: boolean
 	readonly logger?: LoggerPort
 	readonly diagnostic?: DiagnosticPort
 }
+
+// -----------------------------------------------------------------------------
+// Queue
+// -----------------------------------------------------------------------------
+export interface QueueRunOptions {
+	readonly concurrency?: number
+	readonly timeout?: number
+	readonly deadline?: number
+	readonly signal?: AbortSignal
+}
+
+export interface QueuePort<T = unknown> {
+	enqueue(item: T): Promise<void>
+	dequeue(): Promise<T | undefined>
+	size(): Promise<number>
+	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: QueueRunOptions): Promise<ReadonlyArray<R>>
+}
+
+export interface QueueAdapterOptions extends QueueRunOptions { readonly capacity?: number, readonly logger?: LoggerPort, readonly diagnostic?: DiagnosticPort }
+
+// -----------------------------------------------------------------------------
+// Layering
+// -----------------------------------------------------------------------------
+export interface LayerNode<T = unknown> {
+	readonly token: Token<T>
+	readonly dependencies: readonly Token<unknown>[]
+}
+
+export interface LayerPort {
+	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][]
+	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][]
+}
+
+export interface LayerAdapterOptions { readonly logger?: LoggerPort, readonly diagnostic?: DiagnosticPort }
+
+// -----------------------------------------------------------------------------
+// Lifecycle
+// -----------------------------------------------------------------------------
+export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
+
 export type LifecycleEventMap = {
 	transition: [LifecycleState]
 	create: []
@@ -228,6 +201,18 @@ export type LifecycleEventMap = {
 	error: [Error]
 }
 
+export interface LifecycleOptions {
+	readonly timeouts?: number
+	readonly emitInitial?: boolean
+	readonly emitter?: EmitterPort<LifecycleEventMap>
+	readonly queue?: QueuePort
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
+}
+
+// -----------------------------------------------------------------------------
+// Container
+// -----------------------------------------------------------------------------
 export interface ContainerOptions { readonly parent?: Container, readonly diagnostic?: DiagnosticPort, readonly logger?: LoggerPort }
 
 export interface ResolvedProvider<T> { value: T, lifecycle?: Lifecycle, disposable: boolean }
@@ -248,6 +233,9 @@ export type ContainerGetter = {
 	using<T>(apply: (c: Container) => void | Promise<void>, fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
 }
 
+// -----------------------------------------------------------------------------
+// Orchestrator
+// -----------------------------------------------------------------------------
 export type PhaseTimeouts = Readonly<{ onStart?: number, onStop?: number, onDestroy?: number }>
 
 export type Task<T> = () => Promise<T>
@@ -300,3 +288,21 @@ export interface RegisterOptions {
 }
 
 export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }
+
+// -----------------------------------------------------------------------------
+// Registry (named singletons)
+// -----------------------------------------------------------------------------
+export interface RegistryPort<T> {
+	get(name?: string | symbol): T | undefined
+	resolve(name?: string | symbol): T
+	set(name: string | symbol, value: T, lock?: boolean): void
+	clear(name?: string | symbol, force?: boolean): boolean
+	list(): ReadonlyArray<string | symbol>
+}
+
+export interface RegistryAdapterOptions<T> {
+	readonly label?: string
+	readonly default?: { readonly key?: symbol, readonly value: T }
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
+}

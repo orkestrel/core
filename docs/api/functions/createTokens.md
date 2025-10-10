@@ -6,7 +6,7 @@
 
 > **createTokens**\<`T`\>(`namespace`, `shape`): `Readonly`\<`{ [K in keyof T & string]: Token<T[K]> }`\>
 
-Defined in: [helpers.ts:227](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/helpers.ts#L227)
+Defined in: [helpers.ts:227](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L227)
 
 Create a set of tokens from a shape under a given namespace.
 

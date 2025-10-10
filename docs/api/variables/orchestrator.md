@@ -6,7 +6,7 @@
 
 > `const` **orchestrator**: (`name?`) => [`Orchestrator`](../classes/Orchestrator.md) & `object`
 
-Defined in: [orchestrator.ts:569](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L569)
+Defined in: [orchestrator.ts:569](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L569)
 
 Global orchestrator getter.
 - Returns the default or a named orchestrator instance bound to a container.

@@ -6,7 +6,7 @@
 
 > **Provider**\<`T`\> = `T` \| [`ValueProvider`](../interfaces/ValueProvider.md)\<`T`\> \| [`FactoryProvider`](FactoryProvider.md)\<`T`\> \| [`ClassProvider`](ClassProvider.md)\<`T`\>
 
-Defined in: [types.ts:55](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L55)
+Defined in: [types.ts:55](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L55)
 
 ## Type Parameters
 

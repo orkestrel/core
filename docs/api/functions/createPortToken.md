@@ -6,7 +6,7 @@
 
 > **createPortToken**\<`T`\>(`name`): [`Token`](../type-aliases/Token.md)\<`T`\>
 
-Defined in: [ports.ts:81](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/ports.ts#L81)
+Defined in: [ports.ts:81](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/ports.ts#L81)
 
 Create a single Port token with a stable description under the `ports:` namespace.
 

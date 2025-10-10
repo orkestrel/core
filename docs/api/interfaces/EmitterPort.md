@@ -4,7 +4,7 @@
 
 # Interface: EmitterPort\<EMap\>
 
-Defined in: [types.ts:164](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L164)
+Defined in: [types.ts:164](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L164)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:164](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6
 
 > **emit**\<`E`\>(`event`, ...`args`): `void`
 
-Defined in: [types.ts:167](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L167)
+Defined in: [types.ts:167](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L167)
 
 #### Type Parameters
 
@@ -46,7 +46,7 @@ Defined in: [types.ts:167](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6
 
 > **off**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [types.ts:166](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L166)
+Defined in: [types.ts:166](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L166)
 
 #### Type Parameters
 
@@ -74,7 +74,7 @@ Defined in: [types.ts:166](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6
 
 > **on**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [types.ts:165](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L165)
+Defined in: [types.ts:165](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L165)
 
 #### Type Parameters
 
@@ -102,7 +102,7 @@ Defined in: [types.ts:165](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6
 
 > **removeAllListeners**(): `void`
 
-Defined in: [types.ts:168](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L168)
+Defined in: [types.ts:168](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L168)
 
 #### Returns
 

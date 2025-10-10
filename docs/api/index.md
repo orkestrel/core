@@ -16,17 +16,18 @@ npm install @orkestrel/core
 ```
 
 ## Documentation
-- Guide overview: docs/guide/overview.md
-- Getting started: docs/guide/start.md
+- Overview: docs/guide/overview.md
+- Start: docs/guide/start.md
 - Concepts: docs/guide/concepts.md
-- Core (adapters + runtime): docs/guide/core.md
+- Core: docs/guide/core.md
 - Examples: docs/guide/examples.md
-- Tips (types, patterns, providers, FAQ): docs/guide/tips.md
+- Tips: docs/guide/tips.md
 - Tests: docs/guide/tests.md
 - Contribute: docs/guide/contribute.md
-- API reference (Typedoc): docs/api/index.md
-- LLM index (compact): docs/llms.txt
-- LLM full corpus: docs/llms-full.txt
+- FAQ: docs/guide/faq.md
+- API: docs/api/index.md
+- LLM: docs/llms.txt
+- LLM Full: docs/llms-full.txt
 
 Notes
 - Providers are synchronous (no async factories or Promise values). Do async work in Lifecycle hooks.

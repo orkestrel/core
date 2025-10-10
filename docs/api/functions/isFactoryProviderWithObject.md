@@ -6,7 +6,7 @@
 
 > **isFactoryProviderWithObject**\<`T`\>(`p`): `p is FactoryProviderWithObject<T, Record<string, unknown>>`
 
-Defined in: [helpers.ts:433](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/helpers.ts#L433)
+Defined in: [helpers.ts:433](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L433)
 
 Check if factory provider uses object injection (inject: `{ a: A, b: B }`).
 

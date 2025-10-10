@@ -15,6 +15,7 @@ This file contains links to all documentation sections following the llmstxt.org
 - [Tips](https://orkestrel.github.io/core/guide/tips): # Tips
 - [Tests](https://orkestrel.github.io/core/guide/tests): # Tests
 - [Contribute](https://orkestrel.github.io/core/guide/contribute): # Contribute
+- [FAQ](https://orkestrel.github.io/core/guide/faq): # FAQ
 - [Abstract Class: Adapter](https://orkestrel.github.io/core/api/classes/Adapter): # Abstract Class: Adapter
 - [Class: Container](https://orkestrel.github.io/core/api/classes/Container): # Class: Container
 - [Class: DiagnosticAdapter](https://orkestrel.github.io/core/api/classes/DiagnosticAdapter): # Class: DiagnosticAdapter

@@ -49,7 +49,9 @@
     "test": "tsx --test tests\\**\\*.ts",
     "check": "tsc -p tsconfig.json",
     "format": "eslint . --fix",
-    "docs": "typedoc",
+    "docs": "typedoc && npm run docs:llm",
+    "docs:api": "typedoc",
+    "docs:llm": "tsx scripts\\generate-llms.ts --base-url https://orkestrel.github.io/core --docs docs --out docs",
     "prepublishOnly": "npm run check && npm run format && npm run test && npm run docs && npm run build"
   },
   "devDependencies": {
@@ -58,8 +60,11 @@
     "eslint": "^9.37.0",
     "eslint-plugin-jsdoc": "^61.1.0",
     "eslint-plugin-tsdoc": "^0.4.0",
-    "typedoc": "^0.28.13",
     "tsx": "^4.20.6",
+    "typedoc": "^0.28.13",
+    "typedoc-plugin-extras": "^4.0.1",
+    "typedoc-plugin-frontmatter": "^1.3.0",
+    "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.9.3",
     "vite": "^7.1.9"
   }

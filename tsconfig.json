@@ -15,6 +15,18 @@
       "@orkestrel/core": ["./src/index.ts"]
     }
   },
-  "include": ["**/*"],
-  "exclude": ["node_modules", "dist", "tmp"]
+  "include": [
+    "src",
+    "tests",
+    "vite.config.ts",
+    "eslint.config.mjs"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tmp",
+    "docs",
+    "site",
+    ".github"
+  ]
 }

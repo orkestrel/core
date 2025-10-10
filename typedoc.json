@@ -1,15 +1,20 @@
 {
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["src/index.ts"],
-  "out": "api",
-  "tsconfig": "tsconfig.json",
-  "readme": "README.md",
-  "excludePrivate": true,
-  "excludeProtected": true,
-  "excludeInternal": true,
-  "excludeExternals": true,
-  "categorizeByGroup": false,
+  "out": "docs/api",
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-frontmatter",
+    "typedoc-plugin-extras"
+  ],
+  "readme": "none",
+  "githubPages": false,
   "hideGenerator": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
   "includeVersion": false,
-  "cleanOutputDir": true
+  "categorizeByGroup": true,
+  "hideBreadcrumbs": true,
+  "hidePageTitle": false,
+  "theme": "default"
 }

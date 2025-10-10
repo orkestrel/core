@@ -1,6 +1,6 @@
 {
   "name": "@orkestrel/core",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire implementations via a tiny DI container, and drive lifecycles deterministically with an orchestrator.",
   "type": "module",
   "main": "dist/index.js",
@@ -13,8 +13,9 @@
   },
   "files": [
     "dist",
-    "docs",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "keywords": [
@@ -37,6 +38,7 @@
     "url": "https://github.com/orkestrel/core/issues"
   },
   "homepage": "https://github.com/orkestrel/core#readme",
+  "license": "MIT",
   "engines": {
     "node": ">=18"
   },

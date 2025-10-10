@@ -6,7 +6,7 @@
 
 > **InjectTuple**\<`A`\> = `{ readonly [K in keyof A]: Token<A[K]> }`
 
-Defined in: [types.ts:16](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L16)
+Defined in: [types.ts:16](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L16)
 
 ## Type Parameters
 

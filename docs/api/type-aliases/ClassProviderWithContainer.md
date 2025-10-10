@@ -6,7 +6,7 @@
 
 > **ClassProviderWithContainer**\<`T`\> = `object`
 
-Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L43)
+Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L43)
 
 ## Type Parameters
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/076093e61b67cd3
 
 > `readonly` **useClass**: [`CtorWithContainer`](CtorWithContainer.md)\<`T`\>
 
-Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L43)
+Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L43)

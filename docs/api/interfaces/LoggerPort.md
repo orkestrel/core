@@ -4,7 +4,7 @@
 
 # Interface: LoggerPort
 
-Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L110)
+Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L110)
 
 ## Methods
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/076093e61b67cd
 
 > **log**(`level`, `message`, `fields?`): `void`
 
-Defined in: [types.ts:111](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L111)
+Defined in: [types.ts:111](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L111)
 
 #### Parameters
 

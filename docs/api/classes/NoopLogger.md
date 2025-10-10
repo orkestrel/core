@@ -4,7 +4,7 @@
 
 # Class: NoopLogger
 
-Defined in: [adapters/logger.ts:57](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/logger.ts#L57)
+Defined in: [adapters/logger.ts:57](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/adapters/logger.ts#L57)
 
 Silent logger implementation that discards all log messages.
 
@@ -38,7 +38,7 @@ logger.log('info', 'This will not be logged')
 
 > **log**(`_level`, `_message`, `_fields?`): `void`
 
-Defined in: [adapters/logger.ts:72](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/logger.ts#L72)
+Defined in: [adapters/logger.ts:72](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/adapters/logger.ts#L72)
 
 No-op log method that intentionally does nothing with log messages.
 

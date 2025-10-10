@@ -12,18 +12,18 @@ npm install @orkestrel/core
 ```
 
 ## Documentation
-- Overview: docs/guide/overview.md
-- Start: docs/guide/start.md
-- Concepts: docs/guide/concepts.md
-- Core: docs/guide/core.md
-- Examples: docs/guide/examples.md
-- Tips: docs/guide/tips.md
-- Tests: docs/guide/tests.md
-- Contribute: docs/guide/contribute.md
-- FAQ: docs/guide/faq.md
-- API: docs/api/index.md
-- LLM: docs/llms.txt
-- LLM Full: docs/llms-full.txt
+- Overview: https://github.com/orkestrel/core/blob/main/docs/guide/overview.md
+- Start: https://github.com/orkestrel/core/blob/main/docs/guide/start.md
+- Concepts: https://github.com/orkestrel/core/blob/main/docs/guide/concepts.md
+- Core: https://github.com/orkestrel/core/blob/main/docs/guide/core.md
+- Examples: https://github.com/orkestrel/core/blob/main/docs/guide/examples.md
+- Tips: https://github.com/orkestrel/core/blob/main/docs/guide/tips.md
+- Tests: https://github.com/orkestrel/core/blob/main/docs/guide/tests.md
+- Contribute: https://github.com/orkestrel/core/blob/main/docs/guide/contribute.md
+- FAQ: https://github.com/orkestrel/core/blob/main/docs/guide/faq.md
+- API: https://github.com/orkestrel/core/blob/main/docs/api/index.md
+- LLM: https://github.com/orkestrel/core/blob/main/docs/llms.txt
+- LLM Full: https://github.com/orkestrel/core/blob/main/docs/llms-full.txt
 
 Notes
 - Providers are synchronous (no async factories or Promise values). Do async work in Lifecycle hooks.
@@ -39,3 +39,7 @@ npm run build   # build ESM + types into dist
 
 Links
 - Issues: https://github.com/orkestrel/core/issues
+
+## License
+
+MIT © 2025 Orkestrel

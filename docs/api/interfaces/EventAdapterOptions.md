@@ -4,7 +4,7 @@
 
 # Interface: EventAdapterOptions
 
-Defined in: [types.ts:181](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L181)
+Defined in: [types.ts:181](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L181)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:181](https://github.com/orkestrel/core/blob/076093e61b67cd
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:185](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L185)
+Defined in: [types.ts:185](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L185)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:185](https://github.com/orkestrel/core/blob/076093e61b67cd
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:184](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L184)
+Defined in: [types.ts:184](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L184)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:184](https://github.com/orkestrel/core/blob/076093e61b67cd
 
 > `readonly` `optional` **onError**: (`err`, `topic`) => `void`
 
-Defined in: [types.ts:182](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L182)
+Defined in: [types.ts:182](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L182)
 
 #### Parameters
 
@@ -50,4 +50,4 @@ Defined in: [types.ts:182](https://github.com/orkestrel/core/blob/076093e61b67cd
 
 > `readonly` `optional` **sequential**: `boolean`
 
-Defined in: [types.ts:183](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L183)
+Defined in: [types.ts:183](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L183)

@@ -6,7 +6,7 @@
 
 > **literalOf**\<`Literals`\>(...`literals`): [`Guard`](../type-aliases/Guard.md)\<`Literals`\[`number`\]\>
 
-Defined in: [helpers.ts:120](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L120)
+Defined in: [helpers.ts:120](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/helpers.ts#L120)
 
 Build a guard for a literal union by value equality.
 

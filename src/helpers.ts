@@ -174,8 +174,10 @@ export type FromSchema<S extends SchemaSpec> = { [K in keyof S]: ResolveRule<S[K
  * @returns True when the value satisfies the schema
  *
  * @example
+ * ```ts
  * const userSchema = { id: 'string', age: 'number' } as const
  * if (hasSchema(x, userSchema)) console.log(x.id, x.age)
+ * ```
  */
 export function hasSchema<S extends SchemaSpec>(obj: unknown, schema: S): obj is FromSchema<S> {
 	if (!isObject(obj)) return false
@@ -289,7 +291,7 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
 }
 
 /**
- * Check if provider has a ValueProvider shape ({ useValue }).
+ * Check if provider has a ValueProvider shape (`{ useValue }`).
  *
  * @typeParam T - Provider value type
  * @param p - Provider to check
@@ -305,7 +307,7 @@ export function isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> {
 }
 
 /**
- * Check if provider has a FactoryProvider shape ({ useFactory }).
+ * Check if provider has a FactoryProvider shape (`{ useFactory }`).
  *
  * @typeParam T - Provider value type
  * @param p - Provider to check
@@ -321,7 +323,7 @@ export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
 }
 
 /**
- * Check if provider has a ClassProvider shape ({ useClass }).
+ * Check if provider has a ClassProvider shape (`{ useClass }`).
  *
  * @typeParam T - Provider value type
  * @param p - Provider to check
@@ -338,23 +340,35 @@ export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
 }
 
 /**
- * Check if class provider uses tuple injection (inject: [A, B, ...]).
+ * Check if class provider uses tuple injection (inject: `[A, B, ...]`).
  *
  * @typeParam T - Provider value type
  * @typeParam A - Tuple type of injected dependencies
  * @param p - Provider to check
  * @returns True if tuple-injected ClassProvider
+ *
+ * @example
+ * ```ts
+ * class S { constructor(_a: number, _b: string) {} }
+ * isClassProviderWithTuple<number, readonly [number, string]>({ useClass: S, inject: [Symbol('A'), Symbol('B')] })
+ * ```
  */
 export function isClassProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T> | ClassProvider<T>): p is ClassProviderWithTuple<T, A> {
 	return isObject(p) && hasOwn(p, 'useClass', 'inject') && Array.isArray(p.inject)
 }
 
 /**
- * Check if class provider uses object injection (inject: { a: A, b: B }).
+ * Check if class provider uses object injection (inject: `{ a: A, b: B }`).
  *
  * @typeParam T - Provider value type
  * @param p - Provider to check
  * @returns True if object-injected ClassProvider
+ *
+ * @example
+ * ```ts
+ * class S { constructor(_deps: { a: number, b: string }) {} }
+ * isClassProviderWithObject<number>({ useClass: S, inject: { a: Symbol('A'), b: Symbol('B') } as any })
+ * ```
  */
 export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>): p is ClassProvider<T> & { useClass: new (deps: Record<string, unknown>) => T, inject: Record<string, Token<unknown>> } {
 	return isClassProvider(p) && hasOwn(p, 'inject') && isObject(p.inject) && !Array.isArray(p.inject)
@@ -366,6 +380,12 @@ export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>):
  * @typeParam T - Provider value type
  * @param p - ClassProvider to check
  * @returns True if constructor takes Container (and no explicit inject)
+ *
+ * @example
+ * ```ts
+ * class S { constructor(_c: Container) {} }
+ * isClassProviderWithContainer<number>({ useClass: S } as any)
+ * ```
  */
 export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is ClassProvider<T> & { useClass: (new (c: Container) => T) } {
 	return !hasOwn(p, 'inject') && typeof p.useClass === 'function' && p.useClass.length >= 1
@@ -377,29 +397,47 @@ export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is Class
  * @typeParam T - Provider value type
  * @param p - ClassProvider to check
  * @returns True if zero-arg constructor (and no explicit inject)
+ *
+ * @example
+ * ```ts
+ * class S { constructor() {} }
+ * isClassProviderNoDeps<number>({ useClass: S } as any)
+ * ```
  */
 export function isClassProviderNoDeps<T>(p: ClassProvider<T>): p is { useClass: new () => T } {
 	return !hasOwn(p, 'inject') && typeof p.useClass === 'function' && p.useClass.length === 0
 }
 
 /**
- * Check if factory provider uses tuple injection (inject: [A, B, ...]).
+ * Check if factory provider uses tuple injection (inject: `[A, B, ...]`).
  *
  * @typeParam T - Provider value type
  * @typeParam A - Tuple type of injected dependencies
  * @param p - Provider to check
  * @returns True if tuple-injected FactoryProvider
+ *
+ * @example
+ * ```ts
+ * const p = { useFactory: (a: number, b: string) => a + b.length, inject: [Symbol('A'), Symbol('B')] }
+ * isFactoryProviderWithTuple<number, readonly [number, string]>(p as any)
+ * ```
  */
 export function isFactoryProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T> | FactoryProvider<T>): p is FactoryProviderWithTuple<T, A> {
 	return isFactoryProvider(p) && hasOwn(p, 'inject') && Array.isArray(p.inject)
 }
 
 /**
- * Check if factory provider uses object injection (inject: { a: A, b: B }).
+ * Check if factory provider uses object injection (inject: `{ a: A, b: B }`).
  *
  * @typeParam T - Provider value type
  * @param p - Provider to check
  * @returns True if object-injected FactoryProvider
+ *
+ * @example
+ * ```ts
+ * const p = { useFactory: (d: { a: number, b: string }) => d.a + d.b.length, inject: { a: Symbol('A'), b: Symbol('B') } }
+ * isFactoryProviderWithObject<number>(p as any)
+ * ```
  */
 export function isFactoryProviderWithObject<T>(p: Provider<T> | FactoryProvider<T>): p is FactoryProviderWithObject<T, Record<string, unknown>> {
 	return isFactoryProvider(p) && hasOwn(p, 'inject') && isObject(p.inject) && !Array.isArray(p.inject)
@@ -411,6 +449,12 @@ export function isFactoryProviderWithObject<T>(p: Provider<T> | FactoryProvider<
  * @typeParam T - Provider value type
  * @param p - FactoryProvider to check
  * @returns True if factory takes Container (and no explicit inject)
+ *
+ * @example
+ * ```ts
+ * const p = { useFactory: (c: Container) => 1 }
+ * isFactoryProviderWithContainer<number>(p as any)
+ * ```
  */
 export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is { useFactory: (c: Container) => T } {
 	return !hasOwn(p, 'inject') && typeof p.useFactory === 'function' && p.useFactory.length >= 1
@@ -573,7 +617,7 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 }
 
 /**
- * Check if a value looks like a provider object (has useValue/useFactory/useClass).
+ * Check if a value looks like a provider object (has `useValue`/`useFactory`/`useClass`).
  *
  * @param x - Value to check
  * @returns True if x has at least one provider key

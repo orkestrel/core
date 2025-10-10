@@ -1,4 +1,4 @@
-import type { QueuePort, QueueAdapterOptions, QueueRunOptions, LoggerPort, DiagnosticPort } from '../types.js'
+import type { DiagnosticPort, LoggerPort, QueueAdapterOptions, QueuePort, QueueRunOptions } from '../types.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
@@ -32,23 +32,15 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	/**
 	 * Construct a QueueAdapter with optional configuration defaults.
 	 *
-	 * @param options - Configuration options for queue behavior
-	 * @param options.capacity - Maximum number of items the queue can hold (unlimited if not specified)
-	 * @param options.concurrency - Default maximum number of tasks to run concurrently
-	 * @param options.timeout - Default per-task timeout in milliseconds
-	 * @param options.deadline - Default shared deadline in milliseconds for all tasks
-	 * @param options.signal - Default AbortSignal for cancellation
-	 * @param options.logger - Optional logger port for diagnostics
-	 * @param options.diagnostic - Optional diagnostic port for telemetry
+	 * @param options - Configuration options for queue behavior:
+	 * - capacity: Maximum number of items the queue can hold (unlimited if not specified)
+	 * - concurrency: Default maximum number of tasks to run concurrently
+	 * - timeout: Default per-task timeout in milliseconds
+	 * - deadline: Default shared deadline in milliseconds for all tasks
+	 * - signal: Default AbortSignal for cancellation
+	 * - logger: Optional logger port for diagnostics
+	 * - diagnostic: Optional diagnostic port for telemetry
 	 *
-	 * @example
-	 * ```ts
-	 * const queue = new QueueAdapter({
-	 *   concurrency: 5,
-	 *   timeout: 2000,
-	 *   capacity: 100
-	 * })
-	 * ```
 	 */
 	constructor(options: QueueAdapterOptions = {}) {
 		this.capacity = options.capacity
@@ -132,11 +124,11 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 *
 	 * @typeParam R - The return type of the tasks
 	 * @param tasks - Array of task functions (sync or async) to execute
-	 * @param options - Run options (overrides constructor defaults)
-	 * @param options.concurrency - Maximum number of tasks to run concurrently
-	 * @param options.timeout - Per-task timeout in milliseconds
-	 * @param options.deadline - Shared deadline in milliseconds for all tasks
-	 * @param options.signal - AbortSignal to cancel execution
+	 * @param options - Run options (overrides constructor defaults):
+	 * - concurrency: Maximum number of tasks to run concurrently
+	 * - timeout: Per-task timeout in milliseconds
+	 * - deadline: Shared deadline in milliseconds for all tasks
+	 * - signal: AbortSignal to cancel execution
 	 * @returns Array of task results in the same order as input tasks
 	 * @throws Error with code ORK1051 when aborted, ORK1052 on task timeout, or ORK1053 on shared deadline exceeded
 	 *
@@ -218,14 +210,13 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 					results[idx] = await withTimeout(tasks[idx], idx)
 				}
 				catch (err) {
-					if (abortError == null) abortError = err
+					abortError = err
 					break
 				}
 			}
 		}
 
-		const workers = Array.from({ length: c }, () => worker())
-		await Promise.allSettled(workers)
+		await Promise.all(new Array(c).fill(null).map(() => worker()))
 		if (abortError != null) return Promise.reject(abortError)
 		return results
 	}

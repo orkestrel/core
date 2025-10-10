@@ -40,6 +40,7 @@ export function extendPorts<Base extends Record<string, Token<unknown>>, Ext ext
  *
  * @param args - Either just the extension shape, or a base map and extension shape
  * @returns A frozen map combining tokens
+ * @throws Error with code ORK1040 when duplicate keys are present in the extension shape
  *
  * @example
  * ```ts
@@ -47,8 +48,6 @@ export function extendPorts<Base extends Record<string, Token<unknown>>, Ext ext
  * const more = extendPorts(base, { b: undefined as string })
  * // more.a and more.b are tokens
  * ```
- *
- * @remarks Duplicate keys are rejected to prevent accidental overrides (code ORK1040).
  */
 export function extendPorts(
 	...args: [Record<string, unknown>] | [Record<string, Token<unknown>>, Record<string, unknown>]

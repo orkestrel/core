@@ -42,6 +42,24 @@ If you must widen or coerce, write a guard instead and cover it with tests.
 - Types and interfaces: no TSDoc — remove banner/header or note comments on types/interfaces
 - Remove header‑only banners and note style comments
 
+Documenting options objects (important)
+- TSDoc does not support dotted `@param` names (e.g., `@param opts.foo`). Using them triggers `tsdoc-param-tag-with-invalid-name`.
+- For options objects, document a single parameter for the object, and list its properties in the description (or under `@remarks`).
+- Do not include type annotations in JSDoc; rely on TypeScript types.
+
+Example pattern
+```
+/**
+ * Construct a Thing.
+ *
+ * @param opts - Configuration options:
+ * - parent: Optional parent container to inherit providers from
+ * - logger: Optional logger port for diagnostics
+ * - diagnostic: Optional diagnostic port for error reporting
+ */
+constructor(opts: ThingOptions = {}) { /* ... */ }
+```
+
 Consistency
 - Examples should be minimal, copy‑paste friendly, and reflect real usage
 - Prefer `readonly` in public shapes and return immutable views when sensible
@@ -105,4 +123,3 @@ Determinism
 
 ## Code of Conduct
 Be kind. Assume good intent. Discuss ideas, not people.
-

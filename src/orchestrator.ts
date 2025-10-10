@@ -107,13 +107,6 @@ export class Orchestrator {
 	 * @param maybeOpts - Optional OrchestratorOptions when the first argument is a Container.
 	 * @returns A new Orchestrator instance configured with provided or default ports.
 	 *
-	 * @example
-	 * ```ts
-	 * import { Orchestrator, Container } from '@orkestrel/core'
-	 * const c = new Container()
-	 * const app1 = new Orchestrator(c)
-	 * const app2 = new Orchestrator({ timeouts: { onStart: 1000 } })
-	 * ```
 	 */
 	constructor(containerOrOpts?: Container | OrchestratorOptions, maybeOpts?: OrchestratorOptions) {
 		if (containerOrOpts instanceof Container) {

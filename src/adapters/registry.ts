@@ -36,19 +36,12 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	/**
 	 * Construct a RegistryAdapter with optional label and default instance.
 	 *
-	 * @param options - Configuration options
-	 * @param options.label - Human-readable label used in error messages (default: 'registry')
-	 * @param options.default - Optional default entry with value and optional key
-	 * @param options.logger - Optional logger port for diagnostics
-	 * @param options.diagnostic - Optional diagnostic port for error reporting
+	 * @param options - Configuration options:
+	 * - label: Human-readable label used in error messages (default: 'registry')
+	 * - default: Optional default entry with value and optional key.
+	 * - logger: Optional logger port for diagnostics
+	 * - diagnostic: Optional diagnostic port for error reporting
 	 *
-	 * @example
-	 * ```ts
-	 * const reg = new RegistryAdapter<Container>({
-	 *   label: 'container',
-	 *   default: { value: new Container() }
-	 * })
-	 * ```
 	 */
 	constructor(options: RegistryAdapterOptions<T> = {}) {
 		this.label = options.label ?? 'registry'

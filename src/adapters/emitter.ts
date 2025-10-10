@@ -32,11 +32,10 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	/**
 	 * Construct an EmitterAdapter with optional logger and diagnostic ports.
 	 *
-	 * @param options - Optional configuration including logger and diagnostic ports
-	 * @example
-	 * ```ts
-	 * const emitter = new EmitterAdapter({ logger: customLogger })
-	 * ```
+	 * @param options - Configuration options:
+	 * - logger: Optional logger port used for emitting any diagnostics
+	 * - diagnostic: Optional diagnostic port for telemetry and errors
+     *
 	 */
 	constructor(options: EmitterAdapterOptions = {}) {
 		this.#logger = options?.logger ?? new LoggerAdapter()
@@ -139,6 +138,11 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * Remove all registered listeners for all events.
 	 *
 	 * @returns void (clears all event listener registrations)
+	 *
+	 * @example
+	 * ```ts
+	 * emitter.removeAllListeners()
+	 * ```
 	 */
 	removeAllListeners(): void { this.listeners.clear() }
 }

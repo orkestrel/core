@@ -8,9 +8,8 @@ import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
  * Topological layering adapter using Kahn's algorithm for dependency ordering.
  *
  * Computes deterministic layers from a dependency graph in O(V+E) time. Each layer contains
- * nodes with no remaining dependencies on earlier layers. Validates that all dependencies
- * exist and detects cycles in the graph. Preserves insertion order within each layer for
- * determinism.
+ * tokens with no remaining dependencies on earlier layers. Validates that all dependencies
+ * exist and detects cycles; preserves insertion order within each layer for determinism.
  *
  * @example
  * ```ts
@@ -25,12 +24,8 @@ import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
  *   { token: C, dependencies: [A, B] },
  * ]
  * const layers = layer.compute(nodes)
- * // => [[A], [B], [C]]
+ * // => [[A], [B, C]]
  * ```
- *
- * @remarks
- * Throws ORK1008 if a dependency references an unknown token.
- * Throws ORK1009 if a cycle is detected in the dependency graph.
  */
 export class LayerAdapter implements LayerPort {
 	readonly #logger: LoggerPort
@@ -39,14 +34,9 @@ export class LayerAdapter implements LayerPort {
 	/**
 	 * Construct a LayerAdapter with optional logger and diagnostic ports.
 	 *
-	 * @param options - Configuration options
-	 * @param options.logger - Optional logger port for diagnostics
-	 * @param options.diagnostic - Optional diagnostic port for validation errors
-	 *
-	 * @example
-	 * ```ts
-	 * const layer = new LayerAdapter({ logger: customLogger })
-	 * ```
+	 * @param options - Configuration options:
+	 * - logger: Optional logger port for diagnostics
+	 * - diagnostic: Optional diagnostic port for validation errors
 	 */
 	constructor(options: LayerAdapterOptions = {}) {
 		this.#logger = options.logger ?? new LoggerAdapter()
@@ -92,66 +82,56 @@ export class LayerAdapter implements LayerPort {
 	 */
 	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][] {
 		// Validate dependencies exist
-		const present = new Set<symbol>(nodes.map(n => n.token))
+		const present = new Set<symbol>()
+		for (const n of nodes) present.add(n.token)
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
 				if (!present.has(d)) {
-					this.#diagnostic.fail('ORK1008', {
-						scope: 'orchestrator',
-						message: `Unknown dependency ${tokenDescription(d)} required by ${tokenDescription(n.token)}`,
-						helpUrl: HELP.orchestrator,
-						token: tokenDescription(n.token),
-					})
+					this.#diagnostic.fail('ORK1008', { scope: 'orchestrator', message: `Unknown dependency ${tokenDescription(d)} required by ${tokenDescription(n.token)}`, helpUrl: HELP.orchestrator, token: tokenDescription(n.token) })
 				}
 			}
 		}
 
-		// Build typed map for tokens and adjacency keyed by symbol identity
+		// Build graph keyed by symbol identity
 		const typed = new Map<symbol, Token<T>>()
-		for (const n of nodes) typed.set(n.token, n.token)
-
 		const indeg = new Map<symbol, number>()
 		const adj = new Map<symbol, symbol[]>()
 		for (const n of nodes) {
+			typed.set(n.token, n.token)
 			indeg.set(n.token, 0)
 			adj.set(n.token, [])
 		}
 		for (const n of nodes) {
-			for (const d of n.dependencies) {
+			for (const dep of n.dependencies) {
 				indeg.set(n.token, (indeg.get(n.token) ?? 0) + 1)
-				const arr = adj.get(d)
+				const arr = adj.get(dep)
 				if (arr) arr.push(n.token)
 			}
 		}
 
-		// Initial frontier in insertion order
-		let frontierSyms: symbol[] = nodes
-			.filter(n => (indeg.get(n.token) ?? 0) === 0)
-			.map(n => n.token)
-
+		// Kahn frontier in insertion order
+		let frontier: symbol[] = []
+		for (const n of nodes) if ((indeg.get(n.token) ?? 0) === 0) frontier.push(n.token)
 		const layers: Token<T>[][] = []
-		while (frontierSyms.length) {
-			const layerTokens = frontierSyms.map(s => typed.get(s)).filter((t): t is Token<T> => t !== undefined)
-			layers.push(layerTokens)
-			const next: symbol[] = []
-			for (const s of frontierSyms) {
-				const dependents = adj.get(s)
-				if (!dependents) continue
-				for (const dep of dependents) {
-					const v = (indeg.get(dep) ?? 0) - 1
-					indeg.set(dep, v)
-					if (v === 0) next.push(dep)
+		let resolved = 0
+		while (frontier.length) {
+			const current = frontier
+			frontier = []
+			const layer: Token<T>[] = []
+			for (const s of current) {
+				const tk = typed.get(s)
+				if (tk) layer.push(tk)
+				for (const child of adj.get(s) ?? []) {
+					const v = (indeg.get(child) ?? 0) - 1
+					indeg.set(child, v)
+					if (v === 0) frontier.push(child)
 				}
+				resolved++
 			}
-			frontierSyms = next
+			layers.push(layer)
 		}
 
-		// Check for cycles
-		const totalResolved = layers.reduce((a, b) => a + b.length, 0)
-		if (totalResolved !== nodes.length) {
-			this.#diagnostic.fail('ORK1009', { scope: 'orchestrator', message: 'Cycle detected in dependency graph', helpUrl: HELP.orchestrator })
-		}
-
+		if (resolved !== nodes.length) this.#diagnostic.fail('ORK1009', { scope: 'orchestrator', message: 'Cycle detected in dependency graph', helpUrl: HELP.orchestrator })
 		return layers
 	}
 
@@ -160,13 +140,13 @@ export class LayerAdapter implements LayerPort {
 	 *
 	 * Used for stop and destroy operations that need to process components in reverse
 	 * dependency order. Tokens are grouped by their layer index from the original layering,
-	 * then sorted in descending order so dependent components are processed before their
+	 * then iterated in descending order so dependent components are processed before their
 	 * dependencies.
 	 *
 	 * @typeParam T - Token value type
-	 * @param tokens - Array of tokens to group
-	 * @param layers - Original forward layers computed by `compute()`
-	 * @returns Array of token groups in reverse layer order
+	 * @param tokens - Tokens to group
+	 * @param layers - Layers as returned by compute()
+	 * @returns Groups of tokens ordered from highest layer to lowest; input order is preserved within groups
 	 *
 	 * @example
 	 * ```ts
@@ -177,20 +157,24 @@ export class LayerAdapter implements LayerPort {
 	 * ```
 	 */
 	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][] {
-		const layerIndex = new Map<Token<T>, number>()
-		layers.forEach((layer, idx) => layer.forEach(tk => layerIndex.set(tk, idx)))
-
-		const groups = new Map<number, Token<T>[]>()
+		// Build index of token -> layer number
+		const index = new Map<symbol, number>()
+		for (let i = 0; i < layers.length; i++) for (const tk of layers[i]) index.set(tk, i)
+		// Bucket tokens by their layer, preserving input order per bucket
+		const buckets: Array<Token<T>[]> = Array(layers.length)
 		for (const tk of tokens) {
-			const idx = layerIndex.get(tk)
-			if (idx === undefined) continue
-			const arr = groups.get(idx) ?? []
-			arr.push(tk)
-			groups.set(idx, arr)
+			const idx = index.get(tk)
+			if (idx == null) continue
+			let list = buckets[idx]
+			if (!list) buckets[idx] = list = []
+			list.push(tk)
 		}
-
-		return Array.from(groups.entries())
-			.sort((a, b) => b[0] - a[0])
-			.map(([, arr]) => arr)
+		// Emit in strict reverse layer order without sorting keys
+		const out: Token<T>[][] = []
+		for (let i = layers.length - 1; i >= 0; i--) {
+			const g = buckets[i]
+			if (g && g.length) out.push(g)
+		}
+		return out
 	}
 }

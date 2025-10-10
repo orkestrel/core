@@ -1,5 +1,5 @@
 /**
- * @orkestrel/core - Minimal, strongly-typed adapter/port toolkit for TypeScript.
+ * Orkestrel Core - Minimal, strongly-typed adapter/port toolkit for TypeScript.
  *
  * This package provides a lightweight dependency injection container, lifecycle management,
  * and orchestration primitives for building composable applications with ports and adapters.

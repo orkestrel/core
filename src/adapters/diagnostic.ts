@@ -10,18 +10,24 @@ import type {
 import { safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 
-// Internal base error class with code and helpUrl support.
+// Base error enriched with optional diagnostic code and help URL.
 class BaseError extends Error {
-	constructor(message: string, public code?: string, public helpUrl?: string) {
-		super(message)
-	}
+	constructor(
+		message: string,
+		public readonly code?: string,
+		public readonly helpUrl?: string,
+	) { super(message) }
 }
 
-// Internal aggregate lifecycle error with details and errors arrays.
-class AggregateLifecycleError extends BaseError {
-	constructor(message: string, public details: LifecycleErrorDetail[], public errors: Error[], code?: string, helpUrl?: string) {
-		super(message, code, helpUrl)
-	}
+// Aggregate error for lifecycle operations enriched with details and original errors.
+class AggregateDiagnosticError extends Error {
+	constructor(
+		message: string,
+		public readonly details: ReadonlyArray<LifecycleErrorDetail>,
+		public readonly errors: ReadonlyArray<Error>,
+		public readonly code?: string,
+		public readonly helpUrl?: string,
+	) { super(message) }
 }
 
 /**
@@ -60,20 +66,15 @@ class AggregateLifecycleError extends BaseError {
  */
 export class DiagnosticAdapter implements DiagnosticPort {
 	readonly #logger: LoggerPort
-	// Keyed message overrides, seeded with defaults then user overrides.
 	readonly #messages: ReadonlyMap<string, MessageMapEntry>
 
 	/**
 	 * Construct a DiagnosticAdapter with optional logger and message overrides.
 	 *
-	 * @param options - Configuration options
-	 * @param options.logger - Optional logger port for emitting log entries (default: LoggerAdapter)
-	 * @param options.messages - Array of diagnostic messages with keys, levels, and message templates
+	 * @param options - Configuration options:
+	 * - logger: Optional logger port for emitting log entries (default: LoggerAdapter)
+	 * - messages: Array of diagnostic messages with keys, levels, and message templates
      *
-	 * @example
-	 * ```ts
-	 * const diag = new DiagnosticAdapter({ logger: customLogger })
-	 * ```
 	 */
 	constructor(options?: DiagnosticAdapterOptions) {
 		this.#logger = options?.logger ?? new LoggerAdapter()
@@ -149,11 +150,11 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	/**
-	 * Build an Error using a known key/code without throwing.
+	 * Build an Error using a key/code and return it (without throwing).
 	 *
-	 * @param key - Code or message key used to resolve the error message
-	 * @param context - Optional context including message override, helpUrl, and name
-	 * @returns Constructed Error instance with optional code and helpUrl properties
+	 * @param key - Code or message key (e.g., 'ORK1010') used to resolve message and severity
+	 * @param context - Optional structured context including message override, helpUrl, name, and scope
+	 * @returns The constructed Error instance
      *
 	 * @example
 	 * ```ts
@@ -168,55 +169,52 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	/**
-	 * Build and throw an aggregate error from a collection of lifecycle details or errors.
+	 * Aggregate multiple errors into a single structured AggregateDiagnosticError and throw it.
 	 *
-	 * @param key - Code used for the aggregate error (e.g., 'ORK1013')
-	 * @param detailsOrErrors - Array of LifecycleErrorDetail and/or Error instances to aggregate
-	 * @param context - Optional message override, helpUrl, and other context fields
-	 * @throws AggregateLifecycleError with .details and .errors arrays
-     *
+	 * @param key - Code used to identify the aggregate error (e.g., 'ORK1016')
+	 * @param errors - Array of Error instances to aggregate (or already-normalized details)
+	 * @param context - Optional structured context including scope, message, helpUrl, and name
+	 * @throws AggregateDiagnosticError containing details and errors
 	 * @example
 	 * ```ts
 	 * const errs = [new Error('A'), new Error('B')]
 	 * diag.aggregate('ORK1017', errs, { scope: 'orchestrator' })
 	 * ```
 	 */
-	aggregate(key: string, detailsOrErrors: ReadonlyArray<LifecycleErrorDetail | Error>, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): never {
-		const details = this.normalizeAggregateDetails(detailsOrErrors)
+	aggregate(key: string, errors: ReadonlyArray<LifecycleErrorDetail | Error>, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): never {
+		const details = this.normalizeAggregateDetails(errors)
 		const entry = this.#messages.get(key)
 		const level = entry?.level ?? 'error'
 		const msg = (context.message ?? entry?.message ?? key)
-		const e = new AggregateLifecycleError(msg, details, details.map(d => d.error))
-		e.code = context.code ?? (/^ORK\d{4}$/.test(key) ? key : key)
-		if (context.helpUrl) e.helpUrl = context.helpUrl
-		if (context.name) e.name = context.name
-		safeInvoke(this.#logger.log.bind(this.#logger), level, msg, { err: this.shapeErr(e), ...context, details })
-		throw e
+		const code = context.code ?? (/^ORK\d{4}$/.test(key) ? key : key)
+		const agg = new AggregateDiagnosticError(msg, details, details.map(d => d.error), code, context.helpUrl)
+		safeInvoke(this.#logger.log.bind(this.#logger), level, msg, { err: this.shapeErr(agg), ...context, details })
+		throw agg
 	}
 
 	/**
 	 * Emit a metric with a numeric value and optional tags.
 	 *
 	 * @param name - Metric name (e.g., 'queue.size')
-	 * @param value - Numeric metric value
-	 * @param tags - Optional key-value tags for filtering and grouping
-	 * @returns void (emits a metric entry)
-     *
-	 * @example
+	 * @param value - Numeric value to record
+	 * @param tags - Optional tags to include with the metric
+	 *
+     * @example
 	 * ```ts
 	 * diag.metric('queue.size', 42, { queueName: 'tasks' })
 	 * ```
 	 */
-	metric(name: string, value: number, tags: Record<string, string | number | boolean> = {}): void {
+	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void {
 		const resolved = this.resolve(name, { level: 'info', message: name })
-		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'info', resolved.message ?? name, { value, ...tags })
+		const fields = { value, ...(tags ?? {}) }
+		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'info', resolved.message ?? name, fields)
 	}
 
 	/**
-	 * Emit a trace-level payload for detailed debugging.
+	 * Emit a trace span with a name and optional fields.
 	 *
-	 * @param name - Trace name (e.g., 'lifecycle.transition')
-	 * @param payload - Optional structured data for the trace entry
+	 * @param name - Span name (e.g., 'orchestrator.start')
+	 * @param payload - Optional structured fields for the trace
 	 * @returns void (emits a trace entry)
      *
 	 * @example
@@ -224,60 +222,59 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * diag.trace('lifecycle.transition', { from: 'created', to: 'started' })
 	 * ```
 	 */
-	trace(name: string, payload: Record<string, unknown> = {}): void {
+	trace(name: string, payload?: Record<string, unknown>): void {
 		const resolved = this.resolve(name, { level: 'debug', message: name })
 		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'debug', resolved.message ?? name, payload)
 	}
 
 	/**
-	 * Emit a general event payload for analytics or telemetry.
+	 * Emit a telemetry event with a name and payload.
 	 *
-	 * @param name - Event name (e.g., 'lifecycle.hook')
-	 * @param payload - Optional structured event data
-	 * @returns void (emits an event entry)
+	 * @param name - Event name (e.g., 'lifecycle.transition')
+	 * @param payload - Arbitrary event payload
+     * @returns void (emits an event entry)
      *
 	 * @example
 	 * ```ts
 	 * diag.event('orchestrator.component.start', { token: 'Database' })
 	 * ```
 	 */
-	event(name: string, payload: Record<string, unknown> = {}): void {
+	event(name: string, payload?: Record<string, unknown>): void {
 		const resolved = this.resolve(name, { level: 'info', message: name })
 		safeInvoke(this.#logger.log.bind(this.#logger), resolved.level ?? 'info', resolved.message ?? name, payload)
 	}
 
-	// Resolve a message key to level and message using the message map with a fallback.
+	// Resolve a message key with fallback
 	private resolve(key: string, fallback: MessageMapEntry): MessageMapEntry {
 		const entry = this.#messages.get(key)
 		return entry ? { level: entry.level ?? fallback.level, message: entry.message ?? fallback.message } : fallback
 	}
 
-	// Shape an Error into a serializable object for logging.
-	private shapeErr(e: Error): { name: string, message: string, stack?: string } {
-		return { name: e.name, message: e.message, stack: e.stack }
-	}
-
-	// Build a BaseError with code and helpUrl.
+	// Build a typed Error with code and helpUrl
 	private buildError(key: string, message: string, opts: { helpUrl?: string, name?: string, context?: DiagnosticErrorContext }): BaseError {
 		const { helpUrl, name, context } = opts
-		const orkLike = /^ORK\d{4}$/.test(key) ? key : undefined
-		const code = context?.code ?? orkLike ?? key
+		const code = context?.code ?? (/^ORK\d{4}$/.test(key) ? key : key)
 		const e = new BaseError(message, code, helpUrl)
 		if (name) e.name = name
 		return e
 	}
 
-	// Normalize a mixed array of LifecycleErrorDetail and Error instances into uniform details.
+	// Normalize mixed details into LifecycleErrorDetail[] with safe defaults
 	private normalizeAggregateDetails(items: ReadonlyArray<LifecycleErrorDetail | Error>): LifecycleErrorDetail[] {
 		const out: LifecycleErrorDetail[] = []
 		for (const it of items) {
 			if (it instanceof Error) {
-				out.push({ tokenDescription: 'unknown', phase: 'start', context: 'normal', timedOut: false, durationMs: 0, error: it })
+				out.push({ tokenDescription: 'unknown', phase: 'destroy', context: 'normal', timedOut: false, durationMs: 0, error: it })
 			}
 			else {
 				out.push(it)
 			}
 		}
 		return out
+	}
+
+	// Shape Error for logging
+	private shapeErr(e: Error): { name: string, message: string, stack?: string } {
+		return { name: e.name, message: e.message, stack: e.stack }
 	}
 }

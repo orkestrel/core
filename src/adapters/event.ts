@@ -33,19 +33,12 @@ export class EventAdapter implements EventPort {
 	/**
 	 * Construct an EventAdapter with optional configuration.
 	 *
-	 * @param options - Configuration options for the event adapter
-	 * @param options.onError - Optional callback invoked when a handler throws an error
-	 * @param options.sequential - When true (default), handlers are invoked sequentially; when false, handlers run concurrently
-	 * @param options.logger - Optional logger port for diagnostics
-	 * @param options.diagnostic - Optional diagnostic port for telemetry
+	 * @param options - Configuration options:
+	 * - onError: Optional callback invoked when a handler throws an error
+	 * - sequential: When true (default), handlers are invoked sequentially; when false, handlers run concurrently
+	 * - logger: Optional logger port for diagnostics
+	 * - diagnostic: Optional diagnostic port for telemetry
 	 *
-	 * @example
-	 * ```ts
-	 * const bus = new EventAdapter({
-	 *   sequential: false,
-	 *   onError: (err, topic) => console.error(`Error in ${topic}:`, err)
-	 * })
-	 * ```
 	 */
 	constructor(options: EventAdapterOptions = {}) {
 		this.onError = options.onError
@@ -142,10 +135,9 @@ export class EventAdapter implements EventPort {
 			this.map.set(topic, set)
 		}
 		set.add(handler)
-		return () => {
-			const s = this.map.get(topic)
-			if (s) s.delete(handler)
-			if (s && s.size === 0) this.map.delete(topic)
+		return async () => {
+			set?.delete(handler)
+			if (set?.size === 0) this.map.delete(topic)
 		}
 	}
 

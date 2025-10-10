@@ -62,6 +62,12 @@ export class NoopLogger implements LoggerPort {
 	 * @param _message - Log message (ignored)
 	 * @param _fields - Optional fields (ignored)
 	 * @returns void
+	 *
+	 * @example
+	 * ```ts
+	 * const logger = new NoopLogger()
+	 * logger.log('warn', 'dropped')
+	 * ```
 	 */
 	log(_level: LogLevel, _message: string, _fields?: Record<string, unknown>): void {
 		// intentionally no-op

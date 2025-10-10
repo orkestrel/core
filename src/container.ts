@@ -87,16 +87,11 @@ export class Container {
 	/**
 	 * Construct a Container with optional parent, logger, and diagnostic adapters.
 	 *
-	 * @param opts - Configuration options
-	 * @param opts.parent - Optional parent container to inherit providers from
-	 * @param opts.logger - Optional logger port for diagnostics
-	 * @param opts.diagnostic - Optional diagnostic port for error reporting
+	 * @param opts - Configuration options:
+	 * - parent: Optional parent container to inherit providers from
+	 * - logger: Optional logger port for diagnostics
+	 * - diagnostic: Optional diagnostic port for error reporting
 	 *
-	 * @example
-	 * ```ts
-	 * const parent = new Container()
-	 * const child = new Container({ parent })
-	 * ```
 	 */
 	constructor(opts: ContainerOptions = {}) {
 		this.parent = opts.parent
@@ -129,9 +124,9 @@ export class Container {
 	 * Register a provider under a token.
 	 *
 	 * Supported shapes
-	 * - Value: { useValue }
-	 * - Factory: { useFactory } with optional inject tuple/object or container arg
-	 * - Class: { useClass } with optional inject tuple/object or container arg
+	 * - Value: `{ useValue }`
+	 * - Factory: `{ useFactory }` with optional inject tuple/object or container arg
+	 * - Class: `{ useClass }` with optional inject tuple/object or container arg
 	 *
 	 * @typeParam T - Token value type.
 	 * @param token - The unique token to associate with the provider.

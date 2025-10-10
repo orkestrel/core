@@ -53,22 +53,14 @@ export abstract class Lifecycle {
 	/**
 	 * Construct a Lifecycle with optional configuration for timeouts, emitters, queue, logger, and diagnostic ports.
 	 *
-	 * @param opts - Configuration options
-	 * @param opts.timeouts - Timeout in milliseconds for each lifecycle hook (default: 5000)
-	 * @param opts.emitInitial - Whether to emit the current state immediately on first transition listener (default: true)
-	 * @param opts.emitter - Optional custom emitter port
-	 * @param opts.queue - Optional custom queue port for serializing hooks
-	 * @param opts.logger - Optional logger port
-	 * @param opts.diagnostic - Optional diagnostic port for telemetry and errors
+	 * @param opts - Configuration options:
+	 * - timeouts: Timeout in milliseconds for each lifecycle hook (default: 5000)
+	 * - emitInitial: Whether to emit the current state immediately on first transition listener (default: true)
+	 * - emitter: Optional custom emitter port
+	 * - queue: Optional custom queue port for serializing hooks
+	 * - logger: Optional logger port
+	 * - diagnostic: Optional diagnostic port for telemetry and errors
 	 *
-	 * @example
-	 * ```ts
-	 * class MyService extends Lifecycle {
-	 *   constructor() {
-	 *     super({ timeouts: 10000 }) // 10 second timeout
-	 *   }
-	 * }
-	 * ```
 	 */
 	constructor(opts: LifecycleOptions = {}) {
 		this.timeouts = opts.timeouts ?? 5000

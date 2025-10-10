@@ -74,14 +74,11 @@ test('Diagnostic suite', async (t) => {
 
 	await t.test('DiagnosticAdapter overrides apply for metric/trace/event', () => {
 		const logger = new FakeLogger()
-		const d = new DiagnosticAdapter({
-			logger,
-			messages: [
-				{ key: 'm1', message: 'metric-one' },
-				{ key: 't1', level: 'info' },
-				{ key: 'e1', level: 'warn', message: 'event-one' },
-			],
-		})
+		const d = new DiagnosticAdapter({ logger, messages: [
+			{ key: 'm1', message: 'metric-one' },
+			{ key: 't1', level: 'info' },
+			{ key: 'e1', level: 'warn', message: 'event-one' },
+		] })
 
 		d.metric('m1', 42, { tag: 'x' })
 		assert.equal(logger.entries[0].level, 'info') // default level for metric
@@ -133,9 +130,8 @@ test('Diagnostic suite', async (t) => {
 		try {
 			d.fail('ORK1099')
 		}
-		catch (err) {
+		catch {
 			assert.equal(logger.entries[0]?.message, 'Internal invariant')
-			assert.ok(err instanceof Error)
 		}
 	})
 

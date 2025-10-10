@@ -24,11 +24,9 @@ test('Logger suite', async (t) => {
 			l.log('info', 'b', { y: 2 })
 			l.log('warn', 'c', { z: 3 })
 			l.log('error', 'd', { w: 4 })
-			assert.deepEqual(calls.map(c => c.name), ['debug', 'info', 'warn', 'error'])
-			assert.equal((calls[0]?.payload[0] as { msg?: string }).msg, 'a')
-			assert.equal((calls[1]?.payload[0] as { msg?: string }).msg, 'b')
-			assert.equal((calls[2]?.payload[0] as { msg?: string }).msg, 'c')
-			assert.equal((calls[3]?.payload[0] as { msg?: string }).msg, 'd')
+			const names = calls.map(c => c.name)
+			const msgs = calls.map(c => (c.payload[0] as { msg?: string }).msg)
+			assert.deepStrictEqual({ names, msgs }, { names: ['debug', 'info', 'warn', 'error'], msgs: ['a', 'b', 'c', 'd'] })
 		}
 		finally {
 			console.debug = orig.debug

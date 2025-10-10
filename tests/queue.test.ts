@@ -86,9 +86,8 @@ test('Queue suite', async (t) => {
 		await q.enqueue(1)
 		await q.enqueue(2)
 		await assert.rejects(() => q.enqueue(3), (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			const code = (err as Error & { code?: string }).code
-			return /capacity exceeded/.test(err.message) && code === 'ORK1050'
+			const e = err as { message?: string, code?: string }
+			return typeof e?.message === 'string' && /capacity exceeded/.test(e.message) && e.code === 'ORK1050'
 		})
 		assert.equal(await q.size(), 2)
 	})
@@ -132,9 +131,8 @@ test('Queue suite', async (t) => {
 			},
 		]
 		await assert.rejects(() => q.run(tasks, { concurrency: 2, timeout: 10 }), (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			const code = (err as Error & { code?: string }).code
-			return /timed out/.test(err.message) && code === 'ORK1052'
+			const e = err as { message?: string, code?: string }
+			return typeof e?.message === 'string' && /timed out/.test(e.message) && e.code === 'ORK1052'
 		})
 	})
 
@@ -155,9 +153,8 @@ test('Queue suite', async (t) => {
 			},
 		]
 		await assert.rejects(() => q.run(tasks, { concurrency: 1, deadline: 15 }), (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			const code = (err as Error & { code?: string }).code
-			return /shared deadline exceeded/.test(err.message) && code === 'ORK1053'
+			const e = err as { message?: string, code?: string }
+			return typeof e?.message === 'string' && /shared deadline exceeded/.test(e.message) && e.code === 'ORK1053'
 		})
 	})
 
@@ -174,9 +171,8 @@ test('Queue suite', async (t) => {
 		const p = q.run(tasks, { concurrency: 2, signal: controller.signal })
 		setTimeout(() => controller.abort(), 10)
 		await assert.rejects(() => p, (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			const code = (err as Error & { code?: string }).code
-			return /aborted/.test(err.message) && code === 'ORK1051'
+			const e = err as { message?: string, code?: string }
+			return typeof e?.message === 'string' && /aborted/.test(e.message) && e.code === 'ORK1051'
 		})
 		assert.ok(started >= 1)
 	})

@@ -9,10 +9,10 @@ test('Registry suite', async (t) => {
 		const DEF = Symbol('def')
 		const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 42 }, logger })
 		// resolve/get default
-		assert.equal(reg.resolve(), 42)
-		assert.equal(reg.get(), 42)
-		// list contains default symbol key
-		assert.ok(reg.list().some(k => typeof k !== 'string'))
+		assert.deepStrictEqual(
+			{ resolve: reg.resolve(), get: reg.get(), sawNonString: reg.list().some(k => typeof k !== 'string') },
+			{ resolve: 42, get: 42, sawNonString: true },
+		)
 		// default cannot be replaced or cleared (even forced)
 		assert.throws(() => reg.set(DEF, 7), /Cannot replace default/)
 		assert.equal(reg.clear(undefined, true), false)
@@ -24,11 +24,10 @@ test('Registry suite', async (t) => {
 		reg.set('alpha', 'A')
 		const S = Symbol('beta')
 		reg.set(S, 'B')
-		assert.equal(reg.resolve(), 'default')
-		assert.equal(reg.resolve('alpha'), 'A')
-		assert.equal(reg.resolve(S), 'B')
-		// clear named
-		assert.equal(reg.clear('alpha'), true)
+		assert.deepStrictEqual(
+			{ def: reg.resolve(), alpha: reg.resolve('alpha'), beta: reg.resolve(S), clearedAlpha: reg.clear('alpha') },
+			{ def: 'default', alpha: 'A', beta: 'B', clearedAlpha: true },
+		)
 		assert.throws(() => reg.resolve('alpha'), /No thing instance registered/)
 	})
 
@@ -44,11 +43,12 @@ test('Registry suite', async (t) => {
 		// clear unknown string and symbol
 		assert.equal(reg.clear('b'), false)
 		assert.equal(reg.clear(Symbol('notset')), false)
-		// contents unchanged
+		// contents unchanged and values still retrievable
 		assert.deepEqual([...reg.list()].sort((a, b) => String(a).localeCompare(String(b))), before.sort((a, b) => String(a).localeCompare(String(b))))
-		// values still retrievable
-		assert.equal(reg.resolve(), 1)
-		assert.equal(reg.resolve('a'), 2)
+		assert.deepStrictEqual(
+			{ def: reg.resolve(), a: reg.resolve('a') },
+			{ def: 1, a: 2 },
+		)
 	})
 
 	await t.test('resolve without default throws; get returns undefined', () => {
@@ -61,9 +61,9 @@ test('Registry suite', async (t) => {
 		const r = new RegistryAdapter<number>({ label: 'num', default: { value: 1 }, logger })
 		r.set('x', 5, true)
 		assert.throws(() => r.set('x', 6), /Cannot replace locked/)
-		assert.equal(r.clear('x'), false)
-		assert.equal(r.clear('x', true), true)
-		assert.equal(r.get('x'), undefined)
-		assert.equal(r.resolve(), 1)
+		assert.deepStrictEqual(
+			{ clearNoForce: r.clear('x'), clearForced: r.clear('x', true), getX: r.get('x'), def: r.resolve() },
+			{ clearNoForce: false, clearForced: true, getX: undefined, def: 1 },
+		)
 	})
 })

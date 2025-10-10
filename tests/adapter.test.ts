@@ -20,7 +20,9 @@ test('Adapter suite', async (t) => {
 		await a.start()
 		await a.stop()
 		await a.destroy()
-		assert.deepEqual(a.calls, ['create', 'start', 'stop', 'destroy'])
-		assert.equal(a.state, 'destroyed')
+		assert.deepStrictEqual(
+			{ calls: a.calls, state: a.state },
+			{ calls: ['create', 'start', 'stop', 'destroy'], state: 'destroyed' },
+		)
 	})
 })

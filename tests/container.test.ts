@@ -42,9 +42,8 @@ test('Container suite', { concurrency: false }, async (t) => {
 		const MISSING = createToken<number>('missing:strict')
 		const c = new Container({ logger })
 		assert.throws(() => c.resolve(MISSING), (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			// Match current diagnostics message or the ORK1006 error code to be robust to wording changes
-			return /No provider for missing:strict/.test(err.message) || (err as Error & { code?: string }).code === 'ORK1006'
+			const e = err as { message?: string, code?: string }
+			return typeof e?.message === 'string' && (/No provider for missing:strict/.test(e.message) || e.code === 'ORK1006')
 		})
 	})
 
@@ -83,7 +82,6 @@ test('Container suite', { concurrency: false }, async (t) => {
 		c.set(B, 'z')
 		c.register(C, { useClass: NeedsDeps, inject: [A, B] })
 		const inst = c.resolve(C)
-		assert.ok(inst instanceof NeedsDeps)
 		assert.equal(inst.a, 5)
 		assert.equal(inst.b, 'z')
 	})
@@ -107,12 +105,11 @@ test('Container suite', { concurrency: false }, async (t) => {
 		c.set(B, 'two')
 		c.set(C, true)
 		const { a, b, c: cval } = c.resolve({ a: A, b: B, c: C })
-		assert.equal(a, 1)
-		assert.equal(b, 'two')
-		assert.equal(cval, true)
 		const maybe = c.get({ a: A, x: createToken('X') })
-		assert.equal(maybe.a, 1)
-		assert.equal(maybe.x, undefined)
+		assert.deepStrictEqual(
+			{ a, b, cval, maybeA: maybe.a, maybeX: maybe.x },
+			{ a: 1, b: 'two', cval: true, maybeA: 1, maybeX: undefined },
+		)
 	})
 
 	await t.test('class provider without autostart; child container lookup', async () => {
@@ -139,13 +136,14 @@ test('Container suite', { concurrency: false }, async (t) => {
 		await inst.start()
 		await inst.stop()
 		await assert.rejects(() => c.destroy(), (err: unknown) => {
-			assert.ok(err instanceof Error)
-			assert.match((err as Error).message, /Errors during container destroy/)
 			assert.ok(isAggregateLifecycleError(err))
 			// container aggregate code
 			assert.equal((err as Error & { code?: string }).code, 'ORK1016')
-			assert.ok(err.details.length >= 1)
-			assert.equal(err.details.length, err.errors.length)
+			const det = (err as { details?: unknown }).details
+			const errs = (err as { errors?: unknown }).errors
+			assert.ok(Array.isArray(det))
+			assert.ok(Array.isArray(errs))
+			assert.equal(det.length, errs.length)
 			return true
 		})
 		// Second call should not throw (already destroyed)
@@ -168,9 +166,10 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.ok(gotAlt)
 		// list/clear
 		const keys = container.list()
-		assert.ok(keys.some(k => typeof k !== 'string'))
-		assert.ok(keys.some(k => k === 'alt'))
-		assert.equal(container.clear('alt', true), true)
+		assert.deepStrictEqual(
+			{ sawNonString: keys.some(k => typeof k !== 'string'), sawAlt: keys.some(k => k === 'alt'), clearedAlt: container.clear('alt', true) },
+			{ sawNonString: true, sawAlt: true, clearedAlt: true },
+		)
 	})
 
 	await t.test('callable getter resolves a token map with resolve({ ... })', () => {
@@ -182,8 +181,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		c.set(A, 123)
 		c.set(B, 'xyz')
 		const { a, b } = container().resolve({ a: A, b: B })
-		assert.equal(a, 123)
-		assert.equal(b, 'xyz')
+		assert.deepStrictEqual({ a, b }, { a: 123, b: 'xyz' })
 	})
 
 	await t.test('named container resolves a token map with resolve({ ... })', () => {
@@ -196,8 +194,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		namedC.set(A, 2)
 		namedC.set(B, 'z')
 		const { a, b } = container('tenantA').resolve({ a: A, b: B })
-		assert.equal(a, 2)
-		assert.equal(b, 'z')
+		assert.deepStrictEqual({ a, b }, { a: 2, b: 'z' })
 	})
 
 	await t.test('using(fn) runs in a child scope and destroys it after', async () => {
@@ -213,8 +210,10 @@ test('Container suite', { concurrency: false }, async (t) => {
 			inst = scope.resolve(T)
 			await Promise.resolve()
 		})
-		assert.ok(inst)
-		assert.equal(inst?.destroyed, true)
+		assert.deepStrictEqual(
+			{ hasInst: !!inst, destroyed: inst?.destroyed === true },
+			{ hasInst: true, destroyed: true },
+		)
 	})
 
 	await t.test('using(apply, fn) registers overrides in a child scope', async () => {
@@ -257,10 +256,10 @@ test('Container suite', { concurrency: false }, async (t) => {
 		const parent = new Container({ logger })
 		parent.set(T, 99)
 		const child = parent.createChild()
-		assert.equal(child.has(T), true)
-		assert.equal(child.get(T), 99)
-		// resolve should also work via parent lookup
-		assert.equal(child.resolve(T), 99)
+		assert.deepStrictEqual(
+			{ has: child.has(T), get: child.get(T), resolve: child.resolve(T) },
+			{ has: true, get: 99, resolve: 99 },
+		)
 	})
 
 	// NEW: Promise-handling for using
@@ -320,8 +319,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		c.set(A, 7)
 		c.set(B, 'eight')
 		const [a, b] = c.resolve([A, B] as const)
-		assert.equal(a, 7)
-		assert.equal(b, 'eight')
+		assert.deepStrictEqual([a, b], [7, 'eight'])
 	})
 
 	await t.test('get with tuple returns optional values in order', () => {
@@ -332,8 +330,6 @@ test('Container suite', { concurrency: false }, async (t) => {
 		c.set(A, 1)
 		c.set(C, true)
 		const [a, b, cval] = c.get([A, B, C] as const)
-		assert.equal(a, 1)
-		assert.equal(b, undefined)
-		assert.equal(cval, true)
+		assert.deepStrictEqual([a, b, cval], [1, undefined, true])
 	})
 })

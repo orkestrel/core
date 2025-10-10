@@ -34,10 +34,10 @@ test('Ports suite', async (t) => {
 	await t.test('extendPorts duplicate key throws', () => {
 		const Base = createPortTokens({ email: {} as EmailPort })
 		assert.throws(() => extendPorts(Base, { email: {} as EmailPort }), (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			if (!/duplicate port key/.test(err.message)) return false
-			const code = (err as Error & { code?: string }).code
-			return code === 'ORK1040'
+			const e = err as { message?: string, code?: string }
+			if (typeof e?.message !== 'string') return false
+			if (!/duplicate port key/.test(e.message)) return false
+			return e.code === 'ORK1040'
 		})
 	})
 

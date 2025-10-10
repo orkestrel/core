@@ -32,8 +32,7 @@ test('Event suite', async (t) => {
 			called = true
 		})
 		await ev.publish('t', 'x')
-		assert.equal(errCount, 1)
-		assert.equal(called, true)
+		assert.deepStrictEqual({ errCount, called }, { errCount: 1, called: true })
 	})
 
 	await t.test('topics return active topics and clean up', async () => {
@@ -69,6 +68,6 @@ test('Event suite', async (t) => {
 		})
 		await bus.publish('self', null)
 		await bus.publish('self', null)
-		assert.equal(calls, 1)
+		assert.deepStrictEqual({ calls }, { calls: 1 })
 	})
 })

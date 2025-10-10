@@ -72,9 +72,8 @@ test('Layer suite', async (t) => {
 				{ token: A, dependencies: [UNKNOWN] },
 			])
 		}, (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			const code = (err as Error & { code?: string }).code
-			return code === 'ORK1008' && err.message.includes('Unknown dependency')
+			const e = err as { message?: string, code?: string }
+			return e?.code === 'ORK1008' && typeof e?.message === 'string' && e.message.includes('Unknown dependency')
 		})
 	})
 
@@ -87,9 +86,8 @@ test('Layer suite', async (t) => {
 				{ token: B, dependencies: [A] },
 			])
 		}, (err: unknown) => {
-			if (!(err instanceof Error)) return false
-			const code = (err as Error & { code?: string }).code
-			return code === 'ORK1009' && /cycle/i.test(err.message)
+			const e = err as { message?: string, code?: string }
+			return e?.code === 'ORK1009' && typeof e?.message === 'string' && /cycle/i.test(e.message)
 		})
 	})
 

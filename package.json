@@ -51,7 +51,7 @@
     "format": "eslint . --fix",
     "docs": "typedoc && npm run docs:llm",
     "docs:api": "typedoc",
-    "docs:llm": "tsx scripts\\generate-llms.ts --base-url https://orkestrel.github.io/core --docs docs --out docs",
+    "docs:llm": "tsx scripts\\generate-llms.ts --base-url https://github.com/orkestrel/core/blob/main/docs --docs docs --out docs --keep-extensions --validate-links --fail-fast-links --validate-progress",
     "prepublishOnly": "npm run check && npm run format && npm run test && npm run docs && npm run build"
   },
   "devDependencies": {

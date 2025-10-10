@@ -5,7 +5,7 @@ Generates LLM-friendly indexes from Markdown docs in the llmstxt.org style.
 - llms-full.txt: site header + optional summary + concatenated full content with section headers and separators
 
 Usage (Windows-friendly):
-  tsx scripts\generate-llms.ts --base-url https://orkestrel.github.io/core --docs docs --out docs [--site-title "Orkestrel Core"] [--site-summary "Short summary"]
+  tsx scripts\generate-llms.ts --base-url https://example.com/docs --docs docs --out docs [--site-title "My Site"] [--site-summary "Short summary"] [--keep-extensions] [--validate-links] [--fail-fast-links] [--validate-progress]
 */
 
 import { readFileSync, promises as fs } from 'node:fs'
@@ -15,7 +15,25 @@ import { parseArgs as parseCliArgs } from 'node:util'
 import readline from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 
-export interface GenerateOptions { baseUrl: string, docsDir: string, outDir: string, siteTitle?: string, siteSummary?: string }
+/**
+ * Minimal fetch-like function interface used for link validation.
+ * Accepts a URL and optional init with method/signal, and resolves with an object exposing HTTP status.
+ */
+type FetchLike = (url: string, init?: { method?: string, signal?: AbortSignal | null }) => Promise<{ status: number }>
+
+export interface GenerateOptions {
+	baseUrl: string
+	docsDir: string
+	outDir: string
+	siteTitle?: string
+	siteSummary?: string
+	keepExtensions?: boolean
+	validateLinks?: boolean
+	failFastLinks?: boolean
+	validateProgress?: boolean
+	fetchImpl?: FetchLike
+	requestTimeoutMs?: number
+}
 
 // Walk a directory tree yielding .md/.mdx files
 async function* walk(dir: string): AsyncGenerator<string> {
@@ -32,10 +50,10 @@ async function* walk(dir: string): AsyncGenerator<string> {
 }
 
 // Compute a public URL from a docs-relative file path
-function relToUrl(baseUrl: string, docsDirAbs: string, filePathAbs: string): string {
+function relToUrl(baseUrl: string, docsDirAbs: string, filePathAbs: string, keepExtensions: boolean): string {
 	const rel = path.relative(docsDirAbs, filePathAbs).replace(/\\/g, '/')
-	const withoutExt = rel.replace(/\.(md|mdx)$/i, '')
-	return `${baseUrl}/${withoutExt}`
+	const final = keepExtensions ? rel : rel.replace(/\.(md|mdx)$/i, '')
+	return `${baseUrl}/${final}`
 }
 
 // Extract the first heading text as a title, falling back to filename
@@ -107,6 +125,77 @@ function toProperCase(s: string): string {
 	return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+// Tiny color helpers (simple ANSI; disabled when NO_COLOR env is set)
+const useColor = !process.env.NO_COLOR
+const color = {
+	green: (s: string) => useColor ? `\x1b[32m${s}\x1b[0m` : s,
+	red: (s: string) => useColor ? `\x1b[31m${s}\x1b[0m` : s,
+}
+
+// Validate that URLs respond with 200 OK; tries HEAD first, falls back to GET for 405/501
+async function validateUrls(urls: readonly string[], fetchImpl: FetchLike, timeoutMs: number = 8000, failFast: boolean = false, showProgress: boolean = false): Promise<{ url: string, status?: number, error?: string }[]> {
+	const failures: { url: string, status?: number, error?: string }[] = []
+	let firstFailure: { url: string, status?: number, error?: string } | null = null
+	const total = urls.length
+	let processed = 0
+
+	const tick = () => {
+		if (!showProgress) return
+		const remaining = total - processed
+		const statusText = failures.length === 0 ? color.green('PASSING') : color.red('FAIL')
+		const msg = `\r[links] ${processed}/${total} checked, ${remaining} left - ${statusText}`
+		process.stdout.write(msg)
+	}
+
+	for (const url of urls) {
+		const controller = new AbortController()
+		const timer = setTimeout(() => controller.abort(), timeoutMs)
+		let shouldStop = false
+		try {
+			let res = await fetchImpl(url, { method: 'HEAD', signal: controller.signal })
+			if (res.status !== 200) {
+				if (res.status === 405 || res.status === 501) {
+					// Retry with GET if HEAD not allowed/implemented
+					res = await fetchImpl(url, { method: 'GET', signal: controller.signal })
+				}
+			}
+			if (res.status !== 200) {
+				if (failFast) {
+					firstFailure = { url, status: res.status }
+					shouldStop = true
+				}
+				else {
+					failures.push({ url, status: res.status })
+				}
+			}
+		}
+		catch (err: unknown) {
+			const message = err instanceof Error ? err.message : String(err)
+			if (failFast) {
+				firstFailure = { url, error: message }
+				shouldStop = true
+			}
+			else {
+				failures.push({ url, error: message })
+			}
+		}
+		finally {
+			processed++
+			tick()
+			clearTimeout(timer)
+		}
+		if (shouldStop) break
+	}
+	if (showProgress) process.stdout.write(`\n`)
+	if (firstFailure) {
+		const msg = firstFailure.status != null
+			? `Link validation failed: ${firstFailure.url} (status ${firstFailure.status})`
+			: `Link validation error: ${firstFailure.url} (${firstFailure.error ?? 'unknown error'})`
+		throw new Error(msg)
+	}
+	return failures
+}
+
 /**
  * Generate llms.txt (compact index) and llms-full.txt (full corpus) following llmstxt.org conventions.
  *
@@ -121,30 +210,58 @@ function toProperCase(s: string): string {
  * - outDir: Directory to write llms.txt and llms-full.txt
  * - siteTitle: Optional site title to use in headers; defaults to package name or "Documentation"
  * - siteSummary: Optional site summary (blockquote); defaults to package description if present
+ * - keepExtensions: If true, preserve .md/.mdx in links (useful for raw file hosts like GitHub). Default false.
+ * - validateLinks: If true, verify that each URL returns HTTP 200.
+ * - failFastLinks: If true and validateLinks is enabled, fail on the first invalid link (default: false; collect all failures by default).
+ * - validateProgress: If true and validateLinks is enabled, show a small colored progress line during validation.
+ * - fetchImpl: Optional fetch implementation override for validation (defaults to global fetch)
+ * - requestTimeoutMs: Optional timeout per request (ms) for validation (default: 8000)
  *
  * @returns Object containing the number of included entries and output file paths.
  *
  * @example
  * ```ts
- * import { generateLlms } from './scripts/generate-llms'
+ * import { generateLlms } from '../scripts/generate-llms.js'
  *
- * const { count, files } = await generateLlms({
+ * // Basic usage (extensionless links for static sites)
+ * await generateLlms({
  *   baseUrl: 'https://example.com/docs',
  *   docsDir: 'docs',
  *   outDir: 'docs',
- *   siteTitle: 'Example Docs',
- *   siteSummary: 'All docs in compact and full forms.'
+ *   siteTitle: 'My Docs',
+ *   siteSummary: 'Compact and full LLM docs.'
  * })
- * console.log('Entries:', count)
- * console.log('Generated:', files)
- * ```
  *
- * @remarks
- * - Ordering prioritizes a curated sequence of guide pages, then others by URL for stability.
- * - Content headings equal to the document title are removed to avoid duplication under the H2 section headers.
+ * // Preserve .md/.mdx in links (e.g., for GitHub blob URLs)
+ * await generateLlms({
+ *   baseUrl: 'https://github.com/owner/repo/blob/main/docs',
+ *   docsDir: 'docs',
+ *   outDir: 'docs',
+ *   keepExtensions: true
+ * })
+ *
+ * // Validate links with small progress indicator (collect all failures)
+ * await generateLlms({
+ *   baseUrl: 'https://example.com/docs',
+ *   docsDir: 'docs',
+ *   outDir: 'docs',
+ *   validateLinks: true,
+ *   validateProgress: true
+ * })
+ *
+ * // Validate links: fail fast on the first invalid URL
+ * await generateLlms({
+ *   baseUrl: 'https://example.com/docs',
+ *   docsDir: 'docs',
+ *   outDir: 'docs',
+ *   validateLinks: true,
+ *   failFastLinks: true,
+ *   validateProgress: true
+ * })
+ * ```
  */
 export async function generateLlms(opts: GenerateOptions): Promise<{ count: number, files: string[] }> {
-	const { baseUrl, docsDir, outDir, siteTitle: cliTitle, siteSummary: cliSummary } = opts
+	const { baseUrl, docsDir, outDir, siteTitle: cliTitle, siteSummary: cliSummary, keepExtensions = false } = opts
 	const absDocs = path.resolve(docsDir)
 	const absOut = path.resolve(outDir)
 	await ensureDir(absOut)
@@ -160,7 +277,7 @@ export async function generateLlms(opts: GenerateOptions): Promise<{ count: numb
 		let raw = await fs.readFile(file, 'utf8')
 		if (isDraft(raw)) continue
 		const title = extractTitle(raw, path.basename(file, path.extname(file)))
-		const url = relToUrl(baseUrl, absDocs, file)
+		const url = relToUrl(baseUrl, absDocs, file, keepExtensions)
 		const weight = computeWeight(absDocs, file)
 		const relPath = path.relative(absDocs, file).replace(/\\/g, '/')
 		raw = stripFrontmatter(raw)
@@ -168,6 +285,26 @@ export async function generateLlms(opts: GenerateOptions): Promise<{ count: numb
 	}
 
 	entries.sort((a, b) => (a.weight - b.weight) || a.url.localeCompare(b.url))
+
+	// Optional link validation
+	if (opts.validateLinks) {
+		const fetchImpl: FetchLike | undefined = (globalThis.fetch ? (globalThis.fetch as unknown as FetchLike) : undefined)
+		const usedFetch = opts.fetchImpl ?? fetchImpl
+		if (typeof usedFetch !== 'function') {
+			throw new Error('Link validation requested but no fetch implementation is available. Provide fetchImpl or run on Node 18+.')
+		}
+		if (opts.failFastLinks) {
+			// Will throw on first failure
+			await validateUrls(entries.map(e => e.url), usedFetch, opts.requestTimeoutMs, true, Boolean(opts.validateProgress))
+		}
+		else {
+			const failures = await validateUrls(entries.map(e => e.url), usedFetch, opts.requestTimeoutMs, false, Boolean(opts.validateProgress))
+			if (failures.length > 0) {
+				const lines = failures.map(f => ` - ${f.url} ${f.status ? `(status ${f.status})` : f.error ? `(error ${f.error})` : ''}`)
+				throw new Error(`Link validation failed for ${failures.length} URL(s):\n${lines.join('\n')}`)
+			}
+		}
+	}
 
 	// Build llms.txt
 	let compact = `# ${siteTitle}\n\n`
@@ -237,6 +374,10 @@ function usage(): string {
 		'  -o, --out [dir]             Directory to write outputs (default: docs)',
 		'  -t, --site-title [title]    Site title (default: package name or "Documentation")',
 		'  -s, --site-summary [text]   Site summary blockquote (default: package description)',
+		'  -e, --keep-extensions       Preserve .md/.mdx extensions in links (default: false)',
+		'  -l, --validate-links        Validate that links return 200 OK (may be slow)',
+		'  -f, --fail-fast-links       When validating, fail on the first invalid link (default: false)',
+		'  -p, --validate-progress     Show a small colored progress line during link validation',
 		'  -i, --interactive           Prompt for values interactively',
 		'  -h, --help                  Show this help',
 		'  -v, --version               Show version',
@@ -253,12 +394,22 @@ async function promptInteractive(defaults: GenerateOptions): Promise<GenerateOpt
 			const ans = await rl.question(`${q}${suffix}: `)
 			return ans.trim() || (def ?? '')
 		}
+		const askBool = async (q: string, def: boolean | undefined): Promise<boolean> => {
+			const show = def === undefined ? '' : ` [${def ? 'Y' : 'N'}]`
+			const ans = (await rl.question(`${q}${show}: `)).trim().toLowerCase()
+			if (!ans) return def ?? false
+			return ans.startsWith('y')
+		}
 		const baseUrl = await ask('Base URL', defaults.baseUrl)
 		const docsDir = await ask('Docs directory', defaults.docsDir)
 		const outDir = await ask('Output directory', defaults.outDir)
 		const siteTitle = await ask('Site title', defaults.siteTitle)
 		const siteSummary = await ask('Site summary', defaults.siteSummary)
-		return { baseUrl: baseUrl.replace(/\/$/, ''), docsDir, outDir, siteTitle, siteSummary }
+		const keepExtensions = await askBool('Keep .md/.mdx extensions in links? (y/N)', defaults.keepExtensions)
+		const validateLinks = await askBool('Validate links (200 OK)? (y/N)', defaults.validateLinks)
+		const failFastLinks = validateLinks ? await askBool('Fail fast on first invalid link? (y/N)', defaults.failFastLinks) : false
+		const validateProgress = validateLinks ? await askBool('Show progress while validating? (y/N)', defaults.validateProgress) : false
+		return { baseUrl: baseUrl.replace(/\/$/, ''), docsDir, outDir, siteTitle, siteSummary, keepExtensions, validateLinks, failFastLinks, validateProgress }
 	}
 	finally {
 		rl.close()
@@ -283,6 +434,10 @@ function parseArgs(argv: string[]): { opts: GenerateOptions, interactive: boolea
 			'out': { type: 'string', short: 'o' },
 			'site-title': { type: 'string', short: 't' },
 			'site-summary': { type: 'string', short: 's' },
+			'keep-extensions': { type: 'boolean', short: 'e' },
+			'validate-links': { type: 'boolean', short: 'l' },
+			'fail-fast-links': { type: 'boolean', short: 'f' },
+			'validate-progress': { type: 'boolean', short: 'p' },
 			'interactive': { type: 'boolean', short: 'i' },
 			'help': { type: 'boolean', short: 'h' },
 			'version': { type: 'boolean', short: 'v' },
@@ -294,10 +449,14 @@ function parseArgs(argv: string[]): { opts: GenerateOptions, interactive: boolea
 	const outDir = String(parsed.values['out'] ?? 'docs')
 	const siteTitle = parsed.values['site-title'] as string | undefined
 	const siteSummary = parsed.values['site-summary'] as string | undefined
+	const keepExtensions = Boolean(parsed.values['keep-extensions'])
+	const validateLinks = Boolean(parsed.values['validate-links'])
+	const failFastLinks = Boolean(parsed.values['fail-fast-links'])
+	const validateProgress = Boolean(parsed.values['validate-progress'])
 	const interactive = Boolean(parsed.values['interactive'])
 	const help = Boolean(parsed.values['help'])
 	const version = Boolean(parsed.values['version'])
-	return { opts: { baseUrl, docsDir, outDir, siteTitle, siteSummary }, interactive, help, version }
+	return { opts: { baseUrl, docsDir, outDir, siteTitle, siteSummary, keepExtensions, validateLinks, failFastLinks, validateProgress }, interactive, help, version }
 }
 
 // CLI entrypoint

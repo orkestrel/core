@@ -88,10 +88,10 @@ export const INTERNAL_MESSAGES: ReadonlyArray<DiagnosticMessage> = Object.freeze
  * Consumers may display these URLs when rendering errors.
  */
 export const HELP = {
-	registry: 'https://github.com/orkestrel/core/blob/main/docs/api/index.html#registry',
-	container: 'https://github.com/orkestrel/core/blob/main/docs/api/index.html#container',
-	providers: 'https://github.com/orkestrel/core/blob/main/docs/api/index.html#register-and-resolve',
-	orchestrator: 'https://github.com/orkestrel/core/blob/main/docs/api/index.html#orchestrator',
-	errors: 'https://github.com/orkestrel/core/blob/main/docs/api/index.html#troubleshooting',
-	lifecycle: 'https://github.com/orkestrel/core/blob/main/docs/api/index.html#lifecycle',
+	registry: 'https://github.com/orkestrel/core/blob/main/api/index.html#registry',
+	container: 'https://github.com/orkestrel/core/blob/main/api/index.html#container',
+	providers: 'https://github.com/orkestrel/core/blob/main/api/index.html#register-and-resolve',
+	orchestrator: 'https://github.com/orkestrel/core/blob/main/api/index.html#orchestrator',
+	errors: 'https://github.com/orkestrel/core/blob/main/api/index.html#troubleshooting',
+	lifecycle: 'https://github.com/orkestrel/core/blob/main/api/index.html#lifecycle',
 } as const

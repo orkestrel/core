@@ -197,7 +197,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			const e2 = err as WithDiag
 			assert.equal(e2.code, 'ORK1009')
 			if (typeof e2.helpUrl === 'string') {
-				assert.ok(e2.helpUrl.includes('/docs/api/index.html'), `helpUrl should include '/docs/api/index.html'; actual: ${e2.helpUrl}`)
+				assert.ok(e2.helpUrl.includes('/api/index.html'), `helpUrl should include '/api/index.html'; actual: ${e2.helpUrl}`)
 			}
 			return true
 		})

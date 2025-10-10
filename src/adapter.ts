@@ -7,8 +7,7 @@ import { Lifecycle } from './lifecycle.js'
  * You typically subclass Adapter, implement the hooks you need, and then register an instance with
  * a {@link Container} or {@link Orchestrator}.
  *
- * Example
- * -------
+ * @example
  * ```ts
  * import { Adapter, createToken, Container } from '@orkestrel/core'
  *
@@ -39,13 +38,12 @@ import { Lifecycle } from './lifecycle.js'
  * Override any of the protected hooks: onCreate, onStart, onStop, onDestroy, onTransition.
  */
 export abstract class Adapter extends Lifecycle {
-	// Optional convenience overrides; subclasses implement what they need.
-	/** Optional hook invoked during create(); no-op by default. */
+	// Optional hook invoked during create(); no-op by default.
 	protected async onCreate(): Promise<void> {}
-	/** Optional hook invoked during start(); no-op by default. */
+	// Optional hook invoked during start(); no-op by default.
 	protected async onStart(): Promise<void> {}
-	/** Optional hook invoked during stop(); no-op by default. */
+	// Optional hook invoked during stop(); no-op by default.
 	protected async onStop(): Promise<void> {}
-	/** Optional hook invoked during destroy(); no-op by default. */
+	// Optional hook invoked during destroy(); no-op by default.
 	protected async onDestroy(): Promise<void> {}
 }

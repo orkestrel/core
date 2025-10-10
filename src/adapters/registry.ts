@@ -125,6 +125,7 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 * @param lock - When true, prevents further replacement for this key (default: false)
 	 * @throws Error with code ORK1003 if attempting to replace the default instance
 	 * @throws Error with code ORK1004 if attempting to replace a locked instance
+	 * @returns void
 	 *
 	 * @example
 	 * ```ts

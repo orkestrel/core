@@ -81,6 +81,7 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 *
 	 * @param item - The item to add to the queue
 	 * @throws Error with code ORK1050 when capacity is set and would be exceeded
+	 * @returns void
 	 *
 	 * @example
 	 * ```ts

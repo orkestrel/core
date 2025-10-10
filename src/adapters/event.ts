@@ -69,7 +69,7 @@ export class EventAdapter implements EventPort {
 	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
-	/** Type guard to narrow unknown values to EventHandler. */
+	// Type guard to narrow unknown values to EventHandler.
 	private isHandler<T>(v: unknown): v is EventHandler<T> { return typeof v === 'function' }
 
 	/**

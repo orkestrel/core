@@ -24,8 +24,7 @@ import { safeInvoke } from './helpers.js'
  * - queue: custom QueuePort to serialize hooks and apply deadlines.
  * - logger/diagnostic: ports used by default adapters and error reporting.
  *
- * Example
- * -------
+ * @example
  * ```ts
  * import { Lifecycle } from '@orkestrel/core'
  *
@@ -120,7 +119,7 @@ export abstract class Lifecycle {
 	 */
 	get state(): LifecycleState { return this._state }
 
-	/** Internal method to set state and emit transition events. */
+	// Internal: set state and emit transition events.
 	protected setState(next: LifecycleState): void {
 		// avoid emitting when state doesn't actually change
 		if (this._state === next) return
@@ -178,7 +177,7 @@ export abstract class Lifecycle {
 		return this
 	}
 
-	/** Internal method to run a lifecycle hook and transition atomically under a queue-imposed deadline. */
+	// Internal: run a lifecycle hook and transition atomically under a queue-imposed deadline.
 	private async runHook(hookName: LifecycleHook, hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
 		const tasks: Array<() => Promise<void> | void> = [
 			() => hook(),
@@ -278,7 +277,7 @@ export abstract class Lifecycle {
 		this.emitter.removeAllListeners()
 	}
 
-	/** Internal method to validate state-machine transitions and throw ORK1020 on invalid edges. */
+	// Internal: validate state-machine transitions and throw ORK1020 on invalid edges.
 	private validateTransition(target: LifecycleState): void {
 		const from = this._state
 		const fail = (to: LifecycleState) => this.diagnostics.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: `Invalid lifecycle transition from ${from} to ${to}`, helpUrl: HELP.lifecycle })
@@ -288,24 +287,18 @@ export abstract class Lifecycle {
 		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) fail(target)
 	}
 
-	/** Optional hook called during create() - override in subclasses to add creation behavior. */
+	// Optional hook called during create(); override in subclasses to add creation behavior.
 	protected async onCreate(): Promise<void> {}
 
-	/** Optional hook called during start() - override in subclasses to add startup behavior. */
+	// Optional hook called during start(); override in subclasses to add startup behavior.
 	protected async onStart(): Promise<void> {}
 
-	/** Optional hook called during stop() - override in subclasses to add shutdown behavior. */
+	// Optional hook called during stop(); override in subclasses to add shutdown behavior.
 	protected async onStop(): Promise<void> {}
 
-	/** Optional hook called during destroy() - override in subclasses to add cleanup behavior. */
+	// Optional hook called during destroy(); override in subclasses to add cleanup behavior.
 	protected async onDestroy(): Promise<void> {}
 
-	/**
-	 * Optional hook called around each transition after the main hook has run.
-	 *
-	 * @param _from - State transitioning from
-	 * @param _to - State transitioning to
-	 * @param _hook - The lifecycle hook that was executed
-	 */
+	// Optional hook called around each transition after the main hook has run.
 	protected async onTransition(_from: LifecycleState, _to: LifecycleState, _hook: LifecycleHook): Promise<void> {}
 }

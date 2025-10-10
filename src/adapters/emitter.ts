@@ -23,7 +23,7 @@ import { DiagnosticAdapter } from './diagnostic.js'
  * ```
  */
 export class EmitterAdapter<EMap extends EventMap = EventMap> implements EmitterPort<EMap> {
-	// Internal registry: per-event sets of listener values (stored as unknown to avoid over-constraining types).
+	// Internal registry of per-event listeners.
 	private readonly listeners = new Map<keyof EMap & string, Set<unknown>>()
 
 	readonly #logger: LoggerPort
@@ -33,7 +33,6 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * Construct an EmitterAdapter with optional logger and diagnostic ports.
 	 *
 	 * @param options - Optional configuration including logger and diagnostic ports
-	 *
 	 * @example
 	 * ```ts
 	 * const emitter = new EmitterAdapter({ logger: customLogger })
@@ -58,12 +57,12 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
-	/** Type guard to narrow stored unknowns to the properly-typed listener for a specific event key E. */
+	// Type guard to narrow stored unknowns to a properly-typed listener for event E.
 	private isListener<E extends keyof EMap & string>(v: unknown): v is EmitterListener<EMap, E> {
 		return typeof v === 'function'
 	}
 
-	/** Fetch existing Set for an event or create it lazily. */
+	// Fetch existing Set for an event or create it lazily.
 	private getOrCreateSet<E extends keyof EMap & string>(event: E): Set<unknown> {
 		let set = this.listeners.get(event)
 		if (!set) {
@@ -76,16 +75,13 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	/**
 	 * Register a listener function for a specific event.
 	 *
-	 * Listeners are stored in insertion order and will be invoked synchronously when the event is emitted.
-	 *
 	 * @param event - Event name (key in the event map)
 	 * @param fn - Listener function that receives tuple-typed arguments matching the event signature
 	 * @returns This emitter instance for method chaining
-	 *
+     *
 	 * @example
 	 * ```ts
 	 * emitter.on('data', (value: string) => console.log('data:', value))
-	 *   .on('error', (err: Error) => console.error('error:', err))
 	 * ```
 	 */
 	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this {
@@ -96,12 +92,10 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	/**
 	 * Remove a previously registered listener for a specific event.
 	 *
-	 * If the listener set becomes empty after removal, the event key is deleted from the registry.
-	 *
 	 * @param event - Event name (key in the event map)
-	 * @param fn - The exact listener function to remove (must be the same reference used in `on`)
+	 * @param fn - The exact listener function to remove
 	 * @returns This emitter instance for method chaining
-	 *
+     *
 	 * @example
 	 * ```ts
 	 * const handler = (s: string) => console.log(s)
@@ -121,24 +115,18 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	/**
 	 * Emit an event with arguments, invoking all registered listeners synchronously.
 	 *
-	 * Listeners are invoked in insertion order. Any errors thrown by listeners are swallowed via safeInvoke
-	 * to prevent cascading failures. Creates a snapshot of listeners before iteration to protect against
-	 * mutations during event emission.
-	 *
 	 * @param event - Event name (key in the event map)
 	 * @param args - Arguments matching the event's tuple signature
-	 *
+	 * @returns void (invokes listeners synchronously if any are registered)
+     *
 	 * @example
 	 * ```ts
-	 * emitter.emit('start')
 	 * emitter.emit('data', 'hello world')
-	 * emitter.emit('error', new Error('Connection failed'))
 	 * ```
 	 */
 	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void {
 		const set = this.listeners.get(event)
 		if (!set || set.size === 0) return
-		// Snapshot to protect against mutation during iteration
 		const snapshot = Array.from(set)
 		for (const v of snapshot) {
 			if (this.isListener<E>(v)) {
@@ -150,13 +138,7 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	/**
 	 * Remove all registered listeners for all events.
 	 *
-	 * This is typically called during cleanup or destruction phases (e.g., in Lifecycle.destroy).
-	 *
-	 * @example
-	 * ```ts
-	 * emitter.removeAllListeners()
-	 * // All event listeners are now cleared
-	 * ```
+	 * @returns void (clears all event listener registrations)
 	 */
 	removeAllListeners(): void { this.listeners.clear() }
 }

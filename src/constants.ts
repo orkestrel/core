@@ -7,8 +7,7 @@ import type { DiagnosticMessage } from './types.js'
  * log levels, messages, and codes. You can also provide your own overrides
  * by merging with these defaults.
  *
- * Example
- * -------
+ * @example
  * ```ts
  * import { DiagnosticAdapter } from './adapters/diagnostic.js'
  * import { ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES } from './constants.js'

@@ -21,6 +21,7 @@ export class LoggerAdapter implements LoggerPort {
 	 * @param level - Log level: 'debug', 'info', 'warn', or 'error'
 	 * @param message - Human-readable log message
 	 * @param fields - Optional structured data to include with the log entry
+	 * @returns void (writes to console methods)
 	 *
 	 * @example
 	 * ```ts
@@ -60,6 +61,7 @@ export class NoopLogger implements LoggerPort {
 	 * @param _level - Log level (ignored)
 	 * @param _message - Log message (ignored)
 	 * @param _fields - Optional fields (ignored)
+	 * @returns void
 	 */
 	log(_level: LogLevel, _message: string, _fields?: Record<string, unknown>): void {
 		// intentionally no-op

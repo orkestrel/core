@@ -10,27 +10,11 @@ import { PORTS_MESSAGES } from './constants.js'
  * Each key in the provided shape becomes a token in the returned object, and the value's TypeScript type
  * is used as the token's generic type parameter.
  *
- * Example
- * -------
- * ```ts
- * import { createPortTokens, Container } from '@orkestrel/core'
- *
- * interface Ports {
- *   logger: { info(msg: string): void }
- *   config: { baseUrl: string }
- * }
- * const ports = createPortTokens<Ports>({ logger: undefined as any, config: undefined as any })
- * const c = new Container()
- * c.set(ports.config, { baseUrl: 'https://api.example.com' })
- * c.set(ports.logger, { info: (m) => console.log(m) })
- * const { logger, config } = c.resolve({ logger: ports.logger, config: ports.config })
- * logger.info(config.baseUrl)
- * ```
- *
  * @param shape - Object whose keys are port names and values define the token types via their TypeScript shape.
  * @param namespace - Optional namespace prefix used in token descriptions (default: 'ports').
  * @returns A frozen map of tokens keyed by the provided shape's keys.
  * @see extendPorts
+ *
  * @example Basic usage: create a tokens map and resolve values from a Container.
  * ```ts
  * import { createPortTokens, Container } from '@orkestrel/core'
@@ -44,14 +28,18 @@ export function createPortTokens<T extends Record<string, unknown>>(shape: T, na
 	return createTokens(namespace, shape)
 }
 
+/** Extend an existing set of Port tokens with additional ports or create a new one (overload). */
+export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): Readonly<TokensOf<Ext>>
+/** Extend a base token map with an extension shape (overload). */
+export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Readonly<Base & TokensOf<Ext>>
 /**
- * Extend an existing set of Port tokens with additional ports or create a new one.
+ * Extend an existing token map or create a new one from a shape.
  *
  * - extendPorts(ext) creates a new token set from scratch.
  * - extendPorts(base, ext) merges into an existing token map (throws on duplicate keys).
  *
- * @param ext - Extension shape used to create a new token set
- * @returns A frozen map of tokens for the extension shape
+ * @param args - Either just the extension shape, or a base map and extension shape
+ * @returns A frozen map combining tokens
  *
  * @example
  * ```ts
@@ -62,15 +50,6 @@ export function createPortTokens<T extends Record<string, unknown>>(shape: T, na
  *
  * @remarks Duplicate keys are rejected to prevent accidental overrides (code ORK1040).
  */
-export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): Readonly<TokensOf<Ext>>
-/**
- * Extend a base token map with an extension shape.
- *
- * @param base - Existing tokens map to extend
- * @param ext - Extension shape to merge (keys must not overlap with base)
- * @returns A frozen map combining base tokens and new extension tokens
- */
-export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Readonly<Base & TokensOf<Ext>>
 export function extendPorts(
 	...args: [Record<string, unknown>] | [Record<string, Token<unknown>>, Record<string, unknown>]
 ): unknown {
@@ -91,12 +70,6 @@ export function extendPorts(
 
 /**
  * Create a single Port token with a stable description under the `ports:` namespace.
- *
- * Example
- * -------
- * ```ts
- * const HttpPort = createPortToken<{ get(url: string): Promise<string> }>('http')
- * ```
  *
  * @param name - Port name appended to the 'ports:' namespace for Symbol description.
  * @returns A Token<T> describing the named port.

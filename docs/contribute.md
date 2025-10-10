@@ -37,7 +37,7 @@ If you must widen or coerce, write a guard instead and cover it with tests.
     - Include: description, `@param` and `@returns` with descriptions, an `@example`, and `@remarks` if helpful
     - Examples must use fenced code blocks with the `ts` language tag (```ts) — be consistent across the codebase
 - Exported functions: full TSDoc as above
-- Simple getters and setters: do not include an `@example`. Provide a concise description and a meaningful `@returns` description; add `@remarks` only when clarifying behavior or conventions.
+- Simple getters and setters: do not include an `@example`. Provide a concise description and a meaningful `@returns` description.
 - Private methods, non‑exported classes/functions, and overload signatures: use a single‑line description comment only (no full TSDoc block)
 - Types and interfaces: no TSDoc — remove banner/header or note comments on types/interfaces
 - Remove header‑only banners and note style comments

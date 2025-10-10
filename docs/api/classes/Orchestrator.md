@@ -4,7 +4,7 @@
 
 # Class: Orchestrator
 
-Defined in: [orchestrator.ts:82](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L82)
+Defined in: [orchestrator.ts:82](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L82)
 
 Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
 
@@ -40,7 +40,7 @@ await app.destroy()
 
 > **new Orchestrator**(`containerOrOpts?`, `maybeOpts?`): `Orchestrator`
 
-Defined in: [orchestrator.ts:105](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L105)
+Defined in: [orchestrator.ts:105](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L105)
 
 Construct an Orchestrator bound to a container and optional runtime ports.
 
@@ -75,7 +75,7 @@ A new Orchestrator instance configured with provided or default ports.
 
 > **get** **container**(): [`Container`](Container.md)
 
-Defined in: [orchestrator.ts:134](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L134)
+Defined in: [orchestrator.ts:134](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L134)
 
 Access the underlying Container bound to this orchestrator.
 
@@ -93,7 +93,7 @@ The Container used for provider registration and resolution.
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [orchestrator.ts:162](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L162)
+Defined in: [orchestrator.ts:162](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L162)
 
 Access the diagnostic port for logging, metrics, traces, and errors.
 
@@ -111,7 +111,7 @@ The DiagnosticPort for telemetry and error reporting.
 
 > **get** **layer**(): [`LayerPort`](../interfaces/LayerPort.md)
 
-Defined in: [orchestrator.ts:141](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L141)
+Defined in: [orchestrator.ts:141](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L141)
 
 Access the layering adapter used to compute dependency layers.
 
@@ -129,7 +129,7 @@ The LayerPort responsible for computing and grouping layers.
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [orchestrator.ts:155](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L155)
+Defined in: [orchestrator.ts:155](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L155)
 
 Access the logger port in use (propagated to internal adapters when not provided).
 
@@ -147,7 +147,7 @@ The LoggerPort for logging messages.
 
 > **get** **queue**(): [`QueuePort`](../interfaces/QueuePort.md)
 
-Defined in: [orchestrator.ts:148](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L148)
+Defined in: [orchestrator.ts:148](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L148)
 
 Access the queue adapter used to run per-layer jobs with optional concurrency.
 
@@ -163,7 +163,7 @@ The QueuePort used to schedule and execute tasks.
 
 > **destroy**(): `Promise`\<`void`\>
 
-Defined in: [orchestrator.ts:331](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L331)
+Defined in: [orchestrator.ts:331](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L331)
 
 Stop (when needed) and destroy all components, then destroy the container.
 Aggregates ORK1017 on failure and includes container cleanup errors.
@@ -186,7 +186,7 @@ await app.destroy() // ensures stop then destroy for all Lifecycle components
 
 > **register**\<`T`\>(`token`, `provider`, `dependencies`, `timeouts?`): `void`
 
-Defined in: [orchestrator.ts:180](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L180)
+Defined in: [orchestrator.ts:180](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L180)
 
 Register a component provider with optional explicit dependencies/timeouts.
 Throws on duplicate registrations or async provider shapes.
@@ -243,7 +243,7 @@ app.register(TOKEN, { useFactory: () => new MyAdapter() }, [DEP1, DEP2], { onSta
 
 > **start**(`regs`): `Promise`\<`void`\>
 
-Defined in: [orchestrator.ts:214](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L214)
+Defined in: [orchestrator.ts:214](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L214)
 
 Start all components in dependency order.
 
@@ -282,7 +282,7 @@ await app.start([
 
 > **stop**(): `Promise`\<`void`\>
 
-Defined in: [orchestrator.ts:298](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/orchestrator.ts#L298)
+Defined in: [orchestrator.ts:298](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/orchestrator.ts#L298)
 
 Stop started components in reverse dependency order.
 Aggregates ORK1014 on failure.

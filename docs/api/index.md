@@ -25,6 +25,8 @@ npm install @orkestrel/core
 - Tests: docs/guide/tests.md
 - Contribute: docs/guide/contribute.md
 - API reference (Typedoc): docs/api/index.md
+- LLM index (compact): docs/llms.txt
+- LLM full corpus: docs/llms-full.txt
 
 Notes
 - Providers are synchronous (no async factories or Promise values). Do async work in Lifecycle hooks.

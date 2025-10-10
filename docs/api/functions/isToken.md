@@ -6,7 +6,7 @@
 
 > **isToken**(`x`): `x is Token<unknown>`
 
-Defined in: [helpers.ts:245](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/helpers.ts#L245)
+Defined in: [helpers.ts:245](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/helpers.ts#L245)
 
 Runtime check that a value is a Token (Symbol).
 

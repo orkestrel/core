@@ -4,7 +4,7 @@
 
 # Interface: LifecycleErrorDetail
 
-Defined in: [types.ts:120](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L120)
+Defined in: [types.ts:120](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L120)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:120](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **context**: [`LifecycleContext`](../type-aliases/LifecycleContext.md)
 
-Defined in: [types.ts:123](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L123)
+Defined in: [types.ts:123](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L123)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:123](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **durationMs**: `number`
 
-Defined in: [types.ts:125](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L125)
+Defined in: [types.ts:125](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L125)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:125](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **error**: `Error`
 
-Defined in: [types.ts:126](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L126)
+Defined in: [types.ts:126](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L126)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:126](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **phase**: [`LifecyclePhase`](../type-aliases/LifecyclePhase.md)
 
-Defined in: [types.ts:122](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L122)
+Defined in: [types.ts:122](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L122)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [types.ts:122](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **timedOut**: `boolean`
 
-Defined in: [types.ts:124](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L124)
+Defined in: [types.ts:124](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L124)
 
 ***
 
@@ -52,4 +52,4 @@ Defined in: [types.ts:124](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **tokenDescription**: `string`
 
-Defined in: [types.ts:121](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L121)
+Defined in: [types.ts:121](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L121)

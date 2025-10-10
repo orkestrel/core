@@ -4,7 +4,7 @@
 
 # Interface: QueueRunOptions
 
-Defined in: [types.ts:191](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L191)
+Defined in: [types.ts:191](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L191)
 
 ## Extended by
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:191](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` `optional` **concurrency**: `number`
 
-Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L192)
+Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L192)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` `optional` **deadline**: `number`
 
-Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L194)
+Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L194)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` `optional` **signal**: `AbortSignal`
 
-Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L195)
+Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L195)
 
 ***
 
@@ -40,4 +40,4 @@ Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` `optional` **timeout**: `number`
 
-Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L193)
+Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L193)

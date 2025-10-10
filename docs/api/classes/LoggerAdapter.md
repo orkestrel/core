@@ -4,7 +4,7 @@
 
 # Class: LoggerAdapter
 
-Defined in: [adapters/logger.ts:17](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/adapters/logger.ts#L17)
+Defined in: [adapters/logger.ts:17](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/adapters/logger.ts#L17)
 
 Minimal console-backed logger implementation that routes log messages by level.
 
@@ -40,7 +40,7 @@ logger.log('error', 'Failed to connect', { retries: 3 })
 
 > **log**(`level`, `message`, `fields`): `void`
 
-Defined in: [adapters/logger.ts:31](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/adapters/logger.ts#L31)
+Defined in: [adapters/logger.ts:31](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/adapters/logger.ts#L31)
 
 Log a message with the specified level and optional structured fields.
 

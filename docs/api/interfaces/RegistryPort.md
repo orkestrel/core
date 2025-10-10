@@ -4,7 +4,7 @@
 
 # Interface: RegistryPort\<T\>
 
-Defined in: [types.ts:330](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L330)
+Defined in: [types.ts:330](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L330)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:330](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **clear**(`name?`, `force?`): `boolean`
 
-Defined in: [types.ts:334](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L334)
+Defined in: [types.ts:334](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L334)
 
 #### Parameters
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:334](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **get**(`name?`): `undefined` \| `T`
 
-Defined in: [types.ts:331](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L331)
+Defined in: [types.ts:331](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L331)
 
 #### Parameters
 
@@ -58,7 +58,7 @@ Defined in: [types.ts:331](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **list**(): readonly (`string` \| `symbol`)[]
 
-Defined in: [types.ts:335](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L335)
+Defined in: [types.ts:335](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L335)
 
 #### Returns
 
@@ -70,7 +70,7 @@ readonly (`string` \| `symbol`)[]
 
 > **resolve**(`name?`): `T`
 
-Defined in: [types.ts:332](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L332)
+Defined in: [types.ts:332](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L332)
 
 #### Parameters
 
@@ -88,7 +88,7 @@ Defined in: [types.ts:332](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **set**(`name`, `value`, `lock?`): `void`
 
-Defined in: [types.ts:333](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L333)
+Defined in: [types.ts:333](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L333)
 
 #### Parameters
 

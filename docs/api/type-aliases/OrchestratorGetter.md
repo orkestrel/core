@@ -6,11 +6,11 @@
 
 > **OrchestratorGetter** = [`Orchestrator`](../classes/Orchestrator.md)
 
-Defined in: [types.ts:313](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L313)
+Defined in: [types.ts:313](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L313)
 
 > **OrchestratorGetter**(`name?`): [`Orchestrator`](../classes/Orchestrator.md)
 
-Defined in: [types.ts:314](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L314)
+Defined in: [types.ts:314](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L314)
 
 ## Parameters
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:314](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **clear**(`name`, `force?`): `boolean`
 
-Defined in: [types.ts:316](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L316)
+Defined in: [types.ts:316](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L316)
 
 #### Parameters
 
@@ -50,7 +50,7 @@ Defined in: [types.ts:316](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **list**(): (`string` \| `symbol`)[]
 
-Defined in: [types.ts:317](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L317)
+Defined in: [types.ts:317](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L317)
 
 #### Returns
 
@@ -62,7 +62,7 @@ Defined in: [types.ts:317](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > **set**(`name`, `o`, `lock?`): `void`
 
-Defined in: [types.ts:315](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L315)
+Defined in: [types.ts:315](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L315)
 
 #### Parameters
 

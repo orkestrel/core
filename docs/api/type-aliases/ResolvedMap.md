@@ -6,7 +6,7 @@
 
 > **ResolvedMap**\<`TMap`\> = `{ [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }`
 
-Defined in: [types.ts:11](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L11)
+Defined in: [types.ts:11](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L11)
 
 ## Type Parameters
 

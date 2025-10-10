@@ -4,7 +4,7 @@
 
 # Interface: DiagnosticAdapterOptions
 
-Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L154)
+Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L154)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L154)
+Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L154)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` `optional` **messages**: readonly [`DiagnosticMessage`](DiagnosticMessage.md)[]
 
-Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L154)
+Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L154)

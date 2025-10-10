@@ -4,7 +4,7 @@
 
 # Interface: LayerNode\<T\>
 
-Defined in: [types.ts:210](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L210)
+Defined in: [types.ts:210](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L210)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:210](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` **dependencies**: readonly [`Token`](../type-aliases/Token.md)\<`unknown`\>[]
 
-Defined in: [types.ts:212](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L212)
+Defined in: [types.ts:212](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L212)
 
 ***
 
@@ -26,4 +26,4 @@ Defined in: [types.ts:212](https://github.com/orkestrel/core/blob/98df1af1b029ad
 
 > `readonly` **token**: [`Token`](../type-aliases/Token.md)\<`T`\>
 
-Defined in: [types.ts:211](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/types.ts#L211)
+Defined in: [types.ts:211](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/types.ts#L211)

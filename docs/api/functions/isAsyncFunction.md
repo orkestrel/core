@@ -6,7 +6,7 @@
 
 > **isAsyncFunction**(`fn`): `fn is (args: unknown[]) => Promise<unknown>`
 
-Defined in: [helpers.ts:514](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/helpers.ts#L514)
+Defined in: [helpers.ts:514](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/helpers.ts#L514)
 
 Heuristic check for an async function (native or transpiled).
 

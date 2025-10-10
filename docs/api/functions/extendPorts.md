@@ -29,7 +29,7 @@ const more = extendPorts(base, { b: undefined as string })
 
 > **extendPorts**\<`Ext`\>(`ext`): `Readonly`\<[`TokensOf`](../type-aliases/TokensOf.md)\<`Ext`\>\>
 
-Defined in: [ports.ts:32](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/ports.ts#L32)
+Defined in: [ports.ts:32](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/ports.ts#L32)
 
 Extend an existing set of Port tokens with additional ports or create a new one (overload).
 
@@ -53,7 +53,7 @@ Extend an existing set of Port tokens with additional ports or create a new one 
 
 > **extendPorts**\<`Base`, `Ext`\>(`base`, `ext`): `Readonly`\<`Base` & [`TokensOf`](../type-aliases/TokensOf.md)\<`Ext`\>\>
 
-Defined in: [ports.ts:34](https://github.com/orkestrel/core/blob/98df1af1b029ad0f39e413b90869151f4152e5dd/src/ports.ts#L34)
+Defined in: [ports.ts:34](https://github.com/orkestrel/core/blob/7cc3e19bc4a1e6f96f153d7b931686981208a465/src/ports.ts#L34)
 
 Extend a base token map with an extension shape (overload).
 

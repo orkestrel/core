@@ -104,3 +104,12 @@ Policy for the core repo
 - Keep tests short and focused. Add happy-path + 1–2 edge cases for public behavior.
 - Aim for fast runs (seconds, not minutes) with tsx --test and tsc --noEmit.
 
+See also
+- Overview and Start for the mental model and installation
+- Concepts for tokens/providers/lifecycle/orchestration
+- Core for built-in adapters
+- Examples for copy‑pasteable scenarios
+- Tips for composition patterns and troubleshooting
+- FAQ for quick answers from simple to advanced scenarios
+
+API reference is generated separately; see docs/api/index.md (Typedoc).

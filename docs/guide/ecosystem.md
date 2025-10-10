@@ -25,3 +25,15 @@ Versioning and stability
 - Error codes and core semantics are intended to be stable within a major version. See the changelog and Typedoc for details.
 
 If you publish community adapters or examples, consider using token-friendly shapes so others can adopt them without coupling to runtime details.
+
+See also
+- Overview: mental model and navigation
+- Start: installation and a 5‑minute tour
+- Concepts: tokens, providers, lifecycle, orchestrator
+- Core: built-in adapters and runtime pieces
+- Examples: copy‑pasteable snippets for common patterns
+- Tips: provider patterns, composition, and troubleshooting
+- Tests: fast, deterministic testing guidance
+- FAQ: quick answers from simple to advanced scenarios
+
+API reference is generated separately; see docs/api/index.md (Typedoc).

@@ -36,5 +36,6 @@ Where to go next
 - Examples: small, copy-pasteable snippets
 - Tips: provider patterns, testing guidance, and common gotchas
 - Tests: how to test components and orchestrations effectively
+- FAQ: quick answers from simple to advanced scenarios
 
 API reference is generated separately; see docs/api/index.md (Typedoc).

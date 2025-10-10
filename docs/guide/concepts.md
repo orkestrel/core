@@ -72,3 +72,13 @@ Error codes at a glance
 - ORK1010/1011/1012: async provider inputs (value, async function, returned Promise)
 - ORK1013/1014/1017: aggregated phase errors (start/stop/destroy)
 - ORK1020/1021/1022: invalid lifecycle transition / hook timed out / hook failed
+
+See also
+- Start: a 5‑minute tour and installation
+- Core: built-in adapters and runtime pieces
+- Examples: copy‑pasteable snippets for common patterns
+- Tips: provider patterns, composition, and troubleshooting
+- Tests: setting up fast, deterministic tests
+- FAQ: quick answers from simple to advanced scenarios
+
+API reference is generated separately; see docs/api/index.md (Typedoc).

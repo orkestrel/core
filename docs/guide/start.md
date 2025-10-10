@@ -7,8 +7,42 @@ Prerequisites
 - TypeScript 5+ recommended
 
 Install
-```sh
+```bat
 npm install @orkestrel/core
+```
+
+Quick try: single-file app
+- Save this as `quickstart.ts`:
+```ts
+import { Container, Orchestrator, Adapter, createToken, register } from '@orkestrel/core'
+
+// A simple component with start/stop hooks
+class Service extends Adapter {
+  protected async onStart() { console.log('Service -> started') }
+  protected async onStop() { console.log('Service -> stopped') }
+}
+
+// A typed contract and a value
+const TNum = createToken<number>('num')
+const TService = createToken<Service>('service')
+
+// Wire things in a container and orchestrate
+const container = new Container()
+container.set(TNum, 41)
+
+const app = new Orchestrator(container)
+await app.start([
+  register(TService, { useFactory: () => new Service() }),
+])
+
+console.log('Computed:', container.resolve(TNum) + 1)
+
+await app.stop()
+await app.destroy()
+```
+- Run it with Node + tsx:
+```bat
+npx tsx quickstart.ts
 ```
 
 Hello tokens and container
@@ -89,5 +123,6 @@ What next
 - Concepts: deeper dive into tokens, providers, lifecycle, orchestrator
 - Core: built-in adapters and runtime bits you can swap out
 - Examples: more snippets and patterns
-- Tips: provider patterns, gotchas, and FAQ
+- Tips: provider patterns and gotchas
 - Tests: how to test components and flows
+- FAQ: quick answers from simple to advanced scenarios

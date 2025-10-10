@@ -123,3 +123,13 @@ Determinism
 
 ## Code of Conduct
 Be kind. Assume good intent. Discuss ideas, not people.
+
+See also
+- Overview and Start for the project mental model and installation
+- Concepts for tokens/providers/lifecycle/orchestration
+- Core for built‑in adapters and runtime pieces
+- Examples and Tests for practical usage and verification patterns
+- Tips for composition patterns and troubleshooting
+- FAQ for quick answers from simple to advanced scenarios
+
+API reference is generated separately; see docs/api/index.md (Typedoc).

@@ -1,6 +1,6 @@
 # Tips
 
-A practical grab bag: provider patterns, lifetimes, typing conventions, composition patterns, and troubleshooting. It consolidates the previous types, patterns, providers-and-lifetimes, and FAQ pages.
+A practical grab bag: provider patterns, lifetimes, typing conventions, composition patterns, and troubleshooting. For quick answers, see the standalone FAQ.
 
 Provider shapes and injection
 
@@ -18,7 +18,7 @@ Lifetimes and ownership
 
 - Singleton by design per container; first resolve materializes and caches.
 - Scope per request/job with `createChild()` or `using(...)`, then `await scope.destroy()`.
-- Container.destroy(): stops started lifecycles and destroys owned lifecycles from factory/class providers; value-provided lifecycles are considered externally owned.
+- `Container.destroy()`: stops started lifecycles and destroys owned lifecycles from factory/class providers; value-provided lifecycles are considered externally owned.
 - Many instances: use a Manager (an Adapter) that owns children internally and exposes a single lifecycle to the orchestrator.
 
 Typing guidelines
@@ -75,3 +75,13 @@ Quick references
 - Lifecycle: override hooks; observe with `on`/`off`; default hook timeout 5000ms
 - Orchestrator: `register`, `start`, `stop`, `destroy`; dependencies and per-phase timeouts; `events` and `tracer`
 - Ports: `createPortTokens`, `createPortToken`, `extendPorts`
+
+See also
+- Overview and Start for the mental model and installation
+- Concepts for tokens/providers/lifecycle/orchestration
+- Core for built-in adapters
+- Examples for copy‑pasteable patterns
+- Tests for fast, deterministic testing guidance
+- FAQ for quick answers from simple to advanced scenarios
+
+API reference is generated separately; see docs/api/index.md (Typedoc).

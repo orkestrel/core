@@ -18,6 +18,18 @@ Logger
   - NoopLogger: swallows logs; useful in tests
 - You can pass your logger via options to Container, Orchestrator, Lifecycle, and adapters.
 
+Example:
+```ts
+import { LoggerAdapter, NoopLogger, Container } from '@orkestrel/core'
+
+const logger = new LoggerAdapter()
+logger.log('info', 'App started', { version: '1.0.0' })
+
+// Inject a custom logger into a container
+const container = new Container({ logger: new NoopLogger() })
+container.logger.log('debug', 'This will be discarded')
+```
+
 Diagnostics
 - DiagnosticPort adds higher-level telemetry:
   - `error(err, context?)` — report an error with scope, code, token, phase, etc.
@@ -42,6 +54,21 @@ Event bus
   - error handling callback
 - Great for component-level messages that are not strict dependencies.
 
+Example:
+```ts
+import { EventAdapter } from '@orkestrel/core'
+
+type Events = { 'user:created': { id: string, name: string } }
+const bus = new EventAdapter<Events>({ sequential: true })
+
+const unsubscribe = await bus.subscribe('user:created', async (u) => {
+  console.log('Created:', u.id, u.name)
+})
+
+await bus.publish('user:created', { id: 'u1', name: 'Alice' })
+await unsubscribe()
+```
+
 Queue
 - Run an array of tasks with options: `concurrency`, `timeout`, `deadline`, and `signal`.
 - The default QueueAdapter is used by Lifecycle to enforce one-at-a-time hooks with a shared deadline.
@@ -60,3 +87,14 @@ Practical tips
 - Consider injecting your own queue into Orchestrator to cap start/stop/destroy parallelism for IO-heavy components.
 - Use the `events` callbacks for user-facing notifications and the `tracer` for structured capture of layers and outcomes.
 - Keep adapter implementations small and focused; only override the Lifecycle hooks you actually need.
+
+See also
+- Overview: mental model and navigation
+- Start: installation and a 5‑minute tour
+- Concepts: tokens, providers, lifecycle, orchestrator
+- Examples: copy‑pasteable snippets for common patterns
+- Tips: provider patterns, composition, and troubleshooting
+- Tests: fast, deterministic testing guidance
+- FAQ: quick answers from simple to advanced scenarios
+
+API reference is generated separately; see docs/api/index.md (Typedoc).

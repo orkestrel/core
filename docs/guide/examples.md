@@ -96,12 +96,18 @@ await app.start([
 ```
 
 Orchestrator: tracer hooks
-```ts
-const phases: Array<{ phase: 'start'|'stop'|'destroy', layer: number, outcomes: { token: string, ok: boolean }[] }> = []
+```js
+import { Orchestrator, Container } from '@orkestrel/core'
+
+const phases = []
 const app = new Orchestrator(new Container(), {
   tracer: {
     onLayers: ({ layers }) => console.log('layers', layers),
-    onPhase: (p) => phases.push({ phase: p.phase, layer: p.layer, outcomes: p.outcomes.map(o => ({ token: o.token, ok: o.ok })) }),
+    onPhase: (p) => phases.push({
+      phase: p.phase,
+      layer: p.layer,
+      outcomes: p.outcomes.map(o => ({ token: o.token, ok: o.ok })),
+    }),
   },
 })
 // ... register and start
@@ -133,3 +139,13 @@ await container.using(async (scope) => { scope.set(A, 1) })
 const app = orchestrator()
 await app.container.using(scope => {/* register */})
 ```
+
+See also
+- Overview and Start for the mental model and installation
+- Concepts for tokens/providers/lifecycle/orchestration
+- Core for built-in adapters
+- Tips for patterns and troubleshooting
+- Tests for fast, deterministic testing guidance
+- FAQ for quick answers from simple to advanced scenarios
+
+API reference is generated separately; see docs/api/index.md (Typedoc).

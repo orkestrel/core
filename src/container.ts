@@ -164,6 +164,7 @@ export class Container {
 	 * @param token - The token to register the value under
 	 * @param value - The value to register
 	 * @param lock - When true, prevents re-registration for this token (default: false)
+     * @returns void
 	 *
 	 * @example
 	 * ```ts

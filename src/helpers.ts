@@ -21,9 +21,11 @@ export type Guard<T> = (x: unknown) => x is T
  * @returns True if x is a non-null object (including arrays), false otherwise
  *
  * @example
+ * ```ts
  * isObject({}) // true
  * isObject([]) // true
  * isObject(null) // false
+ * ```
  */
 export function isObject(x: unknown): x is Record<string, unknown> {
 	return typeof x === 'object' && x !== null
@@ -36,8 +38,10 @@ export function isObject(x: unknown): x is Record<string, unknown> {
  * @returns True if x is a string, false otherwise
  *
  * @example
+ * ```ts
  * isString('hello') // true
  * isString(123) // false
+ * ```
  */
 export function isString(x: unknown): x is string {
 	return typeof x === 'string'
@@ -50,8 +54,10 @@ export function isString(x: unknown): x is string {
  * @returns True if x is a boolean, false otherwise
  *
  * @example
+ * ```ts
  * isBoolean(true) // true
  * isBoolean(0) // false
+ * ```
  */
 export function isBoolean(x: unknown): x is boolean {
 	return typeof x === 'boolean'
@@ -64,8 +70,10 @@ export function isBoolean(x: unknown): x is boolean {
  * @returns True if x is a finite number, false otherwise
  *
  * @example
+ * ```ts
  * isFiniteNumber(42) // true
  * isFiniteNumber(NaN) // false
+ * ```
  */
 export function isFiniteNumber(x: unknown): x is number {
 	return typeof x === 'number' && Number.isFinite(x)
@@ -79,9 +87,11 @@ export function isFiniteNumber(x: unknown): x is number {
  * @returns Guard that checks an array whose elements satisfy elem
  *
  * @example
+ * ```ts
  * const isStringArray = arrayOf(isString)
  * isStringArray(['a','b']) // true
  * isStringArray(['a', 1]) // false
+ * ```
  */
 export function arrayOf<T>(elem: Guard<T>): Guard<ReadonlyArray<T>> {
 	return (x: unknown): x is ReadonlyArray<T> => Array.isArray(x) && x.every(elem)
@@ -95,9 +105,11 @@ export function arrayOf<T>(elem: Guard<T>): Guard<ReadonlyArray<T>> {
  * @returns Guard that matches when x equals one of the literals
  *
  * @example
+ * ```ts
  * const isEnv = literalOf('dev', 'prod' as const)
  * isEnv('dev') // true
  * isEnv('staging') // false
+ * ```
  */
 export function literalOf<const Literals extends readonly (string | number | boolean)[]>(...literals: Literals): Guard<Literals[number]> {
 	return (x: unknown): x is Literals[number] => {
@@ -118,9 +130,11 @@ export function literalOf<const Literals extends readonly (string | number | boo
  * @returns True when obj is an object and owns all keys
  *
  * @example
+ * ```ts
  * if (hasOwn(x, 'id', 'name')) {
  *   // x: Record<'id' | 'name', unknown>
  * }
+ * ```
  */
 // Overload: hasOwn(obj, key)
 export function hasOwn<K extends PropertyKey>(obj: unknown, key: K): obj is Record<K, unknown>
@@ -196,7 +210,9 @@ export function createToken<_T = unknown>(description: string): Token<_T>
  * @returns A new unique symbol token
  *
  * @example
+ * ```ts
  * const UserRepo = createToken<{ getById(id: string): Promise<User> }>('repo:User')
+ * ```
  */
 export function createToken(description: string): symbol {
 	return Symbol(description)
@@ -211,7 +227,9 @@ export function createToken(description: string): symbol {
  * @returns Frozen map of tokens keyed by the shape's keys
  *
  * @example
+ * ```ts
  * const tokens = createTokens('services', { a: 0 as number, b: '' as string })
+ * ```
  */
 export function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): Readonly<{ [K in keyof T & string]: Token<T[K]> }>
 export function createTokens(namespace: string, shape: Record<string, unknown>) {
@@ -227,7 +245,9 @@ export function createTokens(namespace: string, shape: Record<string, unknown>) 
  * @returns True if x is a symbol
  *
  * @example
+ * ```ts
  * isToken(Symbol('x')) // true
+ * ```
  */
 export function isToken(x: unknown): x is Token<unknown> {
 	return typeof x === 'symbol'
@@ -240,7 +260,9 @@ export function isToken(x: unknown): x is Token<unknown> {
  * @returns True if x is an array of symbols
  *
  * @example
+ * ```ts
  * isTokenArray([Symbol('a'), Symbol('b')]) // true
+ * ```
  */
 export function isTokenArray(x: unknown): x is ReadonlyArray<Token<unknown>> {
 	return Array.isArray(x) && x.every(isToken)
@@ -253,7 +275,9 @@ export function isTokenArray(x: unknown): x is ReadonlyArray<Token<unknown>> {
  * @returns True if x is an object (not array) with token values
  *
  * @example
+ * ```ts
  * isTokenRecord({ a: Symbol('a') }) // true
+ * ```
  */
 export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
 	if (!isObject(x) || Array.isArray(x)) return false
@@ -272,7 +296,9 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
  * @returns True if p is ValueProvider
  *
  * @example
+ * ```ts
  * isValueProvider({ useValue: 42 }) // true
+ * ```
  */
 export function isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> {
 	return isObject(p) && hasOwn(p, 'useValue')
@@ -286,7 +312,9 @@ export function isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> {
  * @returns True if p is FactoryProvider
  *
  * @example
+ * ```ts
  * isFactoryProvider({ useFactory: () => 1 }) // true
+ * ```
  */
 export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
 	return isObject(p) && hasOwn(p, 'useFactory')
@@ -300,8 +328,10 @@ export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
  * @returns True if p is ClassProvider
  *
  * @example
+ * ```ts
  * class S {}
  * isClassProvider({ useClass: S }) // true
+ * ```
  */
 export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
 	return isObject(p) && hasOwn(p, 'useClass')
@@ -392,6 +422,12 @@ export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is {
  * @typeParam T - Provider value type
  * @param p - FactoryProvider to check
  * @returns True if zero-arg factory (and no explicit inject)
+ *
+ * @example
+ * ```ts
+ * const fp: FactoryProviderNoDeps<number> = { useFactory: () => 1 }
+ * isZeroArg(fp.useFactory) // true
+ * ```
  */
 export function isFactoryProviderNoDeps<T>(p: FactoryProvider<T>): p is { useFactory: () => T } {
 	return !hasOwn(p, 'inject') && typeof p.useFactory === 'function' && p.useFactory.length === 0
@@ -403,6 +439,12 @@ export function isFactoryProviderNoDeps<T>(p: FactoryProvider<T>): p is { useFac
  * @typeParam T - Function return type
  * @param fn - Function to check
  * @returns True if fn.length is 0
+ *
+ * @example
+ * ```ts
+ * const f = () => 42
+ * isZeroArg(f) // true
+ * ```
  */
 export function isZeroArg<T>(fn: FactoryProviderNoDeps<T>['useFactory']): fn is () => T {
 	return fn.length === 0
@@ -415,7 +457,9 @@ export function isZeroArg<T>(fn: FactoryProviderNoDeps<T>['useFactory']): fn is 
  * @returns Tag like "[object Array]" or "[object Date]"
  *
  * @example
+ * ```ts
  * getTag([]) // "[object Array]"
+ * ```
  */
 export function getTag(x: unknown): string {
 	return Object.prototype.toString.call(x)
@@ -428,7 +472,9 @@ export function getTag(x: unknown): string {
  * @returns True if fn appears to be an async function
  *
  * @example
+ * ```ts
  * isAsyncFunction(async () => {}) // true
+ * ```
  */
 export function isAsyncFunction(fn: unknown): fn is (...args: unknown[]) => Promise<unknown> {
 	if (typeof fn !== 'function') return false
@@ -446,7 +492,9 @@ export function isAsyncFunction(fn: unknown): fn is (...args: unknown[]) => Prom
  * @returns True if x has a callable then method
  *
  * @example
+ * ```ts
  * isPromiseLike(Promise.resolve(1)) // true
+ * ```
  */
 export function isPromiseLike<T = unknown>(x: unknown): x is PromiseLike<T> {
 	if (x == null) return false
@@ -465,7 +513,9 @@ export function isPromiseLike<T = unknown>(x: unknown): x is PromiseLike<T> {
  * @param args - Arguments to pass to the function
  *
  * @example
+ * ```ts
  * safeInvoke((x: number) => console.log(x), 1)
+ * ```
  */
 export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unknown | Promise<unknown>) | undefined, ...args: TArgs): void {
 	try {
@@ -483,7 +533,9 @@ export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unk
  * @returns The token's description or its string representation
  *
  * @example
+ * ```ts
  * tokenDescription(Symbol('UserService')) // 'UserService'
+ * ```
  */
 export function tokenDescription(token: symbol): string {
 	return token.description ?? String(token)
@@ -494,6 +546,12 @@ export function tokenDescription(token: symbol): string {
  *
  * @param x - Value to validate
  * @returns True if x matches the expected shape
+ *
+ * @example
+ * ```ts
+ * const detail = { tokenDescription: 'A', phase: 'start', context: 'normal', timedOut: false, durationMs: 1, error: new Error('x') }
+ * isLifecycleErrorDetail(detail) // true
+ * ```
  */
 export function isLifecycleErrorDetail(x: unknown): x is {
 	tokenDescription: string
@@ -521,7 +579,9 @@ export function isLifecycleErrorDetail(x: unknown): x is {
  * @returns True if x has at least one provider key
  *
  * @example
+ * ```ts
  * isProviderObject({ useValue: 1 }) // true
+ * ```
  */
 export function isProviderObject(x: unknown): x is Readonly<Record<string, unknown>> & ({ useValue: unknown } | { useFactory: unknown } | { useClass: unknown }) {
 	return isObject(x) && (hasOwn(x, 'useValue') || hasOwn(x, 'useFactory') || hasOwn(x, 'useClass'))
@@ -535,7 +595,9 @@ export function isProviderObject(x: unknown): x is Readonly<Record<string, unkno
  * @returns True if p is not a provider object
  *
  * @example
+ * ```ts
  * isRawProviderValue(42) // true
+ * ```
  */
 export function isRawProviderValue<T>(p: Provider<T>): p is T {
 	return !isProviderObject(p)
@@ -546,6 +608,12 @@ export function isRawProviderValue<T>(p: Provider<T>): p is T {
  *
  * @param x - Value to validate
  * @returns True if x has details and errors arrays
+ *
+ * @example
+ * ```ts
+ * const agg = { details: [], errors: [] }
+ * isAggregateLifecycleError(agg) // true
+ * ```
  */
 export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
 	const schema = {

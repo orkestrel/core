@@ -6,7 +6,7 @@
 
 > `const` **container**: (`name?`) => [`Container`](../classes/Container.md) & `object`
 
-Defined in: [container.ts:486](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L486)
+Defined in: [container.ts:486](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L486)
 
 Global container getter and manager.
 

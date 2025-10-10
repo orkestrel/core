@@ -4,7 +4,7 @@
 
 # Interface: QueueAdapterOptions
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **capacity**: `number`
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **concurrency**: `number`
 
-Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L192)
+Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L192)
 
 #### Inherited from
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **deadline**: `number`
 
-Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L194)
+Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L194)
 
 #### Inherited from
 
@@ -48,7 +48,7 @@ Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ***
 
@@ -56,7 +56,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ***
 
@@ -64,7 +64,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **signal**: `AbortSignal`
 
-Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L195)
+Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L195)
 
 #### Inherited from
 
@@ -76,7 +76,7 @@ Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timeout**: `number`
 
-Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L193)
+Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L193)
 
 #### Inherited from
 

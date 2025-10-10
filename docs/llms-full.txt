@@ -1109,7 +1109,7 @@ Pointers
 
 # Abstract Class: Adapter
 
-Defined in: [adapter.ts:40](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapter.ts#L40)
+Defined in: [adapter.ts:40](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapter.ts#L40)
 
 Base class for building adapters/components that participate in a deterministic lifecycle.
 
@@ -1159,7 +1159,7 @@ Override any of the protected hooks: onCreate, onStart, onStop, onDestroy, onTra
 
 > **new Adapter**(`opts`): `Adapter`
 
-Defined in: [lifecycle.ts:65](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L65)
+Defined in: [lifecycle.ts:65](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L65)
 
 Construct a Lifecycle with optional configuration for timeouts, emitters, queue, logger, and diagnostic ports.
 
@@ -1193,7 +1193,7 @@ Configuration options:
 
 > **get** **diagnostics**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [lifecycle.ts:105](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L105)
+Defined in: [lifecycle.ts:105](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L105)
 
 Access the diagnostic port used for telemetry and error reporting.
 
@@ -1215,7 +1215,7 @@ The DiagnosticPort instance
 
 > **get** **emitter**(): [`EmitterPort`](../interfaces/EmitterPort.md)\<[`LifecycleEventMap`](../type-aliases/LifecycleEventMap.md)\>
 
-Defined in: [lifecycle.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L82)
+Defined in: [lifecycle.ts:82](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L82)
 
 Access the emitter port used for lifecycle events.
 
@@ -1239,7 +1239,7 @@ The EmitterPort instance for lifecycle events
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [lifecycle.ts:98](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L98)
+Defined in: [lifecycle.ts:98](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L98)
 
 Access the logger port backing this lifecycle.
 
@@ -1263,7 +1263,7 @@ The LoggerPort instance
 
 > **get** **queue**(): [`QueuePort`](../interfaces/QueuePort.md)
 
-Defined in: [lifecycle.ts:89](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L89)
+Defined in: [lifecycle.ts:89](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L89)
 
 Access the queue port used to serialize hooks and enforce deadlines.
 
@@ -1285,7 +1285,7 @@ The QueuePort instance for running lifecycle hooks
 
 > **get** **state**(): [`LifecycleState`](../type-aliases/LifecycleState.md)
 
-Defined in: [lifecycle.ts:112](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L112)
+Defined in: [lifecycle.ts:112](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L112)
 
 Get the current lifecycle state.
 
@@ -1305,7 +1305,7 @@ The current state: 'created', 'started', 'stopped', or 'destroyed'
 
 > **create**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:210](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L210)
+Defined in: [lifecycle.ts:210](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L210)
 
 Create the lifecycle (idempotent no-op by default).
 
@@ -1335,7 +1335,7 @@ await lifecycle.create()
 
 > **destroy**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:266](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L266)
+Defined in: [lifecycle.ts:266](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L266)
 
 Transition to 'destroyed' and remove all listeners.
 
@@ -1369,7 +1369,7 @@ await lifecycle.destroy()
 
 > **off**\<`T`\>(`evt`, `fn`): `this`
 
-Defined in: [lifecycle.ts:167](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L167)
+Defined in: [lifecycle.ts:167](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L167)
 
 Unsubscribe a previously registered listener.
 
@@ -1419,7 +1419,7 @@ lifecycle.off('transition', handler)
 
 > **on**\<`T`\>(`evt`, `fn`): `this`
 
-Defined in: [lifecycle.ts:142](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L142)
+Defined in: [lifecycle.ts:142](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L142)
 
 Subscribe to a lifecycle event.
 
@@ -1472,7 +1472,7 @@ lifecycle.on('start', () => console.log('Started'))
 
 > `protected` **onCreate**(): `Promise`\<`void`\>
 
-Defined in: [adapter.ts:42](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapter.ts#L42)
+Defined in: [adapter.ts:42](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapter.ts#L42)
 
 #### Returns
 
@@ -1488,7 +1488,7 @@ Defined in: [adapter.ts:42](https://github.com/orkestrel/core/blob/4aab0d299da5f
 
 > `protected` **onDestroy**(): `Promise`\<`void`\>
 
-Defined in: [adapter.ts:48](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapter.ts#L48)
+Defined in: [adapter.ts:48](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapter.ts#L48)
 
 #### Returns
 
@@ -1504,7 +1504,7 @@ Defined in: [adapter.ts:48](https://github.com/orkestrel/core/blob/4aab0d299da5f
 
 > `protected` **onStart**(): `Promise`\<`void`\>
 
-Defined in: [adapter.ts:44](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapter.ts#L44)
+Defined in: [adapter.ts:44](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapter.ts#L44)
 
 #### Returns
 
@@ -1520,7 +1520,7 @@ Defined in: [adapter.ts:44](https://github.com/orkestrel/core/blob/4aab0d299da5f
 
 > `protected` **onStop**(): `Promise`\<`void`\>
 
-Defined in: [adapter.ts:46](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapter.ts#L46)
+Defined in: [adapter.ts:46](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapter.ts#L46)
 
 #### Returns
 
@@ -1536,7 +1536,7 @@ Defined in: [adapter.ts:46](https://github.com/orkestrel/core/blob/4aab0d299da5f
 
 > `protected` **onTransition**(`_from`, `_to`, `_hook`): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L295)
+Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L295)
 
 #### Parameters
 
@@ -1566,7 +1566,7 @@ Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > `protected` **setState**(`next`): `void`
 
-Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L115)
+Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L115)
 
 #### Parameters
 
@@ -1588,7 +1588,7 @@ Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **start**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:229](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L229)
+Defined in: [lifecycle.ts:229](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L229)
 
 Transition from 'created' or 'stopped' to 'started'.
 
@@ -1626,7 +1626,7 @@ await lifecycle.start()
 
 > **stop**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L248)
+Defined in: [lifecycle.ts:248](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L248)
 
 Transition from 'started' to 'stopped'.
 
@@ -1668,7 +1668,7 @@ await lifecycle.stop()
 
 # Class: Container
 
-Defined in: [container.ts:71](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L71)
+Defined in: [container.ts:71](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L71)
 
 Minimal, strongly-typed DI container for tokens and providers.
 
@@ -1711,7 +1711,7 @@ await c.destroy() // stops and destroys owned Lifecycle instances
 
 > **new Container**(`opts`): `Container`
 
-Defined in: [container.ts:87](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L87)
+Defined in: [container.ts:87](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L87)
 
 Construct a Container with optional parent, logger, and diagnostic adapters.
 
@@ -1738,7 +1738,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [container.ts:99](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L99)
+Defined in: [container.ts:99](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L99)
 
 Access the diagnostic port used by this container.
 
@@ -1756,7 +1756,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [container.ts:106](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L106)
+Defined in: [container.ts:106](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L106)
 
 Access the logger port used by this container.
 
@@ -1772,7 +1772,7 @@ The configured LoggerPort instance
 
 > **createChild**(): `Container`
 
-Defined in: [container.ts:263](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L263)
+Defined in: [container.ts:263](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L263)
 
 Create a child container that inherits providers from this container.
 
@@ -1795,7 +1795,7 @@ child.set(OverrideToken, newValue)
 
 > **destroy**(): `Promise`\<`void`\>
 
-Defined in: [container.ts:318](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L318)
+Defined in: [container.ts:318](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L318)
 
 Destroy owned Lifecycle instances (stop if needed, then destroy).
 
@@ -1838,7 +1838,7 @@ const [a, b] = container.get([A, B] as const) // [A | undefined, B | undefined]
 
 > **get**\<`T`\>(`token`): `undefined` \| `T`
 
-Defined in: [container.ts:218](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L218)
+Defined in: [container.ts:218](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L218)
 
 ##### Type Parameters
 
@@ -1860,7 +1860,7 @@ Defined in: [container.ts:218](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **get**\<`A`\>(`tokens`): \{ \[K in string \| number \| symbol\]: undefined \| A\[K\<K\>\] \}
 
-Defined in: [container.ts:220](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L220)
+Defined in: [container.ts:220](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L220)
 
 ##### Type Parameters
 
@@ -1882,7 +1882,7 @@ Defined in: [container.ts:220](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **get**\<`O`\>(`tokens`): \{ \[K in string \| number \| symbol\]: undefined \| O\[K\] \}
 
-Defined in: [container.ts:222](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L222)
+Defined in: [container.ts:222](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L222)
 
 ##### Type Parameters
 
@@ -1904,7 +1904,7 @@ Defined in: [container.ts:222](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **get**\<`TMap`\>(`tokens`): [`OptionalResolvedMap`](../type-aliases/OptionalResolvedMap.md)\<`TMap`\>
 
-Defined in: [container.ts:224](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L224)
+Defined in: [container.ts:224](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L224)
 
 ##### Type Parameters
 
@@ -1928,7 +1928,7 @@ Defined in: [container.ts:224](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **has**\<`T`\>(`token`): `boolean`
 
-Defined in: [container.ts:176](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L176)
+Defined in: [container.ts:176](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L176)
 
 Check if a provider is available for the token (searches parent containers).
 
@@ -2006,7 +2006,7 @@ container.register(Port, { useValue: impl }, true)
 
 > **register**\<`T`, `A`\>(`token`, `provider`, `lock?`): `this`
 
-Defined in: [container.ts:109](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L109)
+Defined in: [container.ts:109](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L109)
 
 ##### Type Parameters
 
@@ -2040,7 +2040,7 @@ Defined in: [container.ts:109](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **register**\<`T`, `O`\>(`token`, `provider`, `lock?`): `this`
 
-Defined in: [container.ts:111](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L111)
+Defined in: [container.ts:111](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L111)
 
 ##### Type Parameters
 
@@ -2074,7 +2074,7 @@ Defined in: [container.ts:111](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **register**\<`T`\>(`token`, `provider`, `lock?`): `this`
 
-Defined in: [container.ts:113](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L113)
+Defined in: [container.ts:113](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L113)
 
 ##### Type Parameters
 
@@ -2121,7 +2121,7 @@ const [a, b] = container.resolve([A, B] as const)
 
 > **resolve**\<`T`\>(`token`): `T`
 
-Defined in: [container.ts:181](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L181)
+Defined in: [container.ts:181](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L181)
 
 ##### Type Parameters
 
@@ -2143,7 +2143,7 @@ Defined in: [container.ts:181](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **resolve**\<`O`\>(`tokens`): `O`
 
-Defined in: [container.ts:183](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L183)
+Defined in: [container.ts:183](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L183)
 
 ##### Type Parameters
 
@@ -2165,7 +2165,7 @@ Defined in: [container.ts:183](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **resolve**\<`A`\>(`tokens`): `A`
 
-Defined in: [container.ts:185](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L185)
+Defined in: [container.ts:185](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L185)
 
 ##### Type Parameters
 
@@ -2187,7 +2187,7 @@ Defined in: [container.ts:185](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **resolve**\<`TMap`\>(`tokens`): [`ResolvedMap`](../type-aliases/ResolvedMap.md)\<`TMap`\>
 
-Defined in: [container.ts:187](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L187)
+Defined in: [container.ts:187](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L187)
 
 ##### Type Parameters
 
@@ -2211,7 +2211,7 @@ Defined in: [container.ts:187](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **set**\<`T`\>(`token`, `value`, `lock?`): `void`
 
-Defined in: [container.ts:160](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L160)
+Defined in: [container.ts:160](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L160)
 
 Shorthand for registering a value provider.
 
@@ -2290,7 +2290,7 @@ const out = await container.using(async (scope) => {
 
 > **using**(`fn`): `Promise`\<`void`\>
 
-Defined in: [container.ts:266](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L266)
+Defined in: [container.ts:266](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L266)
 
 ##### Parameters
 
@@ -2306,7 +2306,7 @@ Defined in: [container.ts:266](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **using**\<`T`\>(`fn`): `Promise`\<`T`\>
 
-Defined in: [container.ts:268](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L268)
+Defined in: [container.ts:268](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L268)
 
 ##### Type Parameters
 
@@ -2328,7 +2328,7 @@ Defined in: [container.ts:268](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **using**\<`T`\>(`apply`, `fn`): `Promise`\<`T`\>
 
-Defined in: [container.ts:270](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L270)
+Defined in: [container.ts:270](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L270)
 
 ##### Type Parameters
 
@@ -2360,7 +2360,7 @@ Defined in: [container.ts:270](https://github.com/orkestrel/core/blob/4aab0d299d
 
 # Class: DiagnosticAdapter
 
-Defined in: [adapters/diagnostic.ts:67](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L67)
+Defined in: [adapters/diagnostic.ts:67](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L67)
 
 Diagnostic adapter providing safe logging, error reporting, and telemetry.
 
@@ -2406,7 +2406,7 @@ try {
 
 > **new DiagnosticAdapter**(`options?`): `DiagnosticAdapter`
 
-Defined in: [adapters/diagnostic.ts:79](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L79)
+Defined in: [adapters/diagnostic.ts:79](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L79)
 
 Construct a DiagnosticAdapter with optional logger and message overrides.
 
@@ -2433,7 +2433,7 @@ Configuration options:
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/diagnostic.ts:91](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L91)
+Defined in: [adapters/diagnostic.ts:91](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L91)
 
 Access the logger port used by this diagnostic adapter.
 
@@ -2449,7 +2449,7 @@ The configured LoggerPort instance
 
 > **aggregate**(`key`, `errors`, `context`): `never`
 
-Defined in: [adapters/diagnostic.ts:184](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L184)
+Defined in: [adapters/diagnostic.ts:184](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L184)
 
 Aggregate multiple errors into a single structured AggregateDiagnosticError and throw it.
 
@@ -2498,7 +2498,7 @@ diag.aggregate('ORK1017', errs, { scope: 'orchestrator' })
 
 > **error**(`err`, `context`): `void`
 
-Defined in: [adapters/diagnostic.ts:123](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L123)
+Defined in: [adapters/diagnostic.ts:123](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L123)
 
 Report an error to the logger with optional context fields.
 
@@ -2539,7 +2539,7 @@ diag.error(new Error('boom'), { scope: 'orchestrator', code: 'ORK1013' })
 
 > **event**(`name`, `payload?`): `void`
 
-Defined in: [adapters/diagnostic.ts:242](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L242)
+Defined in: [adapters/diagnostic.ts:242](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L242)
 
 Emit a telemetry event with a name and payload.
 
@@ -2581,7 +2581,7 @@ diag.event('orchestrator.component.start', { token: 'Database' })
 
 > **fail**(`key`, `context`): `never`
 
-Defined in: [adapters/diagnostic.ts:142](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L142)
+Defined in: [adapters/diagnostic.ts:142](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L142)
 
 Build an Error using a key/code, log it, and throw it.
 
@@ -2624,7 +2624,7 @@ diag.fail('ORK1007', { scope: 'orchestrator', message: 'Duplicate registration' 
 
 > **help**(`key`, `context`): `Error`
 
-Defined in: [adapters/diagnostic.ts:164](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L164)
+Defined in: [adapters/diagnostic.ts:164](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L164)
 
 Build an Error using a key/code and return it (without throwing).
 
@@ -2665,7 +2665,7 @@ const timeoutErr = diag.help('ORK1021', { message: 'Hook onStart timed out' })
 
 > **log**(`level`, `message`, `fields?`): `void`
 
-Defined in: [adapters/diagnostic.ts:106](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L106)
+Defined in: [adapters/diagnostic.ts:106](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L106)
 
 Write a log entry with a level, message key, and optional structured fields.
 
@@ -2712,7 +2712,7 @@ diag.log('info', 'orchestrator.phase', { phase: 'start', layer: 1 })
 
 > **metric**(`name`, `value`, `tags?`): `void`
 
-Defined in: [adapters/diagnostic.ts:207](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L207)
+Defined in: [adapters/diagnostic.ts:207](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L207)
 
 Emit a metric with a numeric value and optional tags.
 
@@ -2758,7 +2758,7 @@ diag.metric('queue.size', 42, { queueName: 'tasks' })
 
 > **trace**(`name`, `payload?`): `void`
 
-Defined in: [adapters/diagnostic.ts:225](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/diagnostic.ts#L225)
+Defined in: [adapters/diagnostic.ts:225](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/diagnostic.ts#L225)
 
 Emit a trace span with a name and optional fields.
 
@@ -2803,7 +2803,7 @@ diag.trace('lifecycle.transition', { from: 'created', to: 'started' })
 
 # Class: EmitterAdapter\<EMap\>
 
-Defined in: [adapters/emitter.ts:25](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L25)
+Defined in: [adapters/emitter.ts:25](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L25)
 
 In-memory event emitter implementation with typed tuple-based events.
 
@@ -2840,7 +2840,7 @@ emitter.removeAllListeners()
 
 > **new EmitterAdapter**\<`EMap`\>(`options`): `EmitterAdapter`\<`EMap`\>
 
-Defined in: [adapters/emitter.ts:40](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L40)
+Defined in: [adapters/emitter.ts:40](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L40)
 
 Construct an EmitterAdapter with optional logger and diagnostic ports.
 
@@ -2867,7 +2867,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/emitter.ts:57](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L57)
+Defined in: [adapters/emitter.ts:57](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L57)
 
 Access the diagnostic port used by this emitter.
 
@@ -2885,7 +2885,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/emitter.ts:50](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L50)
+Defined in: [adapters/emitter.ts:50](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L50)
 
 Access the logger port used by this emitter.
 
@@ -2901,7 +2901,7 @@ The configured LoggerPort instance
 
 > **emit**\<`E`\>(`event`, ...`args`): `void`
 
-Defined in: [adapters/emitter.ts:126](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L126)
+Defined in: [adapters/emitter.ts:126](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L126)
 
 Emit an event with arguments, invoking all registered listeners synchronously.
 
@@ -2948,7 +2948,7 @@ emitter.emit('data', 'hello world')
 
 > **off**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [adapters/emitter.ts:105](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L105)
+Defined in: [adapters/emitter.ts:105](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L105)
 
 Remove a previously registered listener for a specific event.
 
@@ -2997,7 +2997,7 @@ emitter.off('data', handler)
 
 > **on**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [adapters/emitter.ts:86](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L86)
+Defined in: [adapters/emitter.ts:86](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L86)
 
 Register a listener function for a specific event.
 
@@ -3044,7 +3044,7 @@ emitter.on('data', (value: string) => console.log('data:', value))
 
 > **removeAllListeners**(): `void`
 
-Defined in: [adapters/emitter.ts:147](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/emitter.ts#L147)
+Defined in: [adapters/emitter.ts:147](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/emitter.ts#L147)
 
 Remove all registered listeners for all events.
 
@@ -3074,7 +3074,7 @@ emitter.removeAllListeners()
 
 # Class: EventAdapter
 
-Defined in: [adapters/event.ts:25](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/event.ts#L25)
+Defined in: [adapters/event.ts:25](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/event.ts#L25)
 
 Topic-based asynchronous publish-subscribe event bus.
 
@@ -3105,7 +3105,7 @@ await unsubscribe()
 
 > **new EventAdapter**(`options`): `EventAdapter`
 
-Defined in: [adapters/event.ts:43](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/event.ts#L43)
+Defined in: [adapters/event.ts:43](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/event.ts#L43)
 
 Construct an EventAdapter with optional configuration.
 
@@ -3133,7 +3133,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/event.ts:63](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/event.ts#L63)
+Defined in: [adapters/event.ts:63](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/event.ts#L63)
 
 Access the diagnostic port used by this event adapter.
 
@@ -3151,7 +3151,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/event.ts:56](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/event.ts#L56)
+Defined in: [adapters/event.ts:56](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/event.ts#L56)
 
 Access the logger port used by this event adapter.
 
@@ -3167,7 +3167,7 @@ The configured LoggerPort instance
 
 > **publish**\<`T`\>(`topic`, `payload`): `Promise`\<`void`\>
 
-Defined in: [adapters/event.ts:83](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/event.ts#L83)
+Defined in: [adapters/event.ts:83](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/event.ts#L83)
 
 Publish a payload to a topic, invoking all subscribed handlers.
 
@@ -3215,7 +3215,7 @@ await bus.publish('user:created', { id: 'u123', name: 'Bob' })
 
 > **subscribe**\<`T`\>(`topic`, `handler`): `Promise`\<() => `void` \| `Promise`\<`void`\>\>
 
-Defined in: [adapters/event.ts:131](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/event.ts#L131)
+Defined in: [adapters/event.ts:131](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/event.ts#L131)
 
 Subscribe a handler function to a topic.
 
@@ -3268,7 +3268,7 @@ await unsubscribe()
 
 > **topics**(): readonly `string`[]
 
-Defined in: [adapters/event.ts:155](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/event.ts#L155)
+Defined in: [adapters/event.ts:155](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/event.ts#L155)
 
 List all currently active topic names that have at least one subscriber.
 
@@ -3299,7 +3299,7 @@ console.log('Active topics:', bus.topics())
 
 # Class: LayerAdapter
 
-Defined in: [adapters/layer.ts:30](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/layer.ts#L30)
+Defined in: [adapters/layer.ts:30](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/layer.ts#L30)
 
 Topological layering adapter using Kahn's algorithm for dependency ordering.
 
@@ -3334,7 +3334,7 @@ const layers = layer.compute(nodes)
 
 > **new LayerAdapter**(`options`): `LayerAdapter`
 
-Defined in: [adapters/layer.ts:42](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/layer.ts#L42)
+Defined in: [adapters/layer.ts:42](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/layer.ts#L42)
 
 Construct a LayerAdapter with optional logger and diagnostic ports.
 
@@ -3361,7 +3361,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/layer.ts:59](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/layer.ts#L59)
+Defined in: [adapters/layer.ts:59](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/layer.ts#L59)
 
 Access the diagnostic port used by this layer adapter for validation errors and tracing.
 
@@ -3379,7 +3379,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/layer.ts:52](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/layer.ts#L52)
+Defined in: [adapters/layer.ts:52](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/layer.ts#L52)
 
 Access the logger port used by this layer adapter.
 
@@ -3395,7 +3395,7 @@ The configured LoggerPort instance
 
 > **compute**\<`T`\>(`nodes`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [adapters/layer.ts:84](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/layer.ts#L84)
+Defined in: [adapters/layer.ts:84](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/layer.ts#L84)
 
 Compute topological layers for the given dependency graph using Kahn's algorithm.
 
@@ -3454,7 +3454,7 @@ const layers = layer.compute([
 
 > **group**\<`T`\>(`tokens`, `layers`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [adapters/layer.ts:160](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/layer.ts#L160)
+Defined in: [adapters/layer.ts:160](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/layer.ts#L160)
 
 Group tokens by their layer index in reverse order (highest layer first).
 
@@ -3514,7 +3514,7 @@ const groups = layer.group(tokensToStop, layers)
 
 # Abstract Class: Lifecycle
 
-Defined in: [lifecycle.ts:44](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L44)
+Defined in: [lifecycle.ts:44](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L44)
 
 Abstract deterministic lifecycle with hook timeouts and events.
 
@@ -3558,7 +3558,7 @@ await c.destroy()
 
 > **new Lifecycle**(`opts`): `Lifecycle`
 
-Defined in: [lifecycle.ts:65](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L65)
+Defined in: [lifecycle.ts:65](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L65)
 
 Construct a Lifecycle with optional configuration for timeouts, emitters, queue, logger, and diagnostic ports.
 
@@ -3588,7 +3588,7 @@ Configuration options:
 
 > **get** **diagnostics**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [lifecycle.ts:105](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L105)
+Defined in: [lifecycle.ts:105](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L105)
 
 Access the diagnostic port used for telemetry and error reporting.
 
@@ -3606,7 +3606,7 @@ The DiagnosticPort instance
 
 > **get** **emitter**(): [`EmitterPort`](../interfaces/EmitterPort.md)\<[`LifecycleEventMap`](../type-aliases/LifecycleEventMap.md)\>
 
-Defined in: [lifecycle.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L82)
+Defined in: [lifecycle.ts:82](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L82)
 
 Access the emitter port used for lifecycle events.
 
@@ -3626,7 +3626,7 @@ The EmitterPort instance for lifecycle events
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [lifecycle.ts:98](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L98)
+Defined in: [lifecycle.ts:98](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L98)
 
 Access the logger port backing this lifecycle.
 
@@ -3646,7 +3646,7 @@ The LoggerPort instance
 
 > **get** **queue**(): [`QueuePort`](../interfaces/QueuePort.md)
 
-Defined in: [lifecycle.ts:89](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L89)
+Defined in: [lifecycle.ts:89](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L89)
 
 Access the queue port used to serialize hooks and enforce deadlines.
 
@@ -3664,7 +3664,7 @@ The QueuePort instance for running lifecycle hooks
 
 > **get** **state**(): [`LifecycleState`](../type-aliases/LifecycleState.md)
 
-Defined in: [lifecycle.ts:112](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L112)
+Defined in: [lifecycle.ts:112](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L112)
 
 Get the current lifecycle state.
 
@@ -3680,7 +3680,7 @@ The current state: 'created', 'started', 'stopped', or 'destroyed'
 
 > **create**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:210](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L210)
+Defined in: [lifecycle.ts:210](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L210)
 
 Create the lifecycle (idempotent no-op by default).
 
@@ -3706,7 +3706,7 @@ await lifecycle.create()
 
 > **destroy**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:266](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L266)
+Defined in: [lifecycle.ts:266](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L266)
 
 Transition to 'destroyed' and remove all listeners.
 
@@ -3736,7 +3736,7 @@ await lifecycle.destroy()
 
 > **off**\<`T`\>(`evt`, `fn`): `this`
 
-Defined in: [lifecycle.ts:167](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L167)
+Defined in: [lifecycle.ts:167](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L167)
 
 Unsubscribe a previously registered listener.
 
@@ -3782,7 +3782,7 @@ lifecycle.off('transition', handler)
 
 > **on**\<`T`\>(`evt`, `fn`): `this`
 
-Defined in: [lifecycle.ts:142](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L142)
+Defined in: [lifecycle.ts:142](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L142)
 
 Subscribe to a lifecycle event.
 
@@ -3831,7 +3831,7 @@ lifecycle.on('start', () => console.log('Started'))
 
 > `protected` **onCreate**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:283](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L283)
+Defined in: [lifecycle.ts:283](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L283)
 
 #### Returns
 
@@ -3843,7 +3843,7 @@ Defined in: [lifecycle.ts:283](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > `protected` **onDestroy**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:292](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L292)
+Defined in: [lifecycle.ts:292](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L292)
 
 #### Returns
 
@@ -3855,7 +3855,7 @@ Defined in: [lifecycle.ts:292](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > `protected` **onStart**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:286](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L286)
+Defined in: [lifecycle.ts:286](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L286)
 
 #### Returns
 
@@ -3867,7 +3867,7 @@ Defined in: [lifecycle.ts:286](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > `protected` **onStop**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:289](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L289)
+Defined in: [lifecycle.ts:289](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L289)
 
 #### Returns
 
@@ -3879,7 +3879,7 @@ Defined in: [lifecycle.ts:289](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > `protected` **onTransition**(`_from`, `_to`, `_hook`): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L295)
+Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L295)
 
 #### Parameters
 
@@ -3905,7 +3905,7 @@ Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > `protected` **setState**(`next`): `void`
 
-Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L115)
+Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L115)
 
 #### Parameters
 
@@ -3923,7 +3923,7 @@ Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/4aab0d299d
 
 > **start**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:229](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L229)
+Defined in: [lifecycle.ts:229](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L229)
 
 Transition from 'created' or 'stopped' to 'started'.
 
@@ -3957,7 +3957,7 @@ await lifecycle.start()
 
 > **stop**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/lifecycle.ts#L248)
+Defined in: [lifecycle.ts:248](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/lifecycle.ts#L248)
 
 Transition from 'started' to 'stopped'.
 
@@ -3995,7 +3995,7 @@ await lifecycle.stop()
 
 # Class: LoggerAdapter
 
-Defined in: [adapters/logger.ts:17](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/logger.ts#L17)
+Defined in: [adapters/logger.ts:17](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/logger.ts#L17)
 
 Minimal console-backed logger implementation that routes log messages by level.
 
@@ -4031,7 +4031,7 @@ logger.log('error', 'Failed to connect', { retries: 3 })
 
 > **log**(`level`, `message`, `fields`): `void`
 
-Defined in: [adapters/logger.ts:31](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/logger.ts#L31)
+Defined in: [adapters/logger.ts:31](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/logger.ts#L31)
 
 Log a message with the specified level and optional structured fields.
 
@@ -4081,7 +4081,7 @@ logger.log('info', 'User logged in', { userId: '123', sessionId: 'abc' })
 
 # Class: NoopLogger
 
-Defined in: [adapters/logger.ts:57](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/logger.ts#L57)
+Defined in: [adapters/logger.ts:57](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/logger.ts#L57)
 
 Silent logger implementation that discards all log messages.
 
@@ -4115,7 +4115,7 @@ logger.log('info', 'This will not be logged')
 
 > **log**(`_level`, `_message`, `_fields?`): `void`
 
-Defined in: [adapters/logger.ts:72](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/logger.ts#L72)
+Defined in: [adapters/logger.ts:72](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/logger.ts#L72)
 
 No-op log method that intentionally does nothing with log messages.
 
@@ -4166,7 +4166,7 @@ logger.log('warn', 'dropped')
 
 # Class: Orchestrator
 
-Defined in: [orchestrator.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L82)
+Defined in: [orchestrator.ts:82](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L82)
 
 Deterministic lifecycle runner that starts, stops, and destroys components in dependency order.
 
@@ -4202,7 +4202,7 @@ await app.destroy()
 
 > **new Orchestrator**(`containerOrOpts?`, `maybeOpts?`): `Orchestrator`
 
-Defined in: [orchestrator.ts:105](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L105)
+Defined in: [orchestrator.ts:105](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L105)
 
 Construct an Orchestrator bound to a container and optional runtime ports.
 
@@ -4237,7 +4237,7 @@ A new Orchestrator instance configured with provided or default ports.
 
 > **get** **container**(): [`Container`](Container.md)
 
-Defined in: [orchestrator.ts:134](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L134)
+Defined in: [orchestrator.ts:134](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L134)
 
 Access the underlying Container bound to this orchestrator.
 
@@ -4255,7 +4255,7 @@ The Container used for provider registration and resolution.
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [orchestrator.ts:162](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L162)
+Defined in: [orchestrator.ts:162](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L162)
 
 Access the diagnostic port for logging, metrics, traces, and errors.
 
@@ -4273,7 +4273,7 @@ The DiagnosticPort for telemetry and error reporting.
 
 > **get** **layer**(): [`LayerPort`](../interfaces/LayerPort.md)
 
-Defined in: [orchestrator.ts:141](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L141)
+Defined in: [orchestrator.ts:141](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L141)
 
 Access the layering adapter used to compute dependency layers.
 
@@ -4291,7 +4291,7 @@ The LayerPort responsible for computing and grouping layers.
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [orchestrator.ts:155](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L155)
+Defined in: [orchestrator.ts:155](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L155)
 
 Access the logger port in use (propagated to internal adapters when not provided).
 
@@ -4309,7 +4309,7 @@ The LoggerPort for logging messages.
 
 > **get** **queue**(): [`QueuePort`](../interfaces/QueuePort.md)
 
-Defined in: [orchestrator.ts:148](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L148)
+Defined in: [orchestrator.ts:148](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L148)
 
 Access the queue adapter used to run per-layer jobs with optional concurrency.
 
@@ -4325,7 +4325,7 @@ The QueuePort used to schedule and execute tasks.
 
 > **destroy**(): `Promise`\<`void`\>
 
-Defined in: [orchestrator.ts:331](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L331)
+Defined in: [orchestrator.ts:331](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L331)
 
 Stop (when needed) and destroy all components, then destroy the container.
 Aggregates ORK1017 on failure and includes container cleanup errors.
@@ -4348,7 +4348,7 @@ await app.destroy() // ensures stop then destroy for all Lifecycle components
 
 > **register**\<`T`\>(`token`, `provider`, `dependencies`, `timeouts?`): `void`
 
-Defined in: [orchestrator.ts:180](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L180)
+Defined in: [orchestrator.ts:180](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L180)
 
 Register a component provider with optional explicit dependencies/timeouts.
 Throws on duplicate registrations or async provider shapes.
@@ -4405,7 +4405,7 @@ app.register(TOKEN, { useFactory: () => new MyAdapter() }, [DEP1, DEP2], { onSta
 
 > **start**(`regs`): `Promise`\<`void`\>
 
-Defined in: [orchestrator.ts:214](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L214)
+Defined in: [orchestrator.ts:214](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L214)
 
 Start all components in dependency order.
 
@@ -4444,7 +4444,7 @@ await app.start([
 
 > **stop**(): `Promise`\<`void`\>
 
-Defined in: [orchestrator.ts:298](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L298)
+Defined in: [orchestrator.ts:298](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L298)
 
 Stop started components in reverse dependency order.
 Aggregates ORK1014 on failure.
@@ -4472,7 +4472,7 @@ await app.stop()
 
 # Class: QueueAdapter\<T\>
 
-Defined in: [adapters/queue.ts:25](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L25)
+Defined in: [adapters/queue.ts:25](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L25)
 
 In-memory task queue with concurrency control, timeouts, and shared deadlines.
 
@@ -4509,7 +4509,7 @@ console.log(results) // => [1, 2, 3] (order preserved)
 
 > **new QueueAdapter**\<`T`\>(`options`): `QueueAdapter`\<`T`\>
 
-Defined in: [adapters/queue.ts:45](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L45)
+Defined in: [adapters/queue.ts:45](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L45)
 
 Construct a QueueAdapter with optional configuration defaults.
 
@@ -4540,7 +4540,7 @@ Configuration options for queue behavior:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/queue.ts:69](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L69)
+Defined in: [adapters/queue.ts:69](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L69)
 
 Access the diagnostic port used by this queue adapter for telemetry and error signaling.
 
@@ -4558,7 +4558,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/queue.ts:62](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L62)
+Defined in: [adapters/queue.ts:62](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L62)
 
 Access the logger port used by this queue adapter.
 
@@ -4574,7 +4574,7 @@ The configured LoggerPort instance
 
 > **dequeue**(): `Promise`\<`undefined` \| `T`\>
 
-Defined in: [adapters/queue.ts:101](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L101)
+Defined in: [adapters/queue.ts:101](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L101)
 
 Dequeue and return the next item from the queue.
 
@@ -4601,7 +4601,7 @@ if (item) console.log('Processing:', item)
 
 > **enqueue**(`item`): `Promise`\<`void`\>
 
-Defined in: [adapters/queue.ts:83](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L83)
+Defined in: [adapters/queue.ts:83](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L83)
 
 Enqueue a single item to the in-memory FIFO queue.
 
@@ -4639,7 +4639,7 @@ await queue.enqueue({ id: 1, data: 'task payload' })
 
 > **run**\<`R`\>(`tasks`, `options`): `Promise`\<readonly `R`[]\>
 
-Defined in: [adapters/queue.ts:145](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L145)
+Defined in: [adapters/queue.ts:145](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L145)
 
 Run a set of tasks with optional concurrency control, timeouts, and a shared deadline.
 
@@ -4706,7 +4706,7 @@ console.log('Fetched users:', results)
 
 > **size**(): `Promise`\<`number`\>
 
-Defined in: [adapters/queue.ts:114](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/queue.ts#L114)
+Defined in: [adapters/queue.ts:114](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/queue.ts#L114)
 
 Return the current number of items in the queue.
 
@@ -4737,7 +4737,7 @@ console.log(`Queue has ${currentSize} items`)
 
 # Class: RegistryAdapter\<T\>
 
-Defined in: [adapters/registry.ts:28](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L28)
+Defined in: [adapters/registry.ts:28](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L28)
 
 Named instance registry with optional default and locking support.
 
@@ -4777,7 +4777,7 @@ reg.clear('alt', true)           // true (forced)
 
 > **new RegistryAdapter**\<`T`\>(`options`): `RegistryAdapter`\<`T`\>
 
-Defined in: [adapters/registry.ts:46](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L46)
+Defined in: [adapters/registry.ts:46](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L46)
 
 Construct a RegistryAdapter with optional label and default instance.
 
@@ -4805,7 +4805,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/registry.ts:68](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L68)
+Defined in: [adapters/registry.ts:68](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L68)
 
 Access the diagnostic port used by this registry for error reporting.
 
@@ -4823,7 +4823,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/registry.ts:61](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L61)
+Defined in: [adapters/registry.ts:61](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L61)
 
 Access the logger port used by this registry.
 
@@ -4839,7 +4839,7 @@ The configured LoggerPort instance
 
 > **clear**(`name?`, `force?`): `boolean`
 
-Defined in: [adapters/registry.ts:157](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L157)
+Defined in: [adapters/registry.ts:157](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L157)
 
 Clear a named instance from the registry.
 
@@ -4884,7 +4884,7 @@ reg.clear('prod', true)        // true (forced removal)
 
 > **get**(`name?`): `undefined` \| `T`
 
-Defined in: [adapters/registry.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L82)
+Defined in: [adapters/registry.ts:82](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L82)
 
 Get a named value without throwing an error.
 
@@ -4919,7 +4919,7 @@ if (value) console.log('Found:', value)
 
 > **list**(): readonly (`string` \| `symbol`)[]
 
-Defined in: [adapters/registry.ts:178](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L178)
+Defined in: [adapters/registry.ts:178](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L178)
 
 List all registered keys (including the default key symbol when present).
 
@@ -4946,7 +4946,7 @@ console.log('Registered keys:', keys)
 
 > **resolve**(`name?`): `T`
 
-Defined in: [adapters/registry.ts:101](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L101)
+Defined in: [adapters/registry.ts:101](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L101)
 
 Resolve a named value, throwing an error if not found.
 
@@ -4989,7 +4989,7 @@ const defaultValue = reg.resolve() // throws if no default
 
 > **set**(`name`, `value`, `lock`): `void`
 
-Defined in: [adapters/registry.ts:129](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L129)
+Defined in: [adapters/registry.ts:129](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L129)
 
 Register or replace a named instance in the registry.
 
@@ -5050,7 +5050,7 @@ reg.set('prod', newConfig, true) // locked=true prevents future replacement
 
 > **arrayOf**\<`T`\>(`elem`): [`Guard`](../type-aliases/Guard.md)\<readonly `T`[]\>
 
-Defined in: [helpers.ts:102](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L102)
+Defined in: [helpers.ts:102](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L102)
 
 Build a guard for arrays whose elements satisfy a provided element guard.
 
@@ -5096,7 +5096,7 @@ isStringArray(['a', 1]) // false
 
 > **createPortToken**\<`T`\>(`name`): [`Token`](../type-aliases/Token.md)\<`T`\>
 
-Defined in: [ports.ts:81](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/ports.ts#L81)
+Defined in: [ports.ts:81](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/ports.ts#L81)
 
 Create a single Port token with a stable description under the `ports:` namespace.
 
@@ -5139,7 +5139,7 @@ const HttpPort = createPortToken<{ get(url: string): Promise<string> }>('http')
 
 > **createPortTokens**\<`T`\>(`shape`, `namespace`): [`TokensOf`](../type-aliases/TokensOf.md)\<`T`\>
 
-Defined in: [ports.ts:27](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/ports.ts#L27)
+Defined in: [ports.ts:27](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/ports.ts#L27)
 
 Create a read-only set of Port tokens from a shape object.
 
@@ -5198,7 +5198,7 @@ c.resolve(ports.logger).info('hello')
 
 > **createToken**\<`_T`\>(`description`): [`Token`](../type-aliases/Token.md)\<`_T`\>
 
-Defined in: [helpers.ts:197](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L197)
+Defined in: [helpers.ts:197](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L197)
 
 ## Type Parameters
 
@@ -5234,7 +5234,7 @@ A new unique symbol token
 
 > **createTokens**\<`T`\>(`namespace`, `shape`): `Readonly`\<`{ [K in keyof T & string]: Token<T[K]> }`\>
 
-Defined in: [helpers.ts:227](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L227)
+Defined in: [helpers.ts:227](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L227)
 
 Create a set of tokens from a shape under a given namespace.
 
@@ -5307,7 +5307,7 @@ const more = extendPorts(base, { b: undefined as string })
 
 > **extendPorts**\<`Ext`\>(`ext`): `Readonly`\<[`TokensOf`](../type-aliases/TokensOf.md)\<`Ext`\>\>
 
-Defined in: [ports.ts:32](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/ports.ts#L32)
+Defined in: [ports.ts:32](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/ports.ts#L32)
 
 Extend an existing set of Port tokens with additional ports or create a new one (overload).
 
@@ -5331,7 +5331,7 @@ Extend an existing set of Port tokens with additional ports or create a new one 
 
 > **extendPorts**\<`Base`, `Ext`\>(`base`, `ext`): `Readonly`\<`Base` & [`TokensOf`](../type-aliases/TokensOf.md)\<`Ext`\>\>
 
-Defined in: [ports.ts:34](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/ports.ts#L34)
+Defined in: [ports.ts:34](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/ports.ts#L34)
 
 Extend a base token map with an extension shape (overload).
 
@@ -5371,7 +5371,7 @@ Extend a base token map with an extension shape (overload).
 
 > **getTag**(`x`): `string`
 
-Defined in: [helpers.ts:499](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L499)
+Defined in: [helpers.ts:499](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L499)
 
 Return the internal [[Class]] tag string for a value.
 
@@ -5409,7 +5409,7 @@ getTag([]) // "[object Array]"
 
 > **hasOwn**\<`K`\>(`obj`, `key`): `obj is Record<K, unknown>`
 
-Defined in: [helpers.ts:146](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L146)
+Defined in: [helpers.ts:146](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L146)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 
@@ -5453,7 +5453,7 @@ if (hasOwn(x, 'id', 'name')) {
 
 > **hasOwn**\<`Ks`\>(`obj`, ...`keys`): `obj is { [P in PropertyKey]: unknown }`
 
-Defined in: [helpers.ts:148](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L148)
+Defined in: [helpers.ts:148](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L148)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 
@@ -5495,7 +5495,7 @@ if (hasOwn(x, 'id', 'name')) {
 
 > **hasOwn**\<`T`, `K`\>(`obj`, `key`): `obj is T & Record<K, unknown>`
 
-Defined in: [helpers.ts:150](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L150)
+Defined in: [helpers.ts:150](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L150)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 
@@ -5543,7 +5543,7 @@ if (hasOwn(x, 'id', 'name')) {
 
 > **hasOwn**\<`T`, `Ks`\>(`obj`, ...`keys`): `obj is T & { [P in PropertyKey]: unknown }`
 
-Defined in: [helpers.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L152)
+Defined in: [helpers.ts:152](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L152)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 
@@ -5597,7 +5597,7 @@ if (hasOwn(x, 'id', 'name')) {
 
 > **hasSchema**\<`S`\>(`obj`, `schema`): `obj is FromSchema<S>`
 
-Defined in: [helpers.ts:173](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L173)
+Defined in: [helpers.ts:173](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L173)
 
 Check that a value matches an object schema at runtime, with static inference.
 
@@ -5648,7 +5648,7 @@ if (hasSchema(x, userSchema)) console.log(x.id, x.age)
 
 > **isAggregateLifecycleError**(`x`): `x is AggregateLifecycleError`
 
-Defined in: [helpers.ts:653](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L653)
+Defined in: [helpers.ts:653](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L653)
 
 Guard for aggregate lifecycle error shape used by DiagnosticAdapter.aggregate.
 
@@ -5685,7 +5685,7 @@ isAggregateLifecycleError(agg) // true
 
 > **isAsyncFunction**(`fn`): `fn is (args: unknown[]) => Promise<unknown>`
 
-Defined in: [helpers.ts:514](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L514)
+Defined in: [helpers.ts:514](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L514)
 
 Heuristic check for an async function (native or transpiled).
 
@@ -5721,7 +5721,7 @@ isAsyncFunction(async () => {}) // true
 
 > **isBoolean**(`x`): `x is boolean`
 
-Defined in: [helpers.ts:68](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L68)
+Defined in: [helpers.ts:68](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L68)
 
 Check whether a value is a boolean primitive.
 
@@ -5758,7 +5758,7 @@ isBoolean(0) // false
 
 > **isClassProvider**\<`T`\>(`p`): `p is ClassProvider<T>`
 
-Defined in: [helpers.ts:329](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L329)
+Defined in: [helpers.ts:329](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L329)
 
 Check if provider has a ClassProvider shape (`{ useClass }`).
 
@@ -5803,7 +5803,7 @@ isClassProvider({ useClass: S }) // true
 
 > **isClassProviderNoDeps**\<`T`\>(`p`): `p is ClassProviderNoDeps<T>`
 
-Defined in: [helpers.ts:398](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L398)
+Defined in: [helpers.ts:398](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L398)
 
 Check if class provider has no dependencies (zero-arg constructor).
 
@@ -5848,7 +5848,7 @@ isClassProviderNoDeps<number>({ useClass: S } as any)
 
 > **isClassProviderWithContainer**\<`T`\>(`p`): `p is ClassProviderWithContainer<T>`
 
-Defined in: [helpers.ts:381](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L381)
+Defined in: [helpers.ts:381](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L381)
 
 Check if class provider receives Container as constructor argument.
 
@@ -5893,7 +5893,7 @@ isClassProviderWithContainer<number>({ useClass: S } as any)
 
 > **isClassProviderWithObject**\<`T`\>(`p`): `p is ClassProviderWithObject<T, Record<string, unknown>>`
 
-Defined in: [helpers.ts:364](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L364)
+Defined in: [helpers.ts:364](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L364)
 
 Check if class provider uses object injection (inject: `{ a: A, b: B }`).
 
@@ -5938,7 +5938,7 @@ isClassProviderWithObject<number>({ useClass: S, inject: { a: Symbol('A'), b: Sy
 
 > **isClassProviderWithTuple**\<`T`, `A`\>(`p`): `p is ClassProviderWithTuple<T, A>`
 
-Defined in: [helpers.ts:347](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L347)
+Defined in: [helpers.ts:347](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L347)
 
 Check if class provider uses tuple injection (inject: `[A, B, ...]`).
 
@@ -5989,7 +5989,7 @@ isClassProviderWithTuple<number, readonly [number, string]>({ useClass: S, injec
 
 > **isFactoryProvider**\<`T`\>(`p`): `p is FactoryProvider<T>`
 
-Defined in: [helpers.ts:312](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L312)
+Defined in: [helpers.ts:312](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L312)
 
 Check if provider has a FactoryProvider shape (`{ useFactory }`).
 
@@ -6033,7 +6033,7 @@ isFactoryProvider({ useFactory: () => 1 }) // true
 
 > **isFactoryProviderNoDeps**\<`T`\>(`p`): `p is FactoryProviderNoDeps<T>`
 
-Defined in: [helpers.ts:467](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L467)
+Defined in: [helpers.ts:467](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L467)
 
 Check if factory provider has no dependencies (zero-arg function).
 
@@ -6078,7 +6078,7 @@ isZeroArg(fp.useFactory) // true
 
 > **isFactoryProviderWithContainer**\<`T`\>(`p`): `p is FactoryProviderWithContainer<T>`
 
-Defined in: [helpers.ts:450](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L450)
+Defined in: [helpers.ts:450](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L450)
 
 Check if factory provider receives Container as function argument.
 
@@ -6123,7 +6123,7 @@ isFactoryProviderWithContainer<number>(p as any)
 
 > **isFactoryProviderWithObject**\<`T`\>(`p`): `p is FactoryProviderWithObject<T, Record<string, unknown>>`
 
-Defined in: [helpers.ts:433](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L433)
+Defined in: [helpers.ts:433](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L433)
 
 Check if factory provider uses object injection (inject: `{ a: A, b: B }`).
 
@@ -6168,7 +6168,7 @@ isFactoryProviderWithObject<number>(p as any)
 
 > **isFactoryProviderWithTuple**\<`T`, `A`\>(`p`): `p is FactoryProviderWithTuple<T, A>`
 
-Defined in: [helpers.ts:416](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L416)
+Defined in: [helpers.ts:416](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L416)
 
 Check if factory provider uses tuple injection (inject: `[A, B, ...]`).
 
@@ -6219,7 +6219,7 @@ isFactoryProviderWithTuple<number, readonly [number, string]>(p as any)
 
 > **isFiniteNumber**(`x`): `x is number`
 
-Defined in: [helpers.ts:84](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L84)
+Defined in: [helpers.ts:84](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L84)
 
 Check whether a value is a finite number (excludes NaN and Infinity).
 
@@ -6256,7 +6256,7 @@ isFiniteNumber(NaN) // false
 
 > **isLifecycleErrorDetail**(`x`): x is \{ context: "normal" \| "rollback" \| "container"; durationMs: number; error: Error; phase: "start" \| "stop" \| "destroy"; timedOut: boolean; tokenDescription: string \}
 
-Defined in: [helpers.ts:591](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L591)
+Defined in: [helpers.ts:591](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L591)
 
 Runtime guard for LifecycleErrorDetail using a schema definition.
 
@@ -6293,7 +6293,7 @@ isLifecycleErrorDetail(detail) // true
 
 > **isObject**(`x`): `x is Record<string, unknown>`
 
-Defined in: [helpers.ts:36](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L36)
+Defined in: [helpers.ts:36](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L36)
 
 Check whether a value is a non-null object (arrays included).
 
@@ -6331,7 +6331,7 @@ isObject(null) // false
 
 > **isPromiseLike**\<`T`\>(`x`): `x is PromiseLike<T>`
 
-Defined in: [helpers.ts:534](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L534)
+Defined in: [helpers.ts:534](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L534)
 
 Narrow a value to Promise-like (duck-typed thenable).
 
@@ -6375,7 +6375,7 @@ isPromiseLike(Promise.resolve(1)) // true
 
 > **isProviderObject**(`x`): x is Readonly\<Record\<string, unknown\>\> & (\{ useValue: unknown \} \| \{ useFactory: unknown \} \| \{ useClass: unknown \})
 
-Defined in: [helpers.ts:621](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L621)
+Defined in: [helpers.ts:621](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L621)
 
 Check if a value looks like a provider object (has `useValue`/`useFactory`/`useClass`).
 
@@ -6411,7 +6411,7 @@ isProviderObject({ useValue: 1 }) // true
 
 > **isRawProviderValue**\<`T`\>(`p`): `p is T`
 
-Defined in: [helpers.ts:637](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L637)
+Defined in: [helpers.ts:637](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L637)
 
 Check if provider input is a raw value (not a provider object).
 
@@ -6455,7 +6455,7 @@ isRawProviderValue(42) // true
 
 > **isString**(`x`): `x is string`
 
-Defined in: [helpers.ts:52](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L52)
+Defined in: [helpers.ts:52](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L52)
 
 Check whether a value is a string primitive.
 
@@ -6492,7 +6492,7 @@ isString(123) // false
 
 > **isToken**(`x`): `x is Token<unknown>`
 
-Defined in: [helpers.ts:245](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L245)
+Defined in: [helpers.ts:245](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L245)
 
 Runtime check that a value is a Token (Symbol).
 
@@ -6528,7 +6528,7 @@ isToken(Symbol('x')) // true
 
 > **isTokenArray**(`x`): `x is readonly Token<unknown>[]`
 
-Defined in: [helpers.ts:260](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L260)
+Defined in: [helpers.ts:260](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L260)
 
 Guard for arrays of tokens.
 
@@ -6564,7 +6564,7 @@ isTokenArray([Symbol('a'), Symbol('b')]) // true
 
 > **isTokenRecord**(`x`): `x is Record<string, Token<unknown>>`
 
-Defined in: [helpers.ts:275](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L275)
+Defined in: [helpers.ts:275](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L275)
 
 Guard that checks an object is a map whose values are all tokens.
 
@@ -6600,7 +6600,7 @@ isTokenRecord({ a: Symbol('a') }) // true
 
 > **isValueProvider**\<`T`\>(`p`): `p is ValueProvider<T>`
 
-Defined in: [helpers.ts:296](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L296)
+Defined in: [helpers.ts:296](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L296)
 
 Check if provider has a ValueProvider shape (`{ useValue }`).
 
@@ -6644,7 +6644,7 @@ isValueProvider({ useValue: 42 }) // true
 
 > **isZeroArg**\<`T`\>(`fn`): `fn is () => T`
 
-Defined in: [helpers.ts:484](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L484)
+Defined in: [helpers.ts:484](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L484)
 
 Check if a function type accepts zero arguments.
 
@@ -6689,7 +6689,7 @@ isZeroArg(f) // true
 
 > **literalOf**\<`Literals`\>(...`literals`): [`Guard`](../type-aliases/Guard.md)\<`Literals`\[`number`\]\>
 
-Defined in: [helpers.ts:120](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L120)
+Defined in: [helpers.ts:120](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L120)
 
 Build a guard for a literal union by value equality.
 
@@ -6737,7 +6737,7 @@ isEnv('staging') // false
 
 > **matchProvider**\<`T`\>(`provider`, `h`): [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Defined in: [helpers.ts:695](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L695)
+Defined in: [helpers.ts:695](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L695)
 
 Match a provider against its specific shape and dispatch to typed handlers.
 
@@ -6802,7 +6802,7 @@ const out = matchProvider(42, {
 
 > **matchProvider**\<`T`, `R`\>(`provider`, `h`): `R`
 
-Defined in: [helpers.ts:696](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L696)
+Defined in: [helpers.ts:696](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L696)
 
 Match a provider against its specific shape and dispatch to typed handlers.
 
@@ -6911,7 +6911,7 @@ await app.start([entry])
 
 > **register**\<`T`, `A`\>(`token`, `provider`, `options?`): [`OrchestratorRegistration`](../interfaces/OrchestratorRegistration.md)\<`T`\>
 
-Defined in: [orchestrator.ts:630](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L630)
+Defined in: [orchestrator.ts:630](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L630)
 
 ### Type Parameters
 
@@ -6945,7 +6945,7 @@ Defined in: [orchestrator.ts:630](https://github.com/orkestrel/core/blob/4aab0d2
 
 > **register**\<`T`, `O`\>(`token`, `provider`, `options?`): [`OrchestratorRegistration`](../interfaces/OrchestratorRegistration.md)\<`T`\>
 
-Defined in: [orchestrator.ts:631](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L631)
+Defined in: [orchestrator.ts:631](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L631)
 
 ### Type Parameters
 
@@ -6979,7 +6979,7 @@ Defined in: [orchestrator.ts:631](https://github.com/orkestrel/core/blob/4aab0d2
 
 > **register**\<`T`\>(`token`, `provider`, `options?`): [`OrchestratorRegistration`](../interfaces/OrchestratorRegistration.md)\<`T`\>
 
-Defined in: [orchestrator.ts:632](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L632)
+Defined in: [orchestrator.ts:632](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L632)
 
 ### Type Parameters
 
@@ -7017,7 +7017,7 @@ Defined in: [orchestrator.ts:632](https://github.com/orkestrel/core/blob/4aab0d2
 
 > **safeInvoke**\<`TArgs`\>(`fn`, ...`args`): `void`
 
-Defined in: [helpers.ts:555](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L555)
+Defined in: [helpers.ts:555](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L555)
 
 Safely invoke an optional function with arguments, swallowing any errors.
 
@@ -7065,7 +7065,7 @@ safeInvoke((x: number) => console.log(x), 1)
 
 > **tokenDescription**(`token`): `string`
 
-Defined in: [helpers.ts:575](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L575)
+Defined in: [helpers.ts:575](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L575)
 
 Helper to format token symbols consistently for logs and diagnostics.
 
@@ -7306,7 +7306,7 @@ and orchestration primitives for building composable applications with ports and
 
 # Interface: ContainerOptions
 
-Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L248)
+Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L248)
 
 ## Properties
 
@@ -7314,7 +7314,7 @@ Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L248)
+Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L248)
 
 ***
 
@@ -7322,7 +7322,7 @@ Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L248)
+Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L248)
 
 ***
 
@@ -7330,7 +7330,7 @@ Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **parent**: [`Container`](../classes/Container.md)
 
-Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L248)
+Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L248)
 
 ---
 
@@ -7342,7 +7342,7 @@ Defined in: [types.ts:248](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: DiagnosticAdapterOptions
 
-Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L154)
+Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L154)
 
 ## Properties
 
@@ -7350,7 +7350,7 @@ Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L154)
+Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L154)
 
 ***
 
@@ -7358,7 +7358,7 @@ Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **messages**: readonly [`DiagnosticMessage`](DiagnosticMessage.md)[]
 
-Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L154)
+Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L154)
 
 ---
 
@@ -7370,7 +7370,7 @@ Defined in: [types.ts:154](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: DiagnosticErrorContext
 
-Defined in: [types.ts:129](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L129)
+Defined in: [types.ts:129](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L129)
 
 ## Properties
 
@@ -7378,7 +7378,7 @@ Defined in: [types.ts:129](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **code**: `string`
 
-Defined in: [types.ts:131](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L131)
+Defined in: [types.ts:131](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L131)
 
 ***
 
@@ -7386,7 +7386,7 @@ Defined in: [types.ts:131](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **details**: readonly [`LifecycleErrorDetail`](LifecycleErrorDetail.md)[]
 
-Defined in: [types.ts:138](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L138)
+Defined in: [types.ts:138](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L138)
 
 ***
 
@@ -7394,7 +7394,7 @@ Defined in: [types.ts:138](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **durationMs**: `number`
 
-Defined in: [types.ts:136](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L136)
+Defined in: [types.ts:136](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L136)
 
 ***
 
@@ -7402,7 +7402,7 @@ Defined in: [types.ts:136](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **extra**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types.ts:137](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L137)
+Defined in: [types.ts:137](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L137)
 
 ***
 
@@ -7410,7 +7410,7 @@ Defined in: [types.ts:137](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **hook**: [`LifecycleHook`](../type-aliases/LifecycleHook.md)
 
-Defined in: [types.ts:134](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L134)
+Defined in: [types.ts:134](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L134)
 
 ***
 
@@ -7418,7 +7418,7 @@ Defined in: [types.ts:134](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **phase**: [`LifecyclePhase`](../type-aliases/LifecyclePhase.md)
 
-Defined in: [types.ts:133](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L133)
+Defined in: [types.ts:133](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L133)
 
 ***
 
@@ -7426,7 +7426,7 @@ Defined in: [types.ts:133](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **scope**: [`DiagnosticScope`](../type-aliases/DiagnosticScope.md)
 
-Defined in: [types.ts:130](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L130)
+Defined in: [types.ts:130](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L130)
 
 ***
 
@@ -7434,7 +7434,7 @@ Defined in: [types.ts:130](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timedOut**: `boolean`
 
-Defined in: [types.ts:135](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L135)
+Defined in: [types.ts:135](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L135)
 
 ***
 
@@ -7442,7 +7442,7 @@ Defined in: [types.ts:135](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **token**: `string`
 
-Defined in: [types.ts:132](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L132)
+Defined in: [types.ts:132](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L132)
 
 ---
 
@@ -7454,7 +7454,7 @@ Defined in: [types.ts:132](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: DiagnosticMessage
 
-Defined in: [types.ts:153](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L153)
+Defined in: [types.ts:153](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L153)
 
 ## Extends
 
@@ -7466,7 +7466,7 @@ Defined in: [types.ts:153](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` **key**: `string`
 
-Defined in: [types.ts:153](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L153)
+Defined in: [types.ts:153](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L153)
 
 ***
 
@@ -7474,7 +7474,7 @@ Defined in: [types.ts:153](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **level**: [`LogLevel`](../type-aliases/LogLevel.md)
 
-Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L152)
+Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L152)
 
 #### Inherited from
 
@@ -7486,7 +7486,7 @@ Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **message**: `string`
 
-Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L152)
+Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L152)
 
 #### Inherited from
 
@@ -7502,7 +7502,7 @@ Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: DiagnosticPort
 
-Defined in: [types.ts:141](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L141)
+Defined in: [types.ts:141](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L141)
 
 ## Methods
 
@@ -7510,7 +7510,7 @@ Defined in: [types.ts:141](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **aggregate**(`key`, `details`, `context?`): `never`
 
-Defined in: [types.ts:145](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L145)
+Defined in: [types.ts:145](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L145)
 
 #### Parameters
 
@@ -7536,7 +7536,7 @@ readonly (`Error` \| [`LifecycleErrorDetail`](LifecycleErrorDetail.md))[]
 
 > **error**(`err`, `context?`): `void`
 
-Defined in: [types.ts:143](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L143)
+Defined in: [types.ts:143](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L143)
 
 #### Parameters
 
@@ -7558,7 +7558,7 @@ Defined in: [types.ts:143](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **event**(`name`, `payload?`): `void`
 
-Defined in: [types.ts:149](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L149)
+Defined in: [types.ts:149](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L149)
 
 #### Parameters
 
@@ -7580,7 +7580,7 @@ Defined in: [types.ts:149](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **fail**(`key`, `context?`): `never`
 
-Defined in: [types.ts:144](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L144)
+Defined in: [types.ts:144](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L144)
 
 #### Parameters
 
@@ -7602,7 +7602,7 @@ Defined in: [types.ts:144](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **help**(`key`, `context?`): `Error`
 
-Defined in: [types.ts:146](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L146)
+Defined in: [types.ts:146](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L146)
 
 #### Parameters
 
@@ -7624,7 +7624,7 @@ Defined in: [types.ts:146](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **log**(`level`, `message`, `fields?`): `void`
 
-Defined in: [types.ts:142](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L142)
+Defined in: [types.ts:142](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L142)
 
 #### Parameters
 
@@ -7650,7 +7650,7 @@ Defined in: [types.ts:142](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **metric**(`name`, `value`, `tags?`): `void`
 
-Defined in: [types.ts:147](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L147)
+Defined in: [types.ts:147](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L147)
 
 #### Parameters
 
@@ -7676,7 +7676,7 @@ Defined in: [types.ts:147](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **trace**(`name`, `payload?`): `void`
 
-Defined in: [types.ts:148](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L148)
+Defined in: [types.ts:148](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L148)
 
 #### Parameters
 
@@ -7702,7 +7702,7 @@ Defined in: [types.ts:148](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: EmitterAdapterOptions
 
-Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L171)
+Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L171)
 
 ## Properties
 
@@ -7710,7 +7710,7 @@ Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L171)
+Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L171)
 
 ***
 
@@ -7718,7 +7718,7 @@ Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L171)
+Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L171)
 
 ---
 
@@ -7730,7 +7730,7 @@ Defined in: [types.ts:171](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: EmitterPort\<EMap\>
 
-Defined in: [types.ts:164](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L164)
+Defined in: [types.ts:164](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L164)
 
 ## Type Parameters
 
@@ -7744,7 +7744,7 @@ Defined in: [types.ts:164](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **emit**\<`E`\>(`event`, ...`args`): `void`
 
-Defined in: [types.ts:167](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L167)
+Defined in: [types.ts:167](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L167)
 
 #### Type Parameters
 
@@ -7772,7 +7772,7 @@ Defined in: [types.ts:167](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **off**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [types.ts:166](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L166)
+Defined in: [types.ts:166](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L166)
 
 #### Type Parameters
 
@@ -7800,7 +7800,7 @@ Defined in: [types.ts:166](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **on**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [types.ts:165](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L165)
+Defined in: [types.ts:165](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L165)
 
 #### Type Parameters
 
@@ -7828,7 +7828,7 @@ Defined in: [types.ts:165](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **removeAllListeners**(): `void`
 
-Defined in: [types.ts:168](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L168)
+Defined in: [types.ts:168](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L168)
 
 #### Returns
 
@@ -7844,7 +7844,7 @@ Defined in: [types.ts:168](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: EventAdapterOptions
 
-Defined in: [types.ts:181](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L181)
+Defined in: [types.ts:181](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L181)
 
 ## Properties
 
@@ -7852,7 +7852,7 @@ Defined in: [types.ts:181](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:185](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L185)
+Defined in: [types.ts:185](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L185)
 
 ***
 
@@ -7860,7 +7860,7 @@ Defined in: [types.ts:185](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:184](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L184)
+Defined in: [types.ts:184](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L184)
 
 ***
 
@@ -7868,7 +7868,7 @@ Defined in: [types.ts:184](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **onError**: (`err`, `topic`) => `void`
 
-Defined in: [types.ts:182](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L182)
+Defined in: [types.ts:182](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L182)
 
 #### Parameters
 
@@ -7890,7 +7890,7 @@ Defined in: [types.ts:182](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **sequential**: `boolean`
 
-Defined in: [types.ts:183](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L183)
+Defined in: [types.ts:183](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L183)
 
 ---
 
@@ -7902,7 +7902,7 @@ Defined in: [types.ts:183](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: EventPort\<EMap\>
 
-Defined in: [types.ts:175](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L175)
+Defined in: [types.ts:175](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L175)
 
 ## Type Parameters
 
@@ -7916,7 +7916,7 @@ Defined in: [types.ts:175](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **publish**\<`E`\>(`topic`, `payload`): `Promise`\<`void`\>
 
-Defined in: [types.ts:176](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L176)
+Defined in: [types.ts:176](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L176)
 
 #### Type Parameters
 
@@ -7944,7 +7944,7 @@ Defined in: [types.ts:176](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **subscribe**\<`E`\>(`topic`, `handler`): `Promise`\<() => `void` \| `Promise`\<`void`\>\>
 
-Defined in: [types.ts:177](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L177)
+Defined in: [types.ts:177](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L177)
 
 #### Type Parameters
 
@@ -7972,7 +7972,7 @@ Defined in: [types.ts:177](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **topics**(): readonly `string`[]
 
-Defined in: [types.ts:178](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L178)
+Defined in: [types.ts:178](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L178)
 
 #### Returns
 
@@ -7988,7 +7988,7 @@ readonly `string`[]
 
 # Interface: LayerAdapterOptions
 
-Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L220)
+Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L220)
 
 ## Properties
 
@@ -7996,7 +7996,7 @@ Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L220)
+Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L220)
 
 ***
 
@@ -8004,7 +8004,7 @@ Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L220)
+Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L220)
 
 ---
 
@@ -8016,7 +8016,7 @@ Defined in: [types.ts:220](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: LayerNode\<T\>
 
-Defined in: [types.ts:210](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L210)
+Defined in: [types.ts:210](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L210)
 
 ## Type Parameters
 
@@ -8030,7 +8030,7 @@ Defined in: [types.ts:210](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` **dependencies**: readonly [`Token`](../type-aliases/Token.md)\<`unknown`\>[]
 
-Defined in: [types.ts:212](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L212)
+Defined in: [types.ts:212](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L212)
 
 ***
 
@@ -8038,7 +8038,7 @@ Defined in: [types.ts:212](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` **token**: [`Token`](../type-aliases/Token.md)\<`T`\>
 
-Defined in: [types.ts:211](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L211)
+Defined in: [types.ts:211](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L211)
 
 ---
 
@@ -8050,7 +8050,7 @@ Defined in: [types.ts:211](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: LayerPort
 
-Defined in: [types.ts:215](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L215)
+Defined in: [types.ts:215](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L215)
 
 ## Methods
 
@@ -8058,7 +8058,7 @@ Defined in: [types.ts:215](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **compute**\<`T`\>(`nodes`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [types.ts:216](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L216)
+Defined in: [types.ts:216](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L216)
 
 #### Type Parameters
 
@@ -8082,7 +8082,7 @@ readonly [`LayerNode`](LayerNode.md)\<`T`\>[]
 
 > **group**\<`T`\>(`tokens`, `layers`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [types.ts:217](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L217)
+Defined in: [types.ts:217](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L217)
 
 #### Type Parameters
 
@@ -8114,7 +8114,7 @@ readonly readonly [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
 # Interface: LifecycleErrorDetail
 
-Defined in: [types.ts:120](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L120)
+Defined in: [types.ts:120](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L120)
 
 ## Properties
 
@@ -8122,7 +8122,7 @@ Defined in: [types.ts:120](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **context**: [`LifecycleContext`](../type-aliases/LifecycleContext.md)
 
-Defined in: [types.ts:123](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L123)
+Defined in: [types.ts:123](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L123)
 
 ***
 
@@ -8130,7 +8130,7 @@ Defined in: [types.ts:123](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **durationMs**: `number`
 
-Defined in: [types.ts:125](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L125)
+Defined in: [types.ts:125](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L125)
 
 ***
 
@@ -8138,7 +8138,7 @@ Defined in: [types.ts:125](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **error**: `Error`
 
-Defined in: [types.ts:126](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L126)
+Defined in: [types.ts:126](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L126)
 
 ***
 
@@ -8146,7 +8146,7 @@ Defined in: [types.ts:126](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **phase**: [`LifecyclePhase`](../type-aliases/LifecyclePhase.md)
 
-Defined in: [types.ts:122](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L122)
+Defined in: [types.ts:122](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L122)
 
 ***
 
@@ -8154,7 +8154,7 @@ Defined in: [types.ts:122](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **timedOut**: `boolean`
 
-Defined in: [types.ts:124](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L124)
+Defined in: [types.ts:124](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L124)
 
 ***
 
@@ -8162,7 +8162,7 @@ Defined in: [types.ts:124](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **tokenDescription**: `string`
 
-Defined in: [types.ts:121](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L121)
+Defined in: [types.ts:121](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L121)
 
 ---
 
@@ -8174,7 +8174,7 @@ Defined in: [types.ts:121](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: LifecycleOptions
 
-Defined in: [types.ts:236](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L236)
+Defined in: [types.ts:236](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L236)
 
 ## Properties
 
@@ -8182,7 +8182,7 @@ Defined in: [types.ts:236](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:242](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L242)
+Defined in: [types.ts:242](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L242)
 
 ***
 
@@ -8190,7 +8190,7 @@ Defined in: [types.ts:242](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **emitInitial**: `boolean`
 
-Defined in: [types.ts:238](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L238)
+Defined in: [types.ts:238](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L238)
 
 ***
 
@@ -8198,7 +8198,7 @@ Defined in: [types.ts:238](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **emitter**: [`EmitterPort`](EmitterPort.md)\<[`LifecycleEventMap`](../type-aliases/LifecycleEventMap.md)\>
 
-Defined in: [types.ts:239](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L239)
+Defined in: [types.ts:239](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L239)
 
 ***
 
@@ -8206,7 +8206,7 @@ Defined in: [types.ts:239](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:241](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L241)
+Defined in: [types.ts:241](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L241)
 
 ***
 
@@ -8214,7 +8214,7 @@ Defined in: [types.ts:241](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **queue**: [`QueuePort`](QueuePort.md)\<`unknown`\>
 
-Defined in: [types.ts:240](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L240)
+Defined in: [types.ts:240](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L240)
 
 ***
 
@@ -8222,7 +8222,7 @@ Defined in: [types.ts:240](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timeouts**: `number`
 
-Defined in: [types.ts:237](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L237)
+Defined in: [types.ts:237](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L237)
 
 ---
 
@@ -8234,7 +8234,7 @@ Defined in: [types.ts:237](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: LoggerPort
 
-Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L110)
+Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L110)
 
 ## Methods
 
@@ -8242,7 +8242,7 @@ Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **log**(`level`, `message`, `fields?`): `void`
 
-Defined in: [types.ts:111](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L111)
+Defined in: [types.ts:111](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L111)
 
 #### Parameters
 
@@ -8272,7 +8272,7 @@ Defined in: [types.ts:111](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: NodeEntry
 
-Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L325)
+Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L325)
 
 ## Properties
 
@@ -8280,7 +8280,7 @@ Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` **dependencies**: readonly [`Token`](../type-aliases/Token.md)\<`unknown`\>[]
 
-Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L325)
+Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L325)
 
 ***
 
@@ -8288,7 +8288,7 @@ Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timeouts**: `number` \| `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L325)
+Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L325)
 
 ***
 
@@ -8296,7 +8296,7 @@ Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` **token**: [`Token`](../type-aliases/Token.md)\<`unknown`\>
 
-Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L325)
+Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L325)
 
 ---
 
@@ -8308,7 +8308,7 @@ Defined in: [types.ts:325](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: OrchestratorOptions
 
-Defined in: [types.ts:295](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L295)
+Defined in: [types.ts:295](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L295)
 
 ## Properties
 
@@ -8316,7 +8316,7 @@ Defined in: [types.ts:295](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:310](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L310)
+Defined in: [types.ts:310](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L310)
 
 ***
 
@@ -8324,7 +8324,7 @@ Defined in: [types.ts:310](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **events**: `object`
 
-Defined in: [types.ts:297](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L297)
+Defined in: [types.ts:297](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L297)
 
 #### onComponentDestroy()?
 
@@ -8406,7 +8406,7 @@ Defined in: [types.ts:297](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **layer**: [`LayerPort`](LayerPort.md)
 
-Defined in: [types.ts:307](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L307)
+Defined in: [types.ts:307](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L307)
 
 ***
 
@@ -8414,7 +8414,7 @@ Defined in: [types.ts:307](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:309](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L309)
+Defined in: [types.ts:309](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L309)
 
 ***
 
@@ -8422,7 +8422,7 @@ Defined in: [types.ts:309](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **queue**: [`QueuePort`](QueuePort.md)\<`unknown`\>
 
-Defined in: [types.ts:308](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L308)
+Defined in: [types.ts:308](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L308)
 
 ***
 
@@ -8430,7 +8430,7 @@ Defined in: [types.ts:308](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timeouts**: `number` \| `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:296](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L296)
+Defined in: [types.ts:296](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L296)
 
 ***
 
@@ -8438,7 +8438,7 @@ Defined in: [types.ts:296](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **tracer**: `object`
 
-Defined in: [types.ts:303](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L303)
+Defined in: [types.ts:303](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L303)
 
 #### onLayers()?
 
@@ -8490,7 +8490,7 @@ Defined in: [types.ts:303](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: OrchestratorRegistration\<T\>
 
-Defined in: [types.ts:288](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L288)
+Defined in: [types.ts:288](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L288)
 
 ## Type Parameters
 
@@ -8504,7 +8504,7 @@ Defined in: [types.ts:288](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **dependencies**: readonly [`Token`](../type-aliases/Token.md)\<`unknown`\>[]
 
-Defined in: [types.ts:291](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L291)
+Defined in: [types.ts:291](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L291)
 
 ***
 
@@ -8512,7 +8512,7 @@ Defined in: [types.ts:291](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` **provider**: [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Defined in: [types.ts:290](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L290)
+Defined in: [types.ts:290](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L290)
 
 ***
 
@@ -8520,7 +8520,7 @@ Defined in: [types.ts:290](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timeouts**: `number` \| `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:292](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L292)
+Defined in: [types.ts:292](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L292)
 
 ***
 
@@ -8528,7 +8528,7 @@ Defined in: [types.ts:292](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` **token**: [`Token`](../type-aliases/Token.md)\<`T`\>
 
-Defined in: [types.ts:289](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L289)
+Defined in: [types.ts:289](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L289)
 
 ---
 
@@ -8540,7 +8540,7 @@ Defined in: [types.ts:289](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: QueueAdapterOptions
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ## Extends
 
@@ -8552,7 +8552,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **capacity**: `number`
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ***
 
@@ -8560,7 +8560,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **concurrency**: `number`
 
-Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L192)
+Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L192)
 
 #### Inherited from
 
@@ -8572,7 +8572,7 @@ Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **deadline**: `number`
 
-Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L194)
+Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L194)
 
 #### Inherited from
 
@@ -8584,7 +8584,7 @@ Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ***
 
@@ -8592,7 +8592,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L205)
 
 ***
 
@@ -8600,7 +8600,7 @@ Defined in: [types.ts:205](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **signal**: `AbortSignal`
 
-Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L195)
+Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L195)
 
 #### Inherited from
 
@@ -8612,7 +8612,7 @@ Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timeout**: `number`
 
-Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L193)
+Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L193)
 
 #### Inherited from
 
@@ -8628,7 +8628,7 @@ Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: QueuePort\<T\>
 
-Defined in: [types.ts:198](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L198)
+Defined in: [types.ts:198](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L198)
 
 ## Type Parameters
 
@@ -8642,7 +8642,7 @@ Defined in: [types.ts:198](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **dequeue**(): `Promise`\<`undefined` \| `T`\>
 
-Defined in: [types.ts:200](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L200)
+Defined in: [types.ts:200](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L200)
 
 #### Returns
 
@@ -8654,7 +8654,7 @@ Defined in: [types.ts:200](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **enqueue**(`item`): `Promise`\<`void`\>
 
-Defined in: [types.ts:199](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L199)
+Defined in: [types.ts:199](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L199)
 
 #### Parameters
 
@@ -8672,7 +8672,7 @@ Defined in: [types.ts:199](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **run**\<`R`\>(`tasks`, `options?`): `Promise`\<readonly `R`[]\>
 
-Defined in: [types.ts:202](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L202)
+Defined in: [types.ts:202](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L202)
 
 #### Type Parameters
 
@@ -8700,7 +8700,7 @@ readonly () => `R` \| `Promise`\<`R`\>[]
 
 > **size**(): `Promise`\<`number`\>
 
-Defined in: [types.ts:201](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L201)
+Defined in: [types.ts:201](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L201)
 
 #### Returns
 
@@ -8716,7 +8716,7 @@ Defined in: [types.ts:201](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: QueueRunOptions
 
-Defined in: [types.ts:191](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L191)
+Defined in: [types.ts:191](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L191)
 
 ## Extended by
 
@@ -8728,7 +8728,7 @@ Defined in: [types.ts:191](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **concurrency**: `number`
 
-Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L192)
+Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L192)
 
 ***
 
@@ -8736,7 +8736,7 @@ Defined in: [types.ts:192](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **deadline**: `number`
 
-Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L194)
+Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L194)
 
 ***
 
@@ -8744,7 +8744,7 @@ Defined in: [types.ts:194](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **signal**: `AbortSignal`
 
-Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L195)
+Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L195)
 
 ***
 
@@ -8752,7 +8752,7 @@ Defined in: [types.ts:195](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **timeout**: `number`
 
-Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L193)
+Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L193)
 
 ---
 
@@ -8764,7 +8764,7 @@ Defined in: [types.ts:193](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: RegisterOptions
 
-Defined in: [types.ts:320](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L320)
+Defined in: [types.ts:320](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L320)
 
 ## Properties
 
@@ -8772,7 +8772,7 @@ Defined in: [types.ts:320](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `optional` **dependencies**: `Record`\<`string`, [`Token`](../type-aliases/Token.md)\<`unknown`\>\> \| [`Token`](../type-aliases/Token.md)\<`unknown`\>[]
 
-Defined in: [types.ts:321](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L321)
+Defined in: [types.ts:321](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L321)
 
 ***
 
@@ -8780,7 +8780,7 @@ Defined in: [types.ts:321](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `optional` **timeouts**: `number` \| `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:322](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L322)
+Defined in: [types.ts:322](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L322)
 
 ---
 
@@ -8792,7 +8792,7 @@ Defined in: [types.ts:322](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: Registration\<T\>
 
-Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L251)
+Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L251)
 
 ## Type Parameters
 
@@ -8806,7 +8806,7 @@ Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **provider**: [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L251)
+Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L251)
 
 ***
 
@@ -8814,7 +8814,7 @@ Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `optional` **resolved**: [`ResolvedProvider`](ResolvedProvider.md)\<`T`\>
 
-Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L251)
+Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L251)
 
 ***
 
@@ -8822,7 +8822,7 @@ Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **token**: [`Token`](../type-aliases/Token.md)\<`T`\>
 
-Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L251)
+Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L251)
 
 ---
 
@@ -8834,7 +8834,7 @@ Defined in: [types.ts:251](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: RegistryAdapterOptions\<T\>
 
-Defined in: [types.ts:338](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L338)
+Defined in: [types.ts:338](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L338)
 
 ## Type Parameters
 
@@ -8848,7 +8848,7 @@ Defined in: [types.ts:338](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **default**: `object`
 
-Defined in: [types.ts:340](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L340)
+Defined in: [types.ts:340](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L340)
 
 #### key?
 
@@ -8864,7 +8864,7 @@ Defined in: [types.ts:340](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:342](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L342)
+Defined in: [types.ts:342](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L342)
 
 ***
 
@@ -8872,7 +8872,7 @@ Defined in: [types.ts:342](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **label**: `string`
 
-Defined in: [types.ts:339](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L339)
+Defined in: [types.ts:339](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L339)
 
 ***
 
@@ -8880,7 +8880,7 @@ Defined in: [types.ts:339](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:341](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L341)
 
 ---
 
@@ -8892,7 +8892,7 @@ Defined in: [types.ts:341](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: RegistryPort\<T\>
 
-Defined in: [types.ts:330](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L330)
+Defined in: [types.ts:330](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L330)
 
 ## Type Parameters
 
@@ -8906,7 +8906,7 @@ Defined in: [types.ts:330](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **clear**(`name?`, `force?`): `boolean`
 
-Defined in: [types.ts:334](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L334)
+Defined in: [types.ts:334](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L334)
 
 #### Parameters
 
@@ -8928,7 +8928,7 @@ Defined in: [types.ts:334](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **get**(`name?`): `undefined` \| `T`
 
-Defined in: [types.ts:331](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L331)
+Defined in: [types.ts:331](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L331)
 
 #### Parameters
 
@@ -8946,7 +8946,7 @@ Defined in: [types.ts:331](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **list**(): readonly (`string` \| `symbol`)[]
 
-Defined in: [types.ts:335](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L335)
+Defined in: [types.ts:335](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L335)
 
 #### Returns
 
@@ -8958,7 +8958,7 @@ readonly (`string` \| `symbol`)[]
 
 > **resolve**(`name?`): `T`
 
-Defined in: [types.ts:332](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L332)
+Defined in: [types.ts:332](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L332)
 
 #### Parameters
 
@@ -8976,7 +8976,7 @@ Defined in: [types.ts:332](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **set**(`name`, `value`, `lock?`): `void`
 
-Defined in: [types.ts:333](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L333)
+Defined in: [types.ts:333](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L333)
 
 #### Parameters
 
@@ -9006,7 +9006,7 @@ Defined in: [types.ts:333](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: ResolvedProvider\<T\>
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L250)
 
 ## Type Parameters
 
@@ -9020,7 +9020,7 @@ Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **disposable**: `boolean`
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L250)
 
 ***
 
@@ -9028,7 +9028,7 @@ Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > `optional` **lifecycle**: [`Lifecycle`](../classes/Lifecycle.md)
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L250)
 
 ***
 
@@ -9036,7 +9036,7 @@ Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **value**: `T`
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L250)
 
 ---
 
@@ -9048,7 +9048,7 @@ Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 # Interface: ValueProvider\<T\>
 
-Defined in: [types.ts:14](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L14)
+Defined in: [types.ts:14](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L14)
 
 ## Type Parameters
 
@@ -9062,7 +9062,7 @@ Defined in: [types.ts:14](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useValue**: `T`
 
-Defined in: [types.ts:14](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L14)
+Defined in: [types.ts:14](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L14)
 
 ---
 
@@ -9076,7 +9076,7 @@ Defined in: [types.ts:14](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **AggregateLifecycleError** = `Error` & `Readonly`\<\{ `code?`: `string`; `details`: `ReadonlyArray`\<[`LifecycleErrorDetail`](../interfaces/LifecycleErrorDetail.md)\>; `errors`: `ReadonlyArray`\<`Error`\>; `helpUrl?`: `string`; \}\>
 
-Defined in: [types.ts:156](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L156)
+Defined in: [types.ts:156](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L156)
 
 ---
 
@@ -9090,7 +9090,7 @@ Defined in: [types.ts:156](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **ClassProvider**\<`T`\> = [`ClassProviderNoDeps`](ClassProviderNoDeps.md)\<`T`\> \| [`ClassProviderWithContainer`](ClassProviderWithContainer.md)\<`T`\> \| [`ClassProviderWithTuple`](ClassProviderWithTuple.md)\<`T`, readonly `unknown`[]\> \| [`ClassProviderWithObject`](ClassProviderWithObject.md)\<`T`, `Record`\<`string`, `unknown`\>\>
 
-Defined in: [types.ts:53](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L53)
+Defined in: [types.ts:53](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L53)
 
 ## Type Parameters
 
@@ -9110,7 +9110,7 @@ Defined in: [types.ts:53](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ClassProviderNoDeps**\<`T`\> = `object`
 
-Defined in: [types.ts:42](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L42)
+Defined in: [types.ts:42](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L42)
 
 ## Type Parameters
 
@@ -9124,7 +9124,7 @@ Defined in: [types.ts:42](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useClass**: [`CtorNoDeps`](CtorNoDeps.md)\<`T`\>
 
-Defined in: [types.ts:42](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L42)
+Defined in: [types.ts:42](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L42)
 
 ---
 
@@ -9138,7 +9138,7 @@ Defined in: [types.ts:42](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ClassProviderWithContainer**\<`T`\> = `object`
 
-Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L43)
+Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L43)
 
 ## Type Parameters
 
@@ -9152,7 +9152,7 @@ Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useClass**: [`CtorWithContainer`](CtorWithContainer.md)\<`T`\>
 
-Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L43)
+Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L43)
 
 ---
 
@@ -9166,7 +9166,7 @@ Defined in: [types.ts:43](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ClassProviderWithObject**\<`T`, `O`\> = `object`
 
-Defined in: [types.ts:48](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L48)
+Defined in: [types.ts:48](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L48)
 
 ## Type Parameters
 
@@ -9184,7 +9184,7 @@ Defined in: [types.ts:48](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **inject**: [`InjectObject`](InjectObject.md)\<`O`\>
 
-Defined in: [types.ts:51](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L51)
+Defined in: [types.ts:51](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L51)
 
 ***
 
@@ -9192,7 +9192,7 @@ Defined in: [types.ts:51](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useClass**: (`deps`) => `T`
 
-Defined in: [types.ts:49](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L49)
+Defined in: [types.ts:49](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L49)
 
 #### Parameters
 
@@ -9216,7 +9216,7 @@ Defined in: [types.ts:49](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ClassProviderWithTuple**\<`T`, `A`\> = `object`
 
-Defined in: [types.ts:44](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L44)
+Defined in: [types.ts:44](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L44)
 
 ## Type Parameters
 
@@ -9234,7 +9234,7 @@ Defined in: [types.ts:44](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **inject**: [`InjectTuple`](InjectTuple.md)\<`A`\>
 
-Defined in: [types.ts:46](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L46)
+Defined in: [types.ts:46](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L46)
 
 ***
 
@@ -9242,7 +9242,7 @@ Defined in: [types.ts:46](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useClass**: (...`args`) => `T`
 
-Defined in: [types.ts:45](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L45)
+Defined in: [types.ts:45](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L45)
 
 #### Parameters
 
@@ -9266,11 +9266,11 @@ Defined in: [types.ts:45](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ContainerGetter** = [`Container`](../classes/Container.md)
 
-Defined in: [types.ts:253](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L253)
+Defined in: [types.ts:253](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L253)
 
 > **ContainerGetter**(`name?`): [`Container`](../classes/Container.md)
 
-Defined in: [types.ts:254](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L254)
+Defined in: [types.ts:254](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L254)
 
 ## Parameters
 
@@ -9288,7 +9288,7 @@ Defined in: [types.ts:254](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **clear**(`name`, `force?`): `boolean`
 
-Defined in: [types.ts:256](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L256)
+Defined in: [types.ts:256](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L256)
 
 #### Parameters
 
@@ -9312,7 +9312,7 @@ Defined in: [types.ts:256](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **get**\<`T`\>(`token`, `name?`): `undefined` \| `T`
 
-Defined in: [types.ts:262](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L262)
+Defined in: [types.ts:262](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L262)
 
 ##### Type Parameters
 
@@ -9338,7 +9338,7 @@ Defined in: [types.ts:262](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **get**\<`TMap`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: TMap\[K\] extends Token\<U\> ? undefined \| U : never \}
 
-Defined in: [types.ts:263](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L263)
+Defined in: [types.ts:263](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L263)
 
 ##### Type Parameters
 
@@ -9364,7 +9364,7 @@ Defined in: [types.ts:263](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **get**\<`O`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| O\[K\] \}
 
-Defined in: [types.ts:264](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L264)
+Defined in: [types.ts:264](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L264)
 
 ##### Type Parameters
 
@@ -9390,7 +9390,7 @@ Defined in: [types.ts:264](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **get**\<`A`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| A\[K\<K\>\] \}
 
-Defined in: [types.ts:265](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L265)
+Defined in: [types.ts:265](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L265)
 
 ##### Type Parameters
 
@@ -9418,7 +9418,7 @@ Defined in: [types.ts:265](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **list**(): (`string` \| `symbol`)[]
 
-Defined in: [types.ts:257](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L257)
+Defined in: [types.ts:257](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L257)
 
 #### Returns
 
@@ -9432,7 +9432,7 @@ Defined in: [types.ts:257](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **resolve**\<`T`\>(`token`, `name?`): `T`
 
-Defined in: [types.ts:258](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L258)
+Defined in: [types.ts:258](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L258)
 
 ##### Type Parameters
 
@@ -9458,7 +9458,7 @@ Defined in: [types.ts:258](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **resolve**\<`TMap`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: TMap\[K\] extends Token\<U\> ? U : never \}
 
-Defined in: [types.ts:259](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L259)
+Defined in: [types.ts:259](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L259)
 
 ##### Type Parameters
 
@@ -9484,7 +9484,7 @@ Defined in: [types.ts:259](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **resolve**\<`O`\>(`tokens`, `name?`): `O`
 
-Defined in: [types.ts:260](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L260)
+Defined in: [types.ts:260](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L260)
 
 ##### Type Parameters
 
@@ -9510,7 +9510,7 @@ Defined in: [types.ts:260](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **resolve**\<`A`\>(`tokens`, `name?`): `A`
 
-Defined in: [types.ts:261](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L261)
+Defined in: [types.ts:261](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L261)
 
 ##### Type Parameters
 
@@ -9538,7 +9538,7 @@ Defined in: [types.ts:261](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **set**(`name`, `c`, `lock?`): `void`
 
-Defined in: [types.ts:255](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L255)
+Defined in: [types.ts:255](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L255)
 
 #### Parameters
 
@@ -9566,7 +9566,7 @@ Defined in: [types.ts:255](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **using**(`fn`, `name?`): `Promise`\<`void`\>
 
-Defined in: [types.ts:266](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L266)
+Defined in: [types.ts:266](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L266)
 
 ##### Parameters
 
@@ -9586,7 +9586,7 @@ Defined in: [types.ts:266](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **using**\<`T`\>(`fn`, `name?`): `Promise`\<`T`\>
 
-Defined in: [types.ts:267](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L267)
+Defined in: [types.ts:267](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L267)
 
 ##### Type Parameters
 
@@ -9612,7 +9612,7 @@ Defined in: [types.ts:267](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **using**\<`T`\>(`apply`, `fn`, `name?`): `Promise`\<`T`\>
 
-Defined in: [types.ts:268](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L268)
+Defined in: [types.ts:268](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L268)
 
 ##### Type Parameters
 
@@ -9650,7 +9650,7 @@ Defined in: [types.ts:268](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **CtorNoDeps**\<`T`\> = () => `T`
 
-Defined in: [types.ts:39](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L39)
+Defined in: [types.ts:39](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L39)
 
 ## Type Parameters
 
@@ -9674,7 +9674,7 @@ Defined in: [types.ts:39](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **CtorWithContainer**\<`T`\> = (`container`) => `T`
 
-Defined in: [types.ts:40](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L40)
+Defined in: [types.ts:40](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L40)
 
 ## Type Parameters
 
@@ -9704,7 +9704,7 @@ Defined in: [types.ts:40](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **DestroyJobResult** = `Readonly`\<\{ `destroyOutcome?`: [`Outcome`](Outcome.md); `errors?`: [`LifecycleErrorDetail`](../interfaces/LifecycleErrorDetail.md)[]; `stopOutcome?`: [`Outcome`](Outcome.md); \}\>
 
-Defined in: [types.ts:284](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L284)
+Defined in: [types.ts:284](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L284)
 
 ---
 
@@ -9718,7 +9718,7 @@ Defined in: [types.ts:284](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **DiagnosticScope** = `"lifecycle"` \| `"orchestrator"` \| `"container"` \| `"registry"` \| `"internal"`
 
-Defined in: [types.ts:114](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L114)
+Defined in: [types.ts:114](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L114)
 
 ---
 
@@ -9732,7 +9732,7 @@ Defined in: [types.ts:114](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **EmitterListener**\<`EMap`, `E`\> = (...`args`) => `void`
 
-Defined in: [types.ts:162](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L162)
+Defined in: [types.ts:162](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L162)
 
 ## Type Parameters
 
@@ -9766,7 +9766,7 @@ Defined in: [types.ts:162](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **EventHandler**\<`T`\> = (`payload`) => `void` \| `Promise`\<`void`\>
 
-Defined in: [types.ts:173](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L173)
+Defined in: [types.ts:173](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L173)
 
 ## Type Parameters
 
@@ -9796,7 +9796,7 @@ Defined in: [types.ts:173](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **EventMap** = `Record`\<`string`, `unknown`[]\>
 
-Defined in: [types.ts:161](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L161)
+Defined in: [types.ts:161](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L161)
 
 ---
 
@@ -9810,7 +9810,7 @@ Defined in: [types.ts:161](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **FactoryProvider**\<`T`\> = [`FactoryProviderNoDeps`](FactoryProviderNoDeps.md)\<`T`\> \| [`FactoryProviderWithContainer`](FactoryProviderWithContainer.md)\<`T`\> \| [`FactoryProviderWithTuple`](FactoryProviderWithTuple.md)\<`T`, readonly `unknown`[]\> \| [`FactoryProviderWithObject`](FactoryProviderWithObject.md)\<`T`, `Record`\<`string`, `unknown`\>\>
 
-Defined in: [types.ts:33](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L33)
+Defined in: [types.ts:33](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L33)
 
 ## Type Parameters
 
@@ -9830,7 +9830,7 @@ Defined in: [types.ts:33](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **FactoryProviderNoDeps**\<`T`\> = `object`
 
-Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L22)
+Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L22)
 
 ## Type Parameters
 
@@ -9844,7 +9844,7 @@ Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useFactory**: () => `T`
 
-Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L22)
+Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L22)
 
 #### Returns
 
@@ -9862,7 +9862,7 @@ Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **FactoryProviderWithContainer**\<`T`\> = `object`
 
-Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L23)
+Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L23)
 
 ## Type Parameters
 
@@ -9876,7 +9876,7 @@ Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useFactory**: (`container`) => `T`
 
-Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L23)
+Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L23)
 
 #### Parameters
 
@@ -9900,7 +9900,7 @@ Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **FactoryProviderWithObject**\<`T`, `O`\> = `object`
 
-Defined in: [types.ts:28](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L28)
+Defined in: [types.ts:28](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L28)
 
 ## Type Parameters
 
@@ -9918,7 +9918,7 @@ Defined in: [types.ts:28](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **inject**: [`InjectObject`](InjectObject.md)\<`O`\>
 
-Defined in: [types.ts:31](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L31)
+Defined in: [types.ts:31](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L31)
 
 ***
 
@@ -9926,7 +9926,7 @@ Defined in: [types.ts:31](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useFactory**: (`deps`) => `T`
 
-Defined in: [types.ts:29](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L29)
+Defined in: [types.ts:29](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L29)
 
 #### Parameters
 
@@ -9950,7 +9950,7 @@ Defined in: [types.ts:29](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **FactoryProviderWithTuple**\<`T`, `A`\> = `object`
 
-Defined in: [types.ts:24](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L24)
+Defined in: [types.ts:24](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L24)
 
 ## Type Parameters
 
@@ -9968,7 +9968,7 @@ Defined in: [types.ts:24](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **inject**: [`InjectTuple`](InjectTuple.md)\<`A`\>
 
-Defined in: [types.ts:26](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L26)
+Defined in: [types.ts:26](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L26)
 
 ***
 
@@ -9976,7 +9976,7 @@ Defined in: [types.ts:26](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useFactory**: (...`args`) => `T`
 
-Defined in: [types.ts:25](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L25)
+Defined in: [types.ts:25](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L25)
 
 #### Parameters
 
@@ -10000,7 +10000,7 @@ Defined in: [types.ts:25](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **FromSchema**\<`S`\> = `{ [K in keyof S]: ResolveRule<S[K]> }`
 
-Defined in: [types.ts:103](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L103)
+Defined in: [types.ts:103](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L103)
 
 ## Type Parameters
 
@@ -10020,7 +10020,7 @@ Defined in: [types.ts:103](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **Guard**\<`T`\> = (`x`) => `x is T`
 
-Defined in: [types.ts:89](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L89)
+Defined in: [types.ts:89](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L89)
 
 ## Type Parameters
 
@@ -10050,7 +10050,7 @@ Defined in: [types.ts:89](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **InjectObject**\<`O`\> = `Readonly`\<`{ [K in keyof O]: Token<O[K]> }`\>
 
-Defined in: [types.ts:17](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L17)
+Defined in: [types.ts:17](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L17)
 
 ## Type Parameters
 
@@ -10070,7 +10070,7 @@ Defined in: [types.ts:17](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **InjectTuple**\<`A`\> = `{ readonly [K in keyof A]: Token<A[K]> }`
 
-Defined in: [types.ts:16](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L16)
+Defined in: [types.ts:16](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L16)
 
 ## Type Parameters
 
@@ -10090,7 +10090,7 @@ Defined in: [types.ts:16](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **LifecycleContext** = `"normal"` \| `"rollback"` \| `"container"`
 
-Defined in: [types.ts:118](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L118)
+Defined in: [types.ts:118](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L118)
 
 ---
 
@@ -10104,7 +10104,7 @@ Defined in: [types.ts:118](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **LifecycleEventMap** = `object`
 
-Defined in: [types.ts:227](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L227)
+Defined in: [types.ts:227](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L227)
 
 ## Properties
 
@@ -10112,7 +10112,7 @@ Defined in: [types.ts:227](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **create**: \[\]
 
-Defined in: [types.ts:229](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L229)
+Defined in: [types.ts:229](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L229)
 
 ***
 
@@ -10120,7 +10120,7 @@ Defined in: [types.ts:229](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **destroy**: \[\]
 
-Defined in: [types.ts:232](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L232)
+Defined in: [types.ts:232](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L232)
 
 ***
 
@@ -10128,7 +10128,7 @@ Defined in: [types.ts:232](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **error**: \[`Error`\]
 
-Defined in: [types.ts:233](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L233)
+Defined in: [types.ts:233](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L233)
 
 ***
 
@@ -10136,7 +10136,7 @@ Defined in: [types.ts:233](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **start**: \[\]
 
-Defined in: [types.ts:230](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L230)
+Defined in: [types.ts:230](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L230)
 
 ***
 
@@ -10144,7 +10144,7 @@ Defined in: [types.ts:230](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **stop**: \[\]
 
-Defined in: [types.ts:231](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L231)
+Defined in: [types.ts:231](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L231)
 
 ***
 
@@ -10152,7 +10152,7 @@ Defined in: [types.ts:231](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **transition**: \[[`LifecycleState`](LifecycleState.md)\]
 
-Defined in: [types.ts:228](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L228)
+Defined in: [types.ts:228](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L228)
 
 ---
 
@@ -10166,7 +10166,7 @@ Defined in: [types.ts:228](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **LifecycleHook** = `"create"` \| `"start"` \| `"stop"` \| `"destroy"`
 
-Defined in: [types.ts:117](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L117)
+Defined in: [types.ts:117](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L117)
 
 ---
 
@@ -10180,7 +10180,7 @@ Defined in: [types.ts:117](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **LifecyclePhase** = `"start"` \| `"stop"` \| `"destroy"`
 
-Defined in: [types.ts:116](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L116)
+Defined in: [types.ts:116](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L116)
 
 ---
 
@@ -10194,7 +10194,7 @@ Defined in: [types.ts:116](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **LifecycleState** = `"created"` \| `"started"` \| `"stopped"` \| `"destroyed"`
 
-Defined in: [types.ts:225](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L225)
+Defined in: [types.ts:225](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L225)
 
 ---
 
@@ -10208,7 +10208,7 @@ Defined in: [types.ts:225](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **LogLevel** = `"debug"` \| `"info"` \| `"warn"` \| `"error"`
 
-Defined in: [types.ts:108](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L108)
+Defined in: [types.ts:108](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L108)
 
 ---
 
@@ -10222,7 +10222,7 @@ Defined in: [types.ts:108](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **MessageMapEntry** = `Readonly`\<\{ `level?`: [`LogLevel`](LogLevel.md); `message?`: `string`; \}\>
 
-Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L152)
+Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L152)
 
 ---
 
@@ -10236,7 +10236,7 @@ Defined in: [types.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **OptionalResolvedMap**\<`TMap`\> = \{ \[K in keyof TMap\]: TMap\[K\] extends Token\<infer U\> ? U \| undefined : never \}
 
-Defined in: [types.ts:12](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L12)
+Defined in: [types.ts:12](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L12)
 
 ## Type Parameters
 
@@ -10256,11 +10256,11 @@ Defined in: [types.ts:12](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **OrchestratorGetter** = [`Orchestrator`](../classes/Orchestrator.md)
 
-Defined in: [types.ts:313](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L313)
+Defined in: [types.ts:313](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L313)
 
 > **OrchestratorGetter**(`name?`): [`Orchestrator`](../classes/Orchestrator.md)
 
-Defined in: [types.ts:314](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L314)
+Defined in: [types.ts:314](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L314)
 
 ## Parameters
 
@@ -10278,7 +10278,7 @@ Defined in: [types.ts:314](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **clear**(`name`, `force?`): `boolean`
 
-Defined in: [types.ts:316](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L316)
+Defined in: [types.ts:316](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L316)
 
 #### Parameters
 
@@ -10300,7 +10300,7 @@ Defined in: [types.ts:316](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **list**(): (`string` \| `symbol`)[]
 
-Defined in: [types.ts:317](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L317)
+Defined in: [types.ts:317](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L317)
 
 #### Returns
 
@@ -10312,7 +10312,7 @@ Defined in: [types.ts:317](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **set**(`name`, `o`, `lock?`): `void`
 
-Defined in: [types.ts:315](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L315)
+Defined in: [types.ts:315](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L315)
 
 #### Parameters
 
@@ -10344,7 +10344,7 @@ Defined in: [types.ts:315](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **OrchestratorStartResult** = `Readonly`\<\{ `lc`: [`Lifecycle`](../classes/Lifecycle.md); `result`: [`PhaseResult`](PhaseResult.md); `token`: [`Token`](Token.md)\<`unknown`\>; \}\>
 
-Defined in: [types.ts:286](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L286)
+Defined in: [types.ts:286](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L286)
 
 ---
 
@@ -10358,7 +10358,7 @@ Defined in: [types.ts:286](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **Outcome** = `Readonly`\<\{ `durationMs`: `number`; `ok`: `boolean`; `timedOut?`: `boolean`; `token`: `string`; \}\>
 
-Defined in: [types.ts:282](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L282)
+Defined in: [types.ts:282](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L282)
 
 ---
 
@@ -10372,7 +10372,7 @@ Defined in: [types.ts:282](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **PhaseResult** = [`PhaseResultOk`](PhaseResultOk.md) \| [`PhaseResultErr`](PhaseResultErr.md)
 
-Defined in: [types.ts:280](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L280)
+Defined in: [types.ts:280](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L280)
 
 ---
 
@@ -10386,7 +10386,7 @@ Defined in: [types.ts:280](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **PhaseResultErr** = `Readonly`\<\{ `durationMs`: `number`; `error`: `Error`; `ok`: `false`; `timedOut`: `boolean`; \}\>
 
-Defined in: [types.ts:279](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L279)
+Defined in: [types.ts:279](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L279)
 
 ---
 
@@ -10400,7 +10400,7 @@ Defined in: [types.ts:279](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **PhaseResultOk** = `Readonly`\<\{ `durationMs`: `number`; `ok`: `true`; \}\>
 
-Defined in: [types.ts:278](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L278)
+Defined in: [types.ts:278](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L278)
 
 ---
 
@@ -10414,7 +10414,7 @@ Defined in: [types.ts:278](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **PhaseTimeouts** = `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:274](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L274)
+Defined in: [types.ts:274](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L274)
 
 ---
 
@@ -10428,7 +10428,7 @@ Defined in: [types.ts:274](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **PrimitiveTag** = `"string"` \| `"number"` \| `"boolean"` \| `"symbol"` \| `"bigint"` \| `"function"` \| `"object"`
 
-Defined in: [types.ts:90](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L90)
+Defined in: [types.ts:90](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L90)
 
 ---
 
@@ -10442,7 +10442,7 @@ Defined in: [types.ts:90](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **Provider**\<`T`\> = `T` \| [`ValueProvider`](../interfaces/ValueProvider.md)\<`T`\> \| [`FactoryProvider`](FactoryProvider.md)\<`T`\> \| [`ClassProvider`](ClassProvider.md)\<`T`\>
 
-Defined in: [types.ts:55](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L55)
+Defined in: [types.ts:55](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L55)
 
 ## Type Parameters
 
@@ -10462,7 +10462,7 @@ Defined in: [types.ts:55](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ProviderMatchHandlers**\<`T`\> = `object`
 
-Defined in: [types.ts:60](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L60)
+Defined in: [types.ts:60](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L60)
 
 ## Type Parameters
 
@@ -10476,7 +10476,7 @@ Defined in: [types.ts:60](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classContainer**: (`p`) => [`ClassProviderWithContainer`](ClassProviderWithContainer.md)\<`T`\>
 
-Defined in: [types.ts:69](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L69)
+Defined in: [types.ts:69](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L69)
 
 #### Parameters
 
@@ -10494,7 +10494,7 @@ Defined in: [types.ts:69](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classNoDeps**: (`p`) => [`ClassProviderNoDeps`](ClassProviderNoDeps.md)\<`T`\>
 
-Defined in: [types.ts:70](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L70)
+Defined in: [types.ts:70](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L70)
 
 #### Parameters
 
@@ -10512,7 +10512,7 @@ Defined in: [types.ts:70](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classObject**: \<`O`\>(`p`) => [`ClassProviderWithObject`](ClassProviderWithObject.md)\<`T`, `O`\>
 
-Defined in: [types.ts:68](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L68)
+Defined in: [types.ts:68](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L68)
 
 #### Type Parameters
 
@@ -10536,7 +10536,7 @@ Defined in: [types.ts:68](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classTuple**: \<`A`\>(`p`) => [`ClassProviderWithTuple`](ClassProviderWithTuple.md)\<`T`, `A`\>
 
-Defined in: [types.ts:67](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L67)
+Defined in: [types.ts:67](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L67)
 
 #### Type Parameters
 
@@ -10560,7 +10560,7 @@ Defined in: [types.ts:67](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryContainer**: (`p`) => [`FactoryProviderWithContainer`](FactoryProviderWithContainer.md)\<`T`\>
 
-Defined in: [types.ts:65](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L65)
+Defined in: [types.ts:65](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L65)
 
 #### Parameters
 
@@ -10578,7 +10578,7 @@ Defined in: [types.ts:65](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryNoDeps**: (`p`) => [`FactoryProviderNoDeps`](FactoryProviderNoDeps.md)\<`T`\>
 
-Defined in: [types.ts:66](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L66)
+Defined in: [types.ts:66](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L66)
 
 #### Parameters
 
@@ -10596,7 +10596,7 @@ Defined in: [types.ts:66](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryObject**: \<`O`\>(`p`) => [`FactoryProviderWithObject`](FactoryProviderWithObject.md)\<`T`, `O`\>
 
-Defined in: [types.ts:64](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L64)
+Defined in: [types.ts:64](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L64)
 
 #### Type Parameters
 
@@ -10620,7 +10620,7 @@ Defined in: [types.ts:64](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryTuple**: \<`A`\>(`p`) => [`FactoryProviderWithTuple`](FactoryProviderWithTuple.md)\<`T`, `A`\>
 
-Defined in: [types.ts:63](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L63)
+Defined in: [types.ts:63](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L63)
 
 #### Type Parameters
 
@@ -10644,7 +10644,7 @@ Defined in: [types.ts:63](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **raw**: (`value`) => [`Provider`](Provider.md)\<`T`\>
 
-Defined in: [types.ts:61](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L61)
+Defined in: [types.ts:61](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L61)
 
 #### Parameters
 
@@ -10662,7 +10662,7 @@ Defined in: [types.ts:61](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **value**: (`p`) => [`Provider`](Provider.md)\<`T`\>
 
-Defined in: [types.ts:62](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L62)
+Defined in: [types.ts:62](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L62)
 
 #### Parameters
 
@@ -10686,7 +10686,7 @@ Defined in: [types.ts:62](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ProviderMatchReturnHandlers**\<`T`, `R`\> = `object`
 
-Defined in: [types.ts:73](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L73)
+Defined in: [types.ts:73](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L73)
 
 ## Type Parameters
 
@@ -10704,7 +10704,7 @@ Defined in: [types.ts:73](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classContainer**: (`p`) => `R`
 
-Defined in: [types.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L82)
+Defined in: [types.ts:82](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L82)
 
 #### Parameters
 
@@ -10722,7 +10722,7 @@ Defined in: [types.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classNoDeps**: (`p`) => `R`
 
-Defined in: [types.ts:83](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L83)
+Defined in: [types.ts:83](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L83)
 
 #### Parameters
 
@@ -10740,7 +10740,7 @@ Defined in: [types.ts:83](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classObject**: \<`O`\>(`p`) => `R`
 
-Defined in: [types.ts:81](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L81)
+Defined in: [types.ts:81](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L81)
 
 #### Type Parameters
 
@@ -10764,7 +10764,7 @@ Defined in: [types.ts:81](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **classTuple**: \<`A`\>(`p`) => `R`
 
-Defined in: [types.ts:80](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L80)
+Defined in: [types.ts:80](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L80)
 
 #### Type Parameters
 
@@ -10788,7 +10788,7 @@ Defined in: [types.ts:80](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryContainer**: (`p`) => `R`
 
-Defined in: [types.ts:78](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L78)
+Defined in: [types.ts:78](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L78)
 
 #### Parameters
 
@@ -10806,7 +10806,7 @@ Defined in: [types.ts:78](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryNoDeps**: (`p`) => `R`
 
-Defined in: [types.ts:79](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L79)
+Defined in: [types.ts:79](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L79)
 
 #### Parameters
 
@@ -10824,7 +10824,7 @@ Defined in: [types.ts:79](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryObject**: \<`O`\>(`p`) => `R`
 
-Defined in: [types.ts:77](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L77)
+Defined in: [types.ts:77](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L77)
 
 #### Type Parameters
 
@@ -10848,7 +10848,7 @@ Defined in: [types.ts:77](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **factoryTuple**: \<`A`\>(`p`) => `R`
 
-Defined in: [types.ts:76](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L76)
+Defined in: [types.ts:76](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L76)
 
 #### Type Parameters
 
@@ -10872,7 +10872,7 @@ Defined in: [types.ts:76](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **raw**: (`value`) => `R`
 
-Defined in: [types.ts:74](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L74)
+Defined in: [types.ts:74](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L74)
 
 #### Parameters
 
@@ -10890,7 +10890,7 @@ Defined in: [types.ts:74](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **value**: (`p`) => `R`
 
-Defined in: [types.ts:75](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L75)
+Defined in: [types.ts:75](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L75)
 
 #### Parameters
 
@@ -10914,7 +10914,7 @@ Defined in: [types.ts:75](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ResolvedMap**\<`TMap`\> = `{ [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }`
 
-Defined in: [types.ts:11](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L11)
+Defined in: [types.ts:11](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L11)
 
 ## Type Parameters
 
@@ -10934,7 +10934,7 @@ Defined in: [types.ts:11](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **ResolveRule**\<`R`\> = `R` *extends* `"string"` ? `string` : `R` *extends* `"number"` ? `number` : `R` *extends* `"boolean"` ? `boolean` : `R` *extends* `"symbol"` ? `symbol` : `R` *extends* `"bigint"` ? `bigint` : `R` *extends* `"function"` ? (...`args`) => `unknown` : `R` *extends* `"object"` ? `Record`\<`string`, `unknown`\> : `R` *extends* [`Guard`](Guard.md)\<infer U\> ? `U` : `R` *extends* [`SchemaSpec`](SchemaSpec.md) ? [`FromSchema`](FromSchema.md)\<`R`\> : `never`
 
-Defined in: [types.ts:92](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L92)
+Defined in: [types.ts:92](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L92)
 
 ## Type Parameters
 
@@ -10954,7 +10954,7 @@ Defined in: [types.ts:92](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **SchemaSpec** = `Readonly`\<\{\[`k`: `string`\]: `Readonly`\<\{\[`k`: `string`\]: Readonly\<\{ \[k: string\]: Readonly\<...\> \| PrimitiveTag \| Guard\<unknown\>; \}\> \| PrimitiveTag \| Guard\<unknown\>; \}\> \| [`PrimitiveTag`](PrimitiveTag.md) \| [`Guard`](Guard.md)\<`unknown`\>; \}\>
 
-Defined in: [types.ts:91](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L91)
+Defined in: [types.ts:91](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L91)
 
 ---
 
@@ -10968,7 +10968,7 @@ Defined in: [types.ts:91](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **Task**\<`T`\> = () => `Promise`\<`T`\>
 
-Defined in: [types.ts:276](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L276)
+Defined in: [types.ts:276](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L276)
 
 ## Type Parameters
 
@@ -10992,7 +10992,7 @@ Defined in: [types.ts:276](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **Token**\<`T`\> = `symbol` & `object`
 
-Defined in: [types.ts:8](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L8)
+Defined in: [types.ts:8](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L8)
 
 ## Type Declaration
 
@@ -11018,7 +11018,7 @@ Defined in: [types.ts:8](https://github.com/orkestrel/core/blob/4aab0d299da5f30a
 
 > **TokenRecord** = `Record`\<`string`, [`Token`](Token.md)\<`unknown`\>\>
 
-Defined in: [types.ts:10](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L10)
+Defined in: [types.ts:10](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L10)
 
 ---
 
@@ -11032,13 +11032,29 @@ Defined in: [types.ts:10](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > **TokensOf**\<`T`\> = `{ [K in keyof T & string]: Token<T[K]> }`
 
-Defined in: [types.ts:9](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L9)
+Defined in: [types.ts:9](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L9)
 
 ## Type Parameters
 
 ### T
 
 `T` *extends* `Record`\<`string`, `unknown`\>
+
+---
+
+## Variable: CONTAINER\_MESSAGES
+
+[**@orkestrel/core**](../index.md)
+
+***
+
+# Variable: CONTAINER\_MESSAGES
+
+> `const` **CONTAINER\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
+
+Defined in: [constants.ts:54](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L54)
+
+Container diagnostic messages and codes.
 
 ---
 
@@ -11052,7 +11068,7 @@ Defined in: [types.ts:9](https://github.com/orkestrel/core/blob/4aab0d299da5f30a
 
 > `const` **container**: (`name?`) => [`Container`](../classes/Container.md) & `object`
 
-Defined in: [container.ts:486](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/container.ts#L486)
+Defined in: [container.ts:486](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/container.ts#L486)
 
 Global container getter and manager.
 
@@ -11397,22 +11413,6 @@ await container.using(async (scope) => {
 
 ---
 
-## Variable: CONTAINER\_MESSAGES
-
-[**@orkestrel/core**](../index.md)
-
-***
-
-# Variable: CONTAINER\_MESSAGES
-
-> `const` **CONTAINER\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
-
-Defined in: [constants.ts:54](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L54)
-
-Container diagnostic messages and codes.
-
----
-
 ## Variable: HELP
 
 [**@orkestrel/core**](../index.md)
@@ -11423,7 +11423,7 @@ Container diagnostic messages and codes.
 
 > `const` **HELP**: `object`
 
-Defined in: [constants.ts:90](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L90)
+Defined in: [constants.ts:90](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L90)
 
 Links to documentation sections used in error messages for help.
 Consumers may display these URLs when rendering errors.
@@ -11466,7 +11466,7 @@ Consumers may display these URLs when rendering errors.
 
 > `const` **INTERNAL\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
 
-Defined in: [constants.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L82)
+Defined in: [constants.ts:82](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L82)
 
 Internal invariant diagnostic codes.
 
@@ -11482,9 +11482,25 @@ Internal invariant diagnostic codes.
 
 > `const` **LIFECYCLE\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
 
-Defined in: [constants.ts:26](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L26)
+Defined in: [constants.ts:26](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L26)
 
 Default lifecycle diagnostic messages and codes used by Lifecycle/Queue.
+
+---
+
+## Variable: ORCHESTRATOR\_MESSAGES
+
+[**@orkestrel/core**](../index.md)
+
+***
+
+# Variable: ORCHESTRATOR\_MESSAGES
+
+> `const` **ORCHESTRATOR\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
+
+Defined in: [constants.ts:35](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L35)
+
+Orchestrator diagnostic messages and codes.
 
 ---
 
@@ -11498,7 +11514,7 @@ Default lifecycle diagnostic messages and codes used by Lifecycle/Queue.
 
 > `const` **orchestrator**: (`name?`) => [`Orchestrator`](../classes/Orchestrator.md) & `object`
 
-Defined in: [orchestrator.ts:569](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/orchestrator.ts#L569)
+Defined in: [orchestrator.ts:569](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/orchestrator.ts#L569)
 
 Global orchestrator getter.
 - Returns the default or a named orchestrator instance bound to a container.
@@ -11640,22 +11656,6 @@ await app.container.using(scope => scope.set(T, 7))
 
 ---
 
-## Variable: ORCHESTRATOR\_MESSAGES
-
-[**@orkestrel/core**](../index.md)
-
-***
-
-# Variable: ORCHESTRATOR\_MESSAGES
-
-> `const` **ORCHESTRATOR\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
-
-Defined in: [constants.ts:35](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L35)
-
-Orchestrator diagnostic messages and codes.
-
----
-
 ## Variable: PORTS\_MESSAGES
 
 [**@orkestrel/core**](../index.md)
@@ -11666,7 +11666,7 @@ Orchestrator diagnostic messages and codes.
 
 > `const` **PORTS\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
 
-Defined in: [constants.ts:69](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L69)
+Defined in: [constants.ts:69](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L69)
 
 Port helper diagnostics and codes.
 
@@ -11682,7 +11682,7 @@ Port helper diagnostics and codes.
 
 > `const` **QUEUE\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
 
-Defined in: [constants.ts:74](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L74)
+Defined in: [constants.ts:74](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L74)
 
 Queue diagnostic messages and codes.
 
@@ -11698,7 +11698,7 @@ Queue diagnostic messages and codes.
 
 > `const` **REGISTRY\_MESSAGES**: `ReadonlyArray`\<[`DiagnosticMessage`](../interfaces/DiagnosticMessage.md)\>
 
-Defined in: [constants.ts:61](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/constants.ts#L61)
+Defined in: [constants.ts:61](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/constants.ts#L61)
 
 Registry diagnostic messages and codes.
 

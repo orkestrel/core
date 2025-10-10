@@ -6,7 +6,7 @@
 
 > **isFactoryProviderNoDeps**\<`T`\>(`p`): `p is FactoryProviderNoDeps<T>`
 
-Defined in: [helpers.ts:467](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L467)
+Defined in: [helpers.ts:467](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L467)
 
 Check if factory provider has no dependencies (zero-arg function).
 

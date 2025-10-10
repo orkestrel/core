@@ -8,7 +8,7 @@
 
 > **matchProvider**\<`T`\>(`provider`, `h`): [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Defined in: [helpers.ts:695](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L695)
+Defined in: [helpers.ts:695](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L695)
 
 Match a provider against its specific shape and dispatch to typed handlers.
 
@@ -73,7 +73,7 @@ const out = matchProvider(42, {
 
 > **matchProvider**\<`T`, `R`\>(`provider`, `h`): `R`
 
-Defined in: [helpers.ts:696](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L696)
+Defined in: [helpers.ts:696](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L696)
 
 Match a provider against its specific shape and dispatch to typed handlers.
 

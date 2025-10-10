@@ -6,151 +6,151 @@ This file contains links to all documentation sections following the llmstxt.org
 
 ## Table of Contents
 
-- [Orkestrel Core overview](https://orkestrel.github.io/core/guide/overview): # Orkestrel Core overview
-- [Start](https://orkestrel.github.io/core/guide/start): # Start
-- [Concepts](https://orkestrel.github.io/core/guide/concepts): # Concepts
-- [Core](https://orkestrel.github.io/core/guide/core): # Core
-- [Ecosystem](https://orkestrel.github.io/core/guide/ecosystem): # Ecosystem
-- [Examples](https://orkestrel.github.io/core/guide/examples): # Examples
-- [Tips](https://orkestrel.github.io/core/guide/tips): # Tips
-- [Tests](https://orkestrel.github.io/core/guide/tests): # Tests
-- [Contribute](https://orkestrel.github.io/core/guide/contribute): # Contribute
-- [FAQ](https://orkestrel.github.io/core/guide/faq): # FAQ
-- [Abstract Class: Adapter](https://orkestrel.github.io/core/api/classes/Adapter): # Abstract Class: Adapter
-- [Class: Container](https://orkestrel.github.io/core/api/classes/Container): # Class: Container
-- [Class: DiagnosticAdapter](https://orkestrel.github.io/core/api/classes/DiagnosticAdapter): # Class: DiagnosticAdapter
-- [Class: EmitterAdapter\<EMap\>](https://orkestrel.github.io/core/api/classes/EmitterAdapter): # Class: EmitterAdapter\<EMap\>
-- [Class: EventAdapter](https://orkestrel.github.io/core/api/classes/EventAdapter): # Class: EventAdapter
-- [Class: LayerAdapter](https://orkestrel.github.io/core/api/classes/LayerAdapter): # Class: LayerAdapter
-- [Abstract Class: Lifecycle](https://orkestrel.github.io/core/api/classes/Lifecycle): # Abstract Class: Lifecycle
-- [Class: LoggerAdapter](https://orkestrel.github.io/core/api/classes/LoggerAdapter): # Class: LoggerAdapter
-- [Class: NoopLogger](https://orkestrel.github.io/core/api/classes/NoopLogger): # Class: NoopLogger
-- [Class: Orchestrator](https://orkestrel.github.io/core/api/classes/Orchestrator): # Class: Orchestrator
-- [Class: QueueAdapter\<T\>](https://orkestrel.github.io/core/api/classes/QueueAdapter): # Class: QueueAdapter\<T\>
-- [Class: RegistryAdapter\<T\>](https://orkestrel.github.io/core/api/classes/RegistryAdapter): # Class: RegistryAdapter\<T\>
-- [Function: arrayOf()](https://orkestrel.github.io/core/api/functions/arrayOf): # Function: arrayOf()
-- [Function: createPortToken()](https://orkestrel.github.io/core/api/functions/createPortToken): # Function: createPortToken()
-- [Function: createPortTokens()](https://orkestrel.github.io/core/api/functions/createPortTokens): # Function: createPortTokens()
-- [Function: createToken()](https://orkestrel.github.io/core/api/functions/createToken): # Function: createToken()
-- [Function: createTokens()](https://orkestrel.github.io/core/api/functions/createTokens): # Function: createTokens()
-- [Function: extendPorts()](https://orkestrel.github.io/core/api/functions/extendPorts): # Function: extendPorts()
-- [Function: getTag()](https://orkestrel.github.io/core/api/functions/getTag): # Function: getTag()
-- [Function: hasOwn()](https://orkestrel.github.io/core/api/functions/hasOwn): # Function: hasOwn()
-- [Function: hasSchema()](https://orkestrel.github.io/core/api/functions/hasSchema): # Function: hasSchema()
-- [Function: isAggregateLifecycleError()](https://orkestrel.github.io/core/api/functions/isAggregateLifecycleError): # Function: isAggregateLifecycleError()
-- [Function: isAsyncFunction()](https://orkestrel.github.io/core/api/functions/isAsyncFunction): # Function: isAsyncFunction()
-- [Function: isBoolean()](https://orkestrel.github.io/core/api/functions/isBoolean): # Function: isBoolean()
-- [Function: isClassProvider()](https://orkestrel.github.io/core/api/functions/isClassProvider): # Function: isClassProvider()
-- [Function: isClassProviderNoDeps()](https://orkestrel.github.io/core/api/functions/isClassProviderNoDeps): # Function: isClassProviderNoDeps()
-- [Function: isClassProviderWithContainer()](https://orkestrel.github.io/core/api/functions/isClassProviderWithContainer): # Function: isClassProviderWithContainer()
-- [Function: isClassProviderWithObject()](https://orkestrel.github.io/core/api/functions/isClassProviderWithObject): # Function: isClassProviderWithObject()
-- [Function: isClassProviderWithTuple()](https://orkestrel.github.io/core/api/functions/isClassProviderWithTuple): # Function: isClassProviderWithTuple()
-- [Function: isFactoryProvider()](https://orkestrel.github.io/core/api/functions/isFactoryProvider): # Function: isFactoryProvider()
-- [Function: isFactoryProviderNoDeps()](https://orkestrel.github.io/core/api/functions/isFactoryProviderNoDeps): # Function: isFactoryProviderNoDeps()
-- [Function: isFactoryProviderWithContainer()](https://orkestrel.github.io/core/api/functions/isFactoryProviderWithContainer): # Function: isFactoryProviderWithContainer()
-- [Function: isFactoryProviderWithObject()](https://orkestrel.github.io/core/api/functions/isFactoryProviderWithObject): # Function: isFactoryProviderWithObject()
-- [Function: isFactoryProviderWithTuple()](https://orkestrel.github.io/core/api/functions/isFactoryProviderWithTuple): # Function: isFactoryProviderWithTuple()
-- [Function: isFiniteNumber()](https://orkestrel.github.io/core/api/functions/isFiniteNumber): # Function: isFiniteNumber()
-- [Function: isLifecycleErrorDetail()](https://orkestrel.github.io/core/api/functions/isLifecycleErrorDetail): # Function: isLifecycleErrorDetail()
-- [Function: isObject()](https://orkestrel.github.io/core/api/functions/isObject): # Function: isObject()
-- [Function: isPromiseLike()](https://orkestrel.github.io/core/api/functions/isPromiseLike): # Function: isPromiseLike()
-- [Function: isProviderObject()](https://orkestrel.github.io/core/api/functions/isProviderObject): # Function: isProviderObject()
-- [Function: isRawProviderValue()](https://orkestrel.github.io/core/api/functions/isRawProviderValue): # Function: isRawProviderValue()
-- [Function: isString()](https://orkestrel.github.io/core/api/functions/isString): # Function: isString()
-- [Function: isToken()](https://orkestrel.github.io/core/api/functions/isToken): # Function: isToken()
-- [Function: isTokenArray()](https://orkestrel.github.io/core/api/functions/isTokenArray): # Function: isTokenArray()
-- [Function: isTokenRecord()](https://orkestrel.github.io/core/api/functions/isTokenRecord): # Function: isTokenRecord()
-- [Function: isValueProvider()](https://orkestrel.github.io/core/api/functions/isValueProvider): # Function: isValueProvider()
-- [Function: isZeroArg()](https://orkestrel.github.io/core/api/functions/isZeroArg): # Function: isZeroArg()
-- [Function: literalOf()](https://orkestrel.github.io/core/api/functions/literalOf): # Function: literalOf()
-- [Function: matchProvider()](https://orkestrel.github.io/core/api/functions/matchProvider): # Function: matchProvider()
-- [Function: register()](https://orkestrel.github.io/core/api/functions/register): # Function: register()
-- [Function: safeInvoke()](https://orkestrel.github.io/core/api/functions/safeInvoke): # Function: safeInvoke()
-- [Function: tokenDescription()](https://orkestrel.github.io/core/api/functions/tokenDescription): # Function: tokenDescription()
-- [Orkestrel Core](https://orkestrel.github.io/core/api/index): # Orkestrel Core
-- [Interface: ContainerOptions](https://orkestrel.github.io/core/api/interfaces/ContainerOptions): # Interface: ContainerOptions
-- [Interface: DiagnosticAdapterOptions](https://orkestrel.github.io/core/api/interfaces/DiagnosticAdapterOptions): # Interface: DiagnosticAdapterOptions
-- [Interface: DiagnosticErrorContext](https://orkestrel.github.io/core/api/interfaces/DiagnosticErrorContext): # Interface: DiagnosticErrorContext
-- [Interface: DiagnosticMessage](https://orkestrel.github.io/core/api/interfaces/DiagnosticMessage): # Interface: DiagnosticMessage
-- [Interface: DiagnosticPort](https://orkestrel.github.io/core/api/interfaces/DiagnosticPort): # Interface: DiagnosticPort
-- [Interface: EmitterAdapterOptions](https://orkestrel.github.io/core/api/interfaces/EmitterAdapterOptions): # Interface: EmitterAdapterOptions
-- [Interface: EmitterPort\<EMap\>](https://orkestrel.github.io/core/api/interfaces/EmitterPort): # Interface: EmitterPort\<EMap\>
-- [Interface: EventAdapterOptions](https://orkestrel.github.io/core/api/interfaces/EventAdapterOptions): # Interface: EventAdapterOptions
-- [Interface: EventPort\<EMap\>](https://orkestrel.github.io/core/api/interfaces/EventPort): # Interface: EventPort\<EMap\>
-- [Interface: LayerAdapterOptions](https://orkestrel.github.io/core/api/interfaces/LayerAdapterOptions): # Interface: LayerAdapterOptions
-- [Interface: LayerNode\<T\>](https://orkestrel.github.io/core/api/interfaces/LayerNode): # Interface: LayerNode\<T\>
-- [Interface: LayerPort](https://orkestrel.github.io/core/api/interfaces/LayerPort): # Interface: LayerPort
-- [Interface: LifecycleErrorDetail](https://orkestrel.github.io/core/api/interfaces/LifecycleErrorDetail): # Interface: LifecycleErrorDetail
-- [Interface: LifecycleOptions](https://orkestrel.github.io/core/api/interfaces/LifecycleOptions): # Interface: LifecycleOptions
-- [Interface: LoggerPort](https://orkestrel.github.io/core/api/interfaces/LoggerPort): # Interface: LoggerPort
-- [Interface: NodeEntry](https://orkestrel.github.io/core/api/interfaces/NodeEntry): # Interface: NodeEntry
-- [Interface: OrchestratorOptions](https://orkestrel.github.io/core/api/interfaces/OrchestratorOptions): # Interface: OrchestratorOptions
-- [Interface: OrchestratorRegistration\<T\>](https://orkestrel.github.io/core/api/interfaces/OrchestratorRegistration): # Interface: OrchestratorRegistration\<T\>
-- [Interface: QueueAdapterOptions](https://orkestrel.github.io/core/api/interfaces/QueueAdapterOptions): # Interface: QueueAdapterOptions
-- [Interface: QueuePort\<T\>](https://orkestrel.github.io/core/api/interfaces/QueuePort): # Interface: QueuePort\<T\>
-- [Interface: QueueRunOptions](https://orkestrel.github.io/core/api/interfaces/QueueRunOptions): # Interface: QueueRunOptions
-- [Interface: RegisterOptions](https://orkestrel.github.io/core/api/interfaces/RegisterOptions): # Interface: RegisterOptions
-- [Interface: Registration\<T\>](https://orkestrel.github.io/core/api/interfaces/Registration): # Interface: Registration\<T\>
-- [Interface: RegistryAdapterOptions\<T\>](https://orkestrel.github.io/core/api/interfaces/RegistryAdapterOptions): # Interface: RegistryAdapterOptions\<T\>
-- [Interface: RegistryPort\<T\>](https://orkestrel.github.io/core/api/interfaces/RegistryPort): # Interface: RegistryPort\<T\>
-- [Interface: ResolvedProvider\<T\>](https://orkestrel.github.io/core/api/interfaces/ResolvedProvider): # Interface: ResolvedProvider\<T\>
-- [Interface: ValueProvider\<T\>](https://orkestrel.github.io/core/api/interfaces/ValueProvider): # Interface: ValueProvider\<T\>
-- [Type Alias: AggregateLifecycleError](https://orkestrel.github.io/core/api/type-aliases/AggregateLifecycleError): # Type Alias: AggregateLifecycleError
-- [Type Alias: ClassProvider\<T\>](https://orkestrel.github.io/core/api/type-aliases/ClassProvider): # Type Alias: ClassProvider\<T\>
-- [Type Alias: ClassProviderNoDeps\<T\>](https://orkestrel.github.io/core/api/type-aliases/ClassProviderNoDeps): # Type Alias: ClassProviderNoDeps\<T\>
-- [Type Alias: ClassProviderWithContainer\<T\>](https://orkestrel.github.io/core/api/type-aliases/ClassProviderWithContainer): # Type Alias: ClassProviderWithContainer\<T\>
-- [Type Alias: ClassProviderWithObject\<T, O\>](https://orkestrel.github.io/core/api/type-aliases/ClassProviderWithObject): # Type Alias: ClassProviderWithObject\<T, O\>
-- [Type Alias: ClassProviderWithTuple\<T, A\>](https://orkestrel.github.io/core/api/type-aliases/ClassProviderWithTuple): # Type Alias: ClassProviderWithTuple\<T, A\>
-- [Type Alias: ContainerGetter()](https://orkestrel.github.io/core/api/type-aliases/ContainerGetter): # Type Alias: ContainerGetter()
-- [Type Alias: CtorNoDeps()\<T\>](https://orkestrel.github.io/core/api/type-aliases/CtorNoDeps): # Type Alias: CtorNoDeps()\<T\>
-- [Type Alias: CtorWithContainer()\<T\>](https://orkestrel.github.io/core/api/type-aliases/CtorWithContainer): # Type Alias: CtorWithContainer()\<T\>
-- [Type Alias: DestroyJobResult](https://orkestrel.github.io/core/api/type-aliases/DestroyJobResult): # Type Alias: DestroyJobResult
-- [Type Alias: DiagnosticScope](https://orkestrel.github.io/core/api/type-aliases/DiagnosticScope): # Type Alias: DiagnosticScope
-- [Type Alias: EmitterListener()\<EMap, E\>](https://orkestrel.github.io/core/api/type-aliases/EmitterListener): # Type Alias: EmitterListener()\<EMap, E\>
-- [Type Alias: EventHandler()\<T\>](https://orkestrel.github.io/core/api/type-aliases/EventHandler): # Type Alias: EventHandler()\<T\>
-- [Type Alias: EventMap](https://orkestrel.github.io/core/api/type-aliases/EventMap): # Type Alias: EventMap
-- [Type Alias: FactoryProvider\<T\>](https://orkestrel.github.io/core/api/type-aliases/FactoryProvider): # Type Alias: FactoryProvider\<T\>
-- [Type Alias: FactoryProviderNoDeps\<T\>](https://orkestrel.github.io/core/api/type-aliases/FactoryProviderNoDeps): # Type Alias: FactoryProviderNoDeps\<T\>
-- [Type Alias: FactoryProviderWithContainer\<T\>](https://orkestrel.github.io/core/api/type-aliases/FactoryProviderWithContainer): # Type Alias: FactoryProviderWithContainer\<T\>
-- [Type Alias: FactoryProviderWithObject\<T, O\>](https://orkestrel.github.io/core/api/type-aliases/FactoryProviderWithObject): # Type Alias: FactoryProviderWithObject\<T, O\>
-- [Type Alias: FactoryProviderWithTuple\<T, A\>](https://orkestrel.github.io/core/api/type-aliases/FactoryProviderWithTuple): # Type Alias: FactoryProviderWithTuple\<T, A\>
-- [Type Alias: FromSchema\<S\>](https://orkestrel.github.io/core/api/type-aliases/FromSchema): # Type Alias: FromSchema\<S\>
-- [Type Alias: Guard()\<T\>](https://orkestrel.github.io/core/api/type-aliases/Guard): # Type Alias: Guard()\<T\>
-- [Type Alias: InjectObject\<O\>](https://orkestrel.github.io/core/api/type-aliases/InjectObject): # Type Alias: InjectObject\<O\>
-- [Type Alias: InjectTuple\<A\>](https://orkestrel.github.io/core/api/type-aliases/InjectTuple): # Type Alias: InjectTuple\<A\>
-- [Type Alias: LifecycleContext](https://orkestrel.github.io/core/api/type-aliases/LifecycleContext): # Type Alias: LifecycleContext
-- [Type Alias: LifecycleEventMap](https://orkestrel.github.io/core/api/type-aliases/LifecycleEventMap): # Type Alias: LifecycleEventMap
-- [Type Alias: LifecycleHook](https://orkestrel.github.io/core/api/type-aliases/LifecycleHook): # Type Alias: LifecycleHook
-- [Type Alias: LifecyclePhase](https://orkestrel.github.io/core/api/type-aliases/LifecyclePhase): # Type Alias: LifecyclePhase
-- [Type Alias: LifecycleState](https://orkestrel.github.io/core/api/type-aliases/LifecycleState): # Type Alias: LifecycleState
-- [Type Alias: LogLevel](https://orkestrel.github.io/core/api/type-aliases/LogLevel): # Type Alias: LogLevel
-- [Type Alias: MessageMapEntry](https://orkestrel.github.io/core/api/type-aliases/MessageMapEntry): # Type Alias: MessageMapEntry
-- [Type Alias: OptionalResolvedMap\<TMap\>](https://orkestrel.github.io/core/api/type-aliases/OptionalResolvedMap): # Type Alias: OptionalResolvedMap\<TMap\>
-- [Type Alias: OrchestratorGetter()](https://orkestrel.github.io/core/api/type-aliases/OrchestratorGetter): # Type Alias: OrchestratorGetter()
-- [Type Alias: OrchestratorStartResult](https://orkestrel.github.io/core/api/type-aliases/OrchestratorStartResult): # Type Alias: OrchestratorStartResult
-- [Type Alias: Outcome](https://orkestrel.github.io/core/api/type-aliases/Outcome): # Type Alias: Outcome
-- [Type Alias: PhaseResult](https://orkestrel.github.io/core/api/type-aliases/PhaseResult): # Type Alias: PhaseResult
-- [Type Alias: PhaseResultErr](https://orkestrel.github.io/core/api/type-aliases/PhaseResultErr): # Type Alias: PhaseResultErr
-- [Type Alias: PhaseResultOk](https://orkestrel.github.io/core/api/type-aliases/PhaseResultOk): # Type Alias: PhaseResultOk
-- [Type Alias: PhaseTimeouts](https://orkestrel.github.io/core/api/type-aliases/PhaseTimeouts): # Type Alias: PhaseTimeouts
-- [Type Alias: PrimitiveTag](https://orkestrel.github.io/core/api/type-aliases/PrimitiveTag): # Type Alias: PrimitiveTag
-- [Type Alias: Provider\<T\>](https://orkestrel.github.io/core/api/type-aliases/Provider): # Type Alias: Provider\<T\>
-- [Type Alias: ProviderMatchHandlers\<T\>](https://orkestrel.github.io/core/api/type-aliases/ProviderMatchHandlers): # Type Alias: ProviderMatchHandlers\<T\>
-- [Type Alias: ProviderMatchReturnHandlers\<T, R\>](https://orkestrel.github.io/core/api/type-aliases/ProviderMatchReturnHandlers): # Type Alias: ProviderMatchReturnHandlers\<T, R\>
-- [Type Alias: ResolvedMap\<TMap\>](https://orkestrel.github.io/core/api/type-aliases/ResolvedMap): # Type Alias: ResolvedMap\<TMap\>
-- [Type Alias: ResolveRule\<R\>](https://orkestrel.github.io/core/api/type-aliases/ResolveRule): # Type Alias: ResolveRule\<R\>
-- [Type Alias: SchemaSpec](https://orkestrel.github.io/core/api/type-aliases/SchemaSpec): # Type Alias: SchemaSpec
-- [Type Alias: Task()\<T\>](https://orkestrel.github.io/core/api/type-aliases/Task): # Type Alias: Task()\<T\>
-- [Type Alias: Token\<T\>](https://orkestrel.github.io/core/api/type-aliases/Token): # Type Alias: Token\<T\>
-- [Type Alias: TokenRecord](https://orkestrel.github.io/core/api/type-aliases/TokenRecord): # Type Alias: TokenRecord
-- [Type Alias: TokensOf\<T\>](https://orkestrel.github.io/core/api/type-aliases/TokensOf): # Type Alias: TokensOf\<T\>
-- [Variable: container](https://orkestrel.github.io/core/api/variables/container): # Variable: container
-- [Variable: CONTAINER\_MESSAGES](https://orkestrel.github.io/core/api/variables/CONTAINER_MESSAGES): # Variable: CONTAINER\_MESSAGES
-- [Variable: HELP](https://orkestrel.github.io/core/api/variables/HELP): # Variable: HELP
-- [Variable: INTERNAL\_MESSAGES](https://orkestrel.github.io/core/api/variables/INTERNAL_MESSAGES): # Variable: INTERNAL\_MESSAGES
-- [Variable: LIFECYCLE\_MESSAGES](https://orkestrel.github.io/core/api/variables/LIFECYCLE_MESSAGES): # Variable: LIFECYCLE\_MESSAGES
-- [Variable: orchestrator](https://orkestrel.github.io/core/api/variables/orchestrator): # Variable: orchestrator
-- [Variable: ORCHESTRATOR\_MESSAGES](https://orkestrel.github.io/core/api/variables/ORCHESTRATOR_MESSAGES): # Variable: ORCHESTRATOR\_MESSAGES
-- [Variable: PORTS\_MESSAGES](https://orkestrel.github.io/core/api/variables/PORTS_MESSAGES): # Variable: PORTS\_MESSAGES
-- [Variable: QUEUE\_MESSAGES](https://orkestrel.github.io/core/api/variables/QUEUE_MESSAGES): # Variable: QUEUE\_MESSAGES
-- [Variable: REGISTRY\_MESSAGES](https://orkestrel.github.io/core/api/variables/REGISTRY_MESSAGES): # Variable: REGISTRY\_MESSAGES
+- [Orkestrel Core overview](https://github.com/orkestrel/core/blob/main/docs/guide/overview.md): # Orkestrel Core overview
+- [Start](https://github.com/orkestrel/core/blob/main/docs/guide/start.md): # Start
+- [Concepts](https://github.com/orkestrel/core/blob/main/docs/guide/concepts.md): # Concepts
+- [Core](https://github.com/orkestrel/core/blob/main/docs/guide/core.md): # Core
+- [Ecosystem](https://github.com/orkestrel/core/blob/main/docs/guide/ecosystem.md): # Ecosystem
+- [Examples](https://github.com/orkestrel/core/blob/main/docs/guide/examples.md): # Examples
+- [Tips](https://github.com/orkestrel/core/blob/main/docs/guide/tips.md): # Tips
+- [Tests](https://github.com/orkestrel/core/blob/main/docs/guide/tests.md): # Tests
+- [Contribute](https://github.com/orkestrel/core/blob/main/docs/guide/contribute.md): # Contribute
+- [FAQ](https://github.com/orkestrel/core/blob/main/docs/guide/faq.md): # FAQ
+- [Abstract Class: Adapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/Adapter.md): # Abstract Class: Adapter
+- [Class: Container](https://github.com/orkestrel/core/blob/main/docs/api/classes/Container.md): # Class: Container
+- [Class: DiagnosticAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/DiagnosticAdapter.md): # Class: DiagnosticAdapter
+- [Class: EmitterAdapter\<EMap\>](https://github.com/orkestrel/core/blob/main/docs/api/classes/EmitterAdapter.md): # Class: EmitterAdapter\<EMap\>
+- [Class: EventAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/EventAdapter.md): # Class: EventAdapter
+- [Class: LayerAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/LayerAdapter.md): # Class: LayerAdapter
+- [Abstract Class: Lifecycle](https://github.com/orkestrel/core/blob/main/docs/api/classes/Lifecycle.md): # Abstract Class: Lifecycle
+- [Class: LoggerAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/LoggerAdapter.md): # Class: LoggerAdapter
+- [Class: NoopLogger](https://github.com/orkestrel/core/blob/main/docs/api/classes/NoopLogger.md): # Class: NoopLogger
+- [Class: Orchestrator](https://github.com/orkestrel/core/blob/main/docs/api/classes/Orchestrator.md): # Class: Orchestrator
+- [Class: QueueAdapter\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/classes/QueueAdapter.md): # Class: QueueAdapter\<T\>
+- [Class: RegistryAdapter\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/classes/RegistryAdapter.md): # Class: RegistryAdapter\<T\>
+- [Function: arrayOf()](https://github.com/orkestrel/core/blob/main/docs/api/functions/arrayOf.md): # Function: arrayOf()
+- [Function: createPortToken()](https://github.com/orkestrel/core/blob/main/docs/api/functions/createPortToken.md): # Function: createPortToken()
+- [Function: createPortTokens()](https://github.com/orkestrel/core/blob/main/docs/api/functions/createPortTokens.md): # Function: createPortTokens()
+- [Function: createToken()](https://github.com/orkestrel/core/blob/main/docs/api/functions/createToken.md): # Function: createToken()
+- [Function: createTokens()](https://github.com/orkestrel/core/blob/main/docs/api/functions/createTokens.md): # Function: createTokens()
+- [Function: extendPorts()](https://github.com/orkestrel/core/blob/main/docs/api/functions/extendPorts.md): # Function: extendPorts()
+- [Function: getTag()](https://github.com/orkestrel/core/blob/main/docs/api/functions/getTag.md): # Function: getTag()
+- [Function: hasOwn()](https://github.com/orkestrel/core/blob/main/docs/api/functions/hasOwn.md): # Function: hasOwn()
+- [Function: hasSchema()](https://github.com/orkestrel/core/blob/main/docs/api/functions/hasSchema.md): # Function: hasSchema()
+- [Function: isAggregateLifecycleError()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isAggregateLifecycleError.md): # Function: isAggregateLifecycleError()
+- [Function: isAsyncFunction()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isAsyncFunction.md): # Function: isAsyncFunction()
+- [Function: isBoolean()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isBoolean.md): # Function: isBoolean()
+- [Function: isClassProvider()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isClassProvider.md): # Function: isClassProvider()
+- [Function: isClassProviderNoDeps()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isClassProviderNoDeps.md): # Function: isClassProviderNoDeps()
+- [Function: isClassProviderWithContainer()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isClassProviderWithContainer.md): # Function: isClassProviderWithContainer()
+- [Function: isClassProviderWithObject()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isClassProviderWithObject.md): # Function: isClassProviderWithObject()
+- [Function: isClassProviderWithTuple()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isClassProviderWithTuple.md): # Function: isClassProviderWithTuple()
+- [Function: isFactoryProvider()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFactoryProvider.md): # Function: isFactoryProvider()
+- [Function: isFactoryProviderNoDeps()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFactoryProviderNoDeps.md): # Function: isFactoryProviderNoDeps()
+- [Function: isFactoryProviderWithContainer()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFactoryProviderWithContainer.md): # Function: isFactoryProviderWithContainer()
+- [Function: isFactoryProviderWithObject()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFactoryProviderWithObject.md): # Function: isFactoryProviderWithObject()
+- [Function: isFactoryProviderWithTuple()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFactoryProviderWithTuple.md): # Function: isFactoryProviderWithTuple()
+- [Function: isFiniteNumber()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFiniteNumber.md): # Function: isFiniteNumber()
+- [Function: isLifecycleErrorDetail()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isLifecycleErrorDetail.md): # Function: isLifecycleErrorDetail()
+- [Function: isObject()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isObject.md): # Function: isObject()
+- [Function: isPromiseLike()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isPromiseLike.md): # Function: isPromiseLike()
+- [Function: isProviderObject()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isProviderObject.md): # Function: isProviderObject()
+- [Function: isRawProviderValue()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isRawProviderValue.md): # Function: isRawProviderValue()
+- [Function: isString()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isString.md): # Function: isString()
+- [Function: isToken()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isToken.md): # Function: isToken()
+- [Function: isTokenArray()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isTokenArray.md): # Function: isTokenArray()
+- [Function: isTokenRecord()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isTokenRecord.md): # Function: isTokenRecord()
+- [Function: isValueProvider()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isValueProvider.md): # Function: isValueProvider()
+- [Function: isZeroArg()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isZeroArg.md): # Function: isZeroArg()
+- [Function: literalOf()](https://github.com/orkestrel/core/blob/main/docs/api/functions/literalOf.md): # Function: literalOf()
+- [Function: matchProvider()](https://github.com/orkestrel/core/blob/main/docs/api/functions/matchProvider.md): # Function: matchProvider()
+- [Function: register()](https://github.com/orkestrel/core/blob/main/docs/api/functions/register.md): # Function: register()
+- [Function: safeInvoke()](https://github.com/orkestrel/core/blob/main/docs/api/functions/safeInvoke.md): # Function: safeInvoke()
+- [Function: tokenDescription()](https://github.com/orkestrel/core/blob/main/docs/api/functions/tokenDescription.md): # Function: tokenDescription()
+- [Orkestrel Core](https://github.com/orkestrel/core/blob/main/docs/api/index.md): # Orkestrel Core
+- [Interface: ContainerOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/ContainerOptions.md): # Interface: ContainerOptions
+- [Interface: DiagnosticAdapterOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/DiagnosticAdapterOptions.md): # Interface: DiagnosticAdapterOptions
+- [Interface: DiagnosticErrorContext](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/DiagnosticErrorContext.md): # Interface: DiagnosticErrorContext
+- [Interface: DiagnosticMessage](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/DiagnosticMessage.md): # Interface: DiagnosticMessage
+- [Interface: DiagnosticPort](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/DiagnosticPort.md): # Interface: DiagnosticPort
+- [Interface: EmitterAdapterOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/EmitterAdapterOptions.md): # Interface: EmitterAdapterOptions
+- [Interface: EmitterPort\<EMap\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/EmitterPort.md): # Interface: EmitterPort\<EMap\>
+- [Interface: EventAdapterOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/EventAdapterOptions.md): # Interface: EventAdapterOptions
+- [Interface: EventPort\<EMap\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/EventPort.md): # Interface: EventPort\<EMap\>
+- [Interface: LayerAdapterOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/LayerAdapterOptions.md): # Interface: LayerAdapterOptions
+- [Interface: LayerNode\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/LayerNode.md): # Interface: LayerNode\<T\>
+- [Interface: LayerPort](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/LayerPort.md): # Interface: LayerPort
+- [Interface: LifecycleErrorDetail](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/LifecycleErrorDetail.md): # Interface: LifecycleErrorDetail
+- [Interface: LifecycleOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/LifecycleOptions.md): # Interface: LifecycleOptions
+- [Interface: LoggerPort](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/LoggerPort.md): # Interface: LoggerPort
+- [Interface: NodeEntry](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/NodeEntry.md): # Interface: NodeEntry
+- [Interface: OrchestratorOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/OrchestratorOptions.md): # Interface: OrchestratorOptions
+- [Interface: OrchestratorRegistration\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/OrchestratorRegistration.md): # Interface: OrchestratorRegistration\<T\>
+- [Interface: QueueAdapterOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/QueueAdapterOptions.md): # Interface: QueueAdapterOptions
+- [Interface: QueuePort\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/QueuePort.md): # Interface: QueuePort\<T\>
+- [Interface: QueueRunOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/QueueRunOptions.md): # Interface: QueueRunOptions
+- [Interface: RegisterOptions](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/RegisterOptions.md): # Interface: RegisterOptions
+- [Interface: Registration\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/Registration.md): # Interface: Registration\<T\>
+- [Interface: RegistryAdapterOptions\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/RegistryAdapterOptions.md): # Interface: RegistryAdapterOptions\<T\>
+- [Interface: RegistryPort\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/RegistryPort.md): # Interface: RegistryPort\<T\>
+- [Interface: ResolvedProvider\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/ResolvedProvider.md): # Interface: ResolvedProvider\<T\>
+- [Interface: ValueProvider\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/interfaces/ValueProvider.md): # Interface: ValueProvider\<T\>
+- [Type Alias: AggregateLifecycleError](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/AggregateLifecycleError.md): # Type Alias: AggregateLifecycleError
+- [Type Alias: ClassProvider\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ClassProvider.md): # Type Alias: ClassProvider\<T\>
+- [Type Alias: ClassProviderNoDeps\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ClassProviderNoDeps.md): # Type Alias: ClassProviderNoDeps\<T\>
+- [Type Alias: ClassProviderWithContainer\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ClassProviderWithContainer.md): # Type Alias: ClassProviderWithContainer\<T\>
+- [Type Alias: ClassProviderWithObject\<T, O\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ClassProviderWithObject.md): # Type Alias: ClassProviderWithObject\<T, O\>
+- [Type Alias: ClassProviderWithTuple\<T, A\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ClassProviderWithTuple.md): # Type Alias: ClassProviderWithTuple\<T, A\>
+- [Type Alias: ContainerGetter()](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ContainerGetter.md): # Type Alias: ContainerGetter()
+- [Type Alias: CtorNoDeps()\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/CtorNoDeps.md): # Type Alias: CtorNoDeps()\<T\>
+- [Type Alias: CtorWithContainer()\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/CtorWithContainer.md): # Type Alias: CtorWithContainer()\<T\>
+- [Type Alias: DestroyJobResult](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/DestroyJobResult.md): # Type Alias: DestroyJobResult
+- [Type Alias: DiagnosticScope](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/DiagnosticScope.md): # Type Alias: DiagnosticScope
+- [Type Alias: EmitterListener()\<EMap, E\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/EmitterListener.md): # Type Alias: EmitterListener()\<EMap, E\>
+- [Type Alias: EventHandler()\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/EventHandler.md): # Type Alias: EventHandler()\<T\>
+- [Type Alias: EventMap](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/EventMap.md): # Type Alias: EventMap
+- [Type Alias: FactoryProvider\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/FactoryProvider.md): # Type Alias: FactoryProvider\<T\>
+- [Type Alias: FactoryProviderNoDeps\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/FactoryProviderNoDeps.md): # Type Alias: FactoryProviderNoDeps\<T\>
+- [Type Alias: FactoryProviderWithContainer\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/FactoryProviderWithContainer.md): # Type Alias: FactoryProviderWithContainer\<T\>
+- [Type Alias: FactoryProviderWithObject\<T, O\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/FactoryProviderWithObject.md): # Type Alias: FactoryProviderWithObject\<T, O\>
+- [Type Alias: FactoryProviderWithTuple\<T, A\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/FactoryProviderWithTuple.md): # Type Alias: FactoryProviderWithTuple\<T, A\>
+- [Type Alias: FromSchema\<S\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/FromSchema.md): # Type Alias: FromSchema\<S\>
+- [Type Alias: Guard()\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/Guard.md): # Type Alias: Guard()\<T\>
+- [Type Alias: InjectObject\<O\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/InjectObject.md): # Type Alias: InjectObject\<O\>
+- [Type Alias: InjectTuple\<A\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/InjectTuple.md): # Type Alias: InjectTuple\<A\>
+- [Type Alias: LifecycleContext](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/LifecycleContext.md): # Type Alias: LifecycleContext
+- [Type Alias: LifecycleEventMap](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/LifecycleEventMap.md): # Type Alias: LifecycleEventMap
+- [Type Alias: LifecycleHook](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/LifecycleHook.md): # Type Alias: LifecycleHook
+- [Type Alias: LifecyclePhase](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/LifecyclePhase.md): # Type Alias: LifecyclePhase
+- [Type Alias: LifecycleState](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/LifecycleState.md): # Type Alias: LifecycleState
+- [Type Alias: LogLevel](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/LogLevel.md): # Type Alias: LogLevel
+- [Type Alias: MessageMapEntry](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/MessageMapEntry.md): # Type Alias: MessageMapEntry
+- [Type Alias: OptionalResolvedMap\<TMap\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/OptionalResolvedMap.md): # Type Alias: OptionalResolvedMap\<TMap\>
+- [Type Alias: OrchestratorGetter()](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/OrchestratorGetter.md): # Type Alias: OrchestratorGetter()
+- [Type Alias: OrchestratorStartResult](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/OrchestratorStartResult.md): # Type Alias: OrchestratorStartResult
+- [Type Alias: Outcome](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/Outcome.md): # Type Alias: Outcome
+- [Type Alias: PhaseResult](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/PhaseResult.md): # Type Alias: PhaseResult
+- [Type Alias: PhaseResultErr](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/PhaseResultErr.md): # Type Alias: PhaseResultErr
+- [Type Alias: PhaseResultOk](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/PhaseResultOk.md): # Type Alias: PhaseResultOk
+- [Type Alias: PhaseTimeouts](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/PhaseTimeouts.md): # Type Alias: PhaseTimeouts
+- [Type Alias: PrimitiveTag](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/PrimitiveTag.md): # Type Alias: PrimitiveTag
+- [Type Alias: Provider\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/Provider.md): # Type Alias: Provider\<T\>
+- [Type Alias: ProviderMatchHandlers\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ProviderMatchHandlers.md): # Type Alias: ProviderMatchHandlers\<T\>
+- [Type Alias: ProviderMatchReturnHandlers\<T, R\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ProviderMatchReturnHandlers.md): # Type Alias: ProviderMatchReturnHandlers\<T, R\>
+- [Type Alias: ResolvedMap\<TMap\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ResolvedMap.md): # Type Alias: ResolvedMap\<TMap\>
+- [Type Alias: ResolveRule\<R\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/ResolveRule.md): # Type Alias: ResolveRule\<R\>
+- [Type Alias: SchemaSpec](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/SchemaSpec.md): # Type Alias: SchemaSpec
+- [Type Alias: Task()\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/Task.md): # Type Alias: Task()\<T\>
+- [Type Alias: Token\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/Token.md): # Type Alias: Token\<T\>
+- [Type Alias: TokenRecord](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/TokenRecord.md): # Type Alias: TokenRecord
+- [Type Alias: TokensOf\<T\>](https://github.com/orkestrel/core/blob/main/docs/api/type-aliases/TokensOf.md): # Type Alias: TokensOf\<T\>
+- [Variable: CONTAINER\_MESSAGES](https://github.com/orkestrel/core/blob/main/docs/api/variables/CONTAINER_MESSAGES.md): # Variable: CONTAINER\_MESSAGES
+- [Variable: container](https://github.com/orkestrel/core/blob/main/docs/api/variables/container.md): # Variable: container
+- [Variable: HELP](https://github.com/orkestrel/core/blob/main/docs/api/variables/HELP.md): # Variable: HELP
+- [Variable: INTERNAL\_MESSAGES](https://github.com/orkestrel/core/blob/main/docs/api/variables/INTERNAL_MESSAGES.md): # Variable: INTERNAL\_MESSAGES
+- [Variable: LIFECYCLE\_MESSAGES](https://github.com/orkestrel/core/blob/main/docs/api/variables/LIFECYCLE_MESSAGES.md): # Variable: LIFECYCLE\_MESSAGES
+- [Variable: ORCHESTRATOR\_MESSAGES](https://github.com/orkestrel/core/blob/main/docs/api/variables/ORCHESTRATOR_MESSAGES.md): # Variable: ORCHESTRATOR\_MESSAGES
+- [Variable: orchestrator](https://github.com/orkestrel/core/blob/main/docs/api/variables/orchestrator.md): # Variable: orchestrator
+- [Variable: PORTS\_MESSAGES](https://github.com/orkestrel/core/blob/main/docs/api/variables/PORTS_MESSAGES.md): # Variable: PORTS\_MESSAGES
+- [Variable: QUEUE\_MESSAGES](https://github.com/orkestrel/core/blob/main/docs/api/variables/QUEUE_MESSAGES.md): # Variable: QUEUE\_MESSAGES
+- [Variable: REGISTRY\_MESSAGES](https://github.com/orkestrel/core/blob/main/docs/api/variables/REGISTRY_MESSAGES.md): # Variable: REGISTRY\_MESSAGES

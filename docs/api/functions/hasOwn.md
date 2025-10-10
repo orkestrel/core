@@ -8,7 +8,7 @@
 
 > **hasOwn**\<`K`\>(`obj`, `key`): `obj is Record<K, unknown>`
 
-Defined in: [helpers.ts:146](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L146)
+Defined in: [helpers.ts:146](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L146)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 
@@ -52,7 +52,7 @@ if (hasOwn(x, 'id', 'name')) {
 
 > **hasOwn**\<`Ks`\>(`obj`, ...`keys`): `obj is { [P in PropertyKey]: unknown }`
 
-Defined in: [helpers.ts:148](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L148)
+Defined in: [helpers.ts:148](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L148)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 
@@ -94,7 +94,7 @@ if (hasOwn(x, 'id', 'name')) {
 
 > **hasOwn**\<`T`, `K`\>(`obj`, `key`): `obj is T & Record<K, unknown>`
 
-Defined in: [helpers.ts:150](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L150)
+Defined in: [helpers.ts:150](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L150)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 
@@ -142,7 +142,7 @@ if (hasOwn(x, 'id', 'name')) {
 
 > **hasOwn**\<`T`, `Ks`\>(`obj`, ...`keys`): `obj is T & { [P in PropertyKey]: unknown }`
 
-Defined in: [helpers.ts:152](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L152)
+Defined in: [helpers.ts:152](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L152)
 
 Narrow an unknown to an object that owns the given key(s) (non-prototype).
 

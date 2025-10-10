@@ -6,7 +6,7 @@
 
 > **FactoryProviderWithContainer**\<`T`\> = `object`
 
-Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L23)
+Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L23)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/4aab0d299da5f30
 
 > `readonly` **useFactory**: (`container`) => `T`
 
-Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L23)
+Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L23)
 
 #### Parameters
 

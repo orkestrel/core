@@ -4,7 +4,7 @@
 
 # Interface: QueuePort\<T\>
 
-Defined in: [types.ts:198](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L198)
+Defined in: [types.ts:198](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L198)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:198](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **dequeue**(): `Promise`\<`undefined` \| `T`\>
 
-Defined in: [types.ts:200](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L200)
+Defined in: [types.ts:200](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L200)
 
 #### Returns
 
@@ -30,7 +30,7 @@ Defined in: [types.ts:200](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **enqueue**(`item`): `Promise`\<`void`\>
 
-Defined in: [types.ts:199](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L199)
+Defined in: [types.ts:199](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L199)
 
 #### Parameters
 
@@ -48,7 +48,7 @@ Defined in: [types.ts:199](https://github.com/orkestrel/core/blob/4aab0d299da5f3
 
 > **run**\<`R`\>(`tasks`, `options?`): `Promise`\<readonly `R`[]\>
 
-Defined in: [types.ts:202](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L202)
+Defined in: [types.ts:202](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L202)
 
 #### Type Parameters
 
@@ -76,7 +76,7 @@ readonly () => `R` \| `Promise`\<`R`\>[]
 
 > **size**(): `Promise`\<`number`\>
 
-Defined in: [types.ts:201](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/types.ts#L201)
+Defined in: [types.ts:201](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/types.ts#L201)
 
 #### Returns
 

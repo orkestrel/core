@@ -4,7 +4,7 @@
 
 # Class: RegistryAdapter\<T\>
 
-Defined in: [adapters/registry.ts:28](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L28)
+Defined in: [adapters/registry.ts:28](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L28)
 
 Named instance registry with optional default and locking support.
 
@@ -44,7 +44,7 @@ reg.clear('alt', true)           // true (forced)
 
 > **new RegistryAdapter**\<`T`\>(`options`): `RegistryAdapter`\<`T`\>
 
-Defined in: [adapters/registry.ts:46](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L46)
+Defined in: [adapters/registry.ts:46](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L46)
 
 Construct a RegistryAdapter with optional label and default instance.
 
@@ -72,7 +72,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/registry.ts:68](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L68)
+Defined in: [adapters/registry.ts:68](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L68)
 
 Access the diagnostic port used by this registry for error reporting.
 
@@ -90,7 +90,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/registry.ts:61](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L61)
+Defined in: [adapters/registry.ts:61](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L61)
 
 Access the logger port used by this registry.
 
@@ -106,7 +106,7 @@ The configured LoggerPort instance
 
 > **clear**(`name?`, `force?`): `boolean`
 
-Defined in: [adapters/registry.ts:157](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L157)
+Defined in: [adapters/registry.ts:157](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L157)
 
 Clear a named instance from the registry.
 
@@ -151,7 +151,7 @@ reg.clear('prod', true)        // true (forced removal)
 
 > **get**(`name?`): `undefined` \| `T`
 
-Defined in: [adapters/registry.ts:82](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L82)
+Defined in: [adapters/registry.ts:82](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L82)
 
 Get a named value without throwing an error.
 
@@ -186,7 +186,7 @@ if (value) console.log('Found:', value)
 
 > **list**(): readonly (`string` \| `symbol`)[]
 
-Defined in: [adapters/registry.ts:178](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L178)
+Defined in: [adapters/registry.ts:178](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L178)
 
 List all registered keys (including the default key symbol when present).
 
@@ -213,7 +213,7 @@ console.log('Registered keys:', keys)
 
 > **resolve**(`name?`): `T`
 
-Defined in: [adapters/registry.ts:101](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L101)
+Defined in: [adapters/registry.ts:101](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L101)
 
 Resolve a named value, throwing an error if not found.
 
@@ -256,7 +256,7 @@ const defaultValue = reg.resolve() // throws if no default
 
 > **set**(`name`, `value`, `lock`): `void`
 
-Defined in: [adapters/registry.ts:129](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/adapters/registry.ts#L129)
+Defined in: [adapters/registry.ts:129](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/adapters/registry.ts#L129)
 
 Register or replace a named instance in the registry.
 

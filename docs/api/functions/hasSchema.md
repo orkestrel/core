@@ -6,7 +6,7 @@
 
 > **hasSchema**\<`S`\>(`obj`, `schema`): `obj is FromSchema<S>`
 
-Defined in: [helpers.ts:173](https://github.com/orkestrel/core/blob/4aab0d299da5f30a0c75f3eda95d1b02f821688d/src/helpers.ts#L173)
+Defined in: [helpers.ts:173](https://github.com/orkestrel/core/blob/076093e61b67cd3d4198b173439f047ddbc97abc/src/helpers.ts#L173)
 
 Check that a value matches an object schema at runtime, with static inference.
 

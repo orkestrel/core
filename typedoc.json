@@ -7,7 +7,6 @@
     "typedoc-plugin-frontmatter",
     "typedoc-plugin-extras"
   ],
-  "readme": "none",
   "githubPages": false,
   "hideGenerator": true,
   "excludePrivate": true,
@@ -16,5 +15,7 @@
   "categorizeByGroup": true,
   "hideBreadcrumbs": true,
   "hidePageTitle": false,
-  "theme": "default"
+  "theme": "default",
+  "entryFileName": "index",
+  "mergeReadme": true
 }

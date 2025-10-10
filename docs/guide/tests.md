@@ -1,15 +1,15 @@
-# Testing
+# Tests
 
 Guidelines to keep tests fast, deterministic, and representative of real-world usage without adding heavy tooling.
 
-## Principles
+Principles
 - Prefer tiny, isolated scenarios that map directly to source behaviors.
 - Avoid mocks/fakes/spies in this core repo. Use real components and built-ins only. Consumers can use fakes/spies when testing their apps.
 - Keep timeouts small to make tests snappy and still representative. Favor deterministic assertions.
 
-## Patterns
+Patterns
 
-### Scoping with Container.using
+Scoping with Container.using
 Run code within a child scope and ensure cleanup after execution.
 ```ts
 import { Container } from '@orkestrel/core'
@@ -23,7 +23,7 @@ const result = await root.using(async (scope) => {
 // scope is destroyed here
 ```
 
-Apply overrides via an `apply` callback before running work:
+Apply overrides via an apply callback before running work:
 ```ts
 import { Container, createToken } from '@orkestrel/core'
 
@@ -40,7 +40,7 @@ const out = await root.using(
 // out === 'scoped'; scope was destroyed after the function
 ```
 
-### Lifecycle expectations
+Lifecycle expectations
 Assert transitions and errors using real Lifecycle-derived classes.
 ```ts
 import { Lifecycle } from '@orkestrel/core'
@@ -58,7 +58,7 @@ await s.stop()
 assert.equal(s.state, 'stopped')
 ```
 
-### Orchestrator flows
+Orchestrator flows
 Use the Orchestrator to exercise start/stop/destroy ordering with small graphs.
 ```ts
 import { Orchestrator, Container, register, createToken, Lifecycle } from '@orkestrel/core'
@@ -77,27 +77,30 @@ await app.stop()
 await app.destroy()
 ```
 
-## Deterministic timeouts
+Deterministic timeouts
 - Keep hook and orchestrator timeouts low (e.g., 10–50ms) in tests.
 - Avoid external timer-mocking libraries; structure code to be deterministic with short timers.
 
-## Aggregated errors
-Catch `AggregateLifecycleError` when testing error paths and inspect `details` for per-component context.
+Aggregated errors
+Catch AggregateLifecycleError when testing error paths and inspect details for per-component context.
 ```ts
-import { AggregateLifecycleError } from '@orkestrel/core'
+import { isAggregateLifecycleError } from '@orkestrel/core'
 
 try {
   await app.stop()
 } catch (e) {
-  if (e instanceof AggregateLifecycleError) {
-    // assert on e.details (phase, tokenDescription, timedOut, durationMs, error.message)
+  if (isAggregateLifecycleError(e)) {
+    for (const d of e.details) {
+      console.error(`${d.tokenDescription} failed during ${d.phase}${d.timedOut ? ' (timed out)' : ''} after ${d.durationMs}ms:`, d.error.message)
+    }
   } else {
     throw e
   }
 }
 ```
 
-## Policy for the core repo
+Policy for the core repo
 - No mocks, fakes, or spies in tests here; use only built-ins and actual code paths.
 - Keep tests short and focused. Add happy-path + 1–2 edge cases for public behavior.
-- Aim for fast runs (seconds, not minutes) with `tsx --test` and `tsc --noEmit`.
+- Aim for fast runs (seconds, not minutes) with tsx --test and tsc --noEmit.
+

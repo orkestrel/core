@@ -40,8 +40,8 @@ async function* walk(dir: string): AsyncGenerator<string> {
 	}
 }
 
-function relToUrl(baseUrl: string, docsDir: string, filePath: string): string {
-	const rel = path.relative(docsDir, filePath).replace(/\\/g, '/')
+function relToUrl(baseUrl: string, docsDirAbs: string, filePathAbs: string): string {
+	const rel = path.relative(docsDirAbs, filePathAbs).replace(/\\/g, '/')
 	const withoutExt = rel.replace(/\.(md|mdx)$/i, '')
 	return `${baseUrl}/${withoutExt}/`
 }
@@ -58,22 +58,51 @@ async function ensureDir(dir: string) {
 	await fs.mkdir(dir, { recursive: true })
 }
 
+function computeWeight(docsDirAbs: string, filePathAbs: string): number {
+	// Prioritize guide pages in a specific order, then other guides, then everything else
+	const rel = path.relative(docsDirAbs, filePathAbs).replace(/\\/g, '/')
+	const lower = rel.toLowerCase()
+	if (lower.startsWith('guide/')) {
+		const guideOrder = [
+			'overview',
+			'start',
+			'concepts',
+			'core',
+			'ecosystem',
+			'examples',
+			'tips',
+			'tests',
+			'contribute',
+		]
+		for (let i = 0; i < guideOrder.length; i++) {
+			const name = guideOrder[i]
+			if (lower === `guide/${name}.md` || lower === `guide/${name}.mdx`) return i
+		}
+		// Other guide pages after the curated set
+		return 100 + rel.localeCompare('') // stable but after curated
+	}
+	// Non-guide (e.g., API) comes after guides
+	return 1000 + (rel ? rel.localeCompare('') : 0)
+}
+
 async function main() {
 	const { baseUrl, docsDir, outDir } = parseArgs(process.argv)
 	const absDocs = path.resolve(docsDir)
 	const absOut = path.resolve(outDir)
 	await ensureDir(absOut)
 
-	const entries: { title: string, url: string, content: string }[] = []
+	type Entry = { title: string, url: string, content: string, weight: number }
+	const entries: Entry[] = []
 
 	for await (const file of walk(absDocs)) {
 		const raw = await fs.readFile(file, 'utf8')
 		const title = extractTitle(raw, path.basename(file, path.extname(file)))
 		const url = relToUrl(baseUrl, absDocs, file)
-		entries.push({ title, url, content: raw })
+		const weight = computeWeight(absDocs, file)
+		entries.push({ title, url, content: raw, weight })
 	}
 
-	entries.sort((a, b) => a.url.localeCompare(b.url))
+	entries.sort((a, b) => (a.weight - b.weight) || a.url.localeCompare(b.url))
 
 	const compact = entries.map(e => `${e.title}\n${e.url}`).join('\n\n') + '\n'
 	await fs.writeFile(path.join(absOut, 'llms.txt'), compact, 'utf8')
@@ -88,4 +117,3 @@ main().catch((err) => {
 	console.error(err)
 	process.exit(1)
 })
-

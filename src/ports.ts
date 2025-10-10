@@ -50,24 +50,25 @@ export function createPortTokens<T extends Record<string, unknown>>(shape: T, na
  * - extendPorts(ext) creates a new token set from scratch.
  * - extendPorts(base, ext) merges into an existing token map (throws on duplicate keys).
  *
- * Example
- * -------
+ * @param ext - Extension shape used to create a new token set
+ * @returns A frozen map of tokens for the extension shape
+ *
+ * @example
  * ```ts
  * const base = createPortTokens({ a: undefined as number })
  * const more = extendPorts(base, { b: undefined as string })
  * // more.a and more.b are tokens
  * ```
  *
- * @param ext - Extension shape used to create a new token set.
  * @remarks Duplicate keys are rejected to prevent accidental overrides (code ORK1040).
- * @returns -
  */
 export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): Readonly<TokensOf<Ext>>
 /**
  * Extend a base token map with an extension shape.
- * @param base - Existing tokens map to extend.
- * @param ext - Extension shape to merge (keys must not overlap with base).
- * @returns -
+ *
+ * @param base - Existing tokens map to extend
+ * @param ext - Extension shape to merge (keys must not overlap with base)
+ * @returns A frozen map combining base tokens and new extension tokens
  */
 export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Readonly<Base & TokensOf<Ext>>
 export function extendPorts(

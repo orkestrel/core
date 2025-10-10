@@ -1,25 +1,31 @@
 import type { LogLevel, LoggerPort } from '../types.js'
 
 /**
- * LoggerAdapter: minimal console-backed LoggerPort implementation.
- * - Routes by level to console.debug/info/warn/error.
- * - Swallows any console errors to avoid cascading failures.
+ * Minimal console-backed logger implementation that routes log messages by level.
  *
- * Example
- * -------
+ * Routes log messages to the appropriate console method based on level (debug/info/warn/error).
+ * Swallows any console errors to avoid cascading failures.
+ *
+ * @example
  * ```ts
+ * import { LoggerAdapter } from '@orkestrel/core'
  * const logger = new LoggerAdapter()
- * logger.log('info', 'hello', { user: 'alice' })
+ * logger.log('info', 'Application started', { version: '1.0.0', user: 'alice' })
+ * logger.log('error', 'Failed to connect', { retries: 3 })
  * ```
  */
 export class LoggerAdapter implements LoggerPort {
 	/**
+	 * Log a message with the specified level and optional structured fields.
 	 *
-	 * @param level
-	 * @param message
-	 * @param fields
-	 * @returns -
+	 * @param level - Log level: 'debug', 'info', 'warn', or 'error'
+	 * @param message - Human-readable log message
+	 * @param fields - Optional structured data to include with the log entry
+	 *
 	 * @example
+	 * ```ts
+	 * logger.log('info', 'User logged in', { userId: '123', sessionId: 'abc' })
+	 * ```
 	 */
 	log(level: LogLevel, message: string, fields: Record<string, unknown> = {}): void {
 		const payload = { msg: message, ...fields }
@@ -36,16 +42,24 @@ export class LoggerAdapter implements LoggerPort {
 }
 
 /**
- * NoopLogger: silent LoggerPort useful in tests or to disable logs.
+ * Silent logger implementation that discards all log messages.
+ *
+ * Useful for tests or when you need to disable logging entirely without changing code.
+ *
+ * @example
+ * ```ts
+ * import { NoopLogger } from '@orkestrel/core'
+ * const logger = new NoopLogger()
+ * logger.log('info', 'This will not be logged')
+ * ```
  */
 export class NoopLogger implements LoggerPort {
 	/**
+	 * No-op log method that intentionally does nothing with log messages.
 	 *
-	 * @param _level
-	 * @param _message
-	 * @param _fields
-	 * @returns -
-	 * @example
+	 * @param _level - Log level (ignored)
+	 * @param _message - Log message (ignored)
+	 * @param _fields - Optional fields (ignored)
 	 */
 	log(_level: LogLevel, _message: string, _fields?: Record<string, unknown>): void {
 		// intentionally no-op

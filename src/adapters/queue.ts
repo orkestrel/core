@@ -4,19 +4,22 @@ import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
 
 /**
- * QueueAdapter: in-memory queue and task runner with concurrency, per-task timeouts, and shared deadlines.
- * - run() preserves result order and can be aborted via AbortSignal.
+ * In-memory task queue with concurrency control, timeouts, and shared deadlines.
  *
- * Example
- * -------
+ * Provides a FIFO queue for items and a task runner that can execute tasks with configurable
+ * concurrency limits, per-task timeouts, and shared deadlines. Supports abort signals for
+ * cancellation and preserves result order regardless of completion timing.
+ *
+ * @example
  * ```ts
- * const q = new QueueAdapter({ concurrency: 2 })
- * const results = await q.run([
- *   async () => 1,
- *   async () => 2,
- *   async () => 3,
- * ], { timeout: 100 })
- * // results: [1,2,3]
+ * import { QueueAdapter } from '@orkestrel/core'
+ * const queue = new QueueAdapter({ concurrency: 2, timeout: 1000 })
+ * const results = await queue.run([
+ *   async () => { await delay(100); return 1 },
+ *   async () => { await delay(50); return 2 },
+ *   async () => { await delay(200); return 3 },
+ * ])
+ * console.log(results) // => [1, 2, 3] (order preserved)
  * ```
  */
 export class QueueAdapter<T = unknown> implements QueuePort<T> {
@@ -27,10 +30,25 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	readonly #diagnostic: DiagnosticPort
 
 	/**
+	 * Construct a QueueAdapter with optional configuration defaults.
 	 *
-	 * @param options
-	 * @returns -
+	 * @param options - Configuration options for queue behavior
+	 * @param options.capacity - Maximum number of items the queue can hold (unlimited if not specified)
+	 * @param options.concurrency - Default maximum number of tasks to run concurrently
+	 * @param options.timeout - Default per-task timeout in milliseconds
+	 * @param options.deadline - Default shared deadline in milliseconds for all tasks
+	 * @param options.signal - Default AbortSignal for cancellation
+	 * @param options.logger - Optional logger port for diagnostics
+	 * @param options.diagnostic - Optional diagnostic port for telemetry
+	 *
 	 * @example
+	 * ```ts
+	 * const queue = new QueueAdapter({
+	 *   concurrency: 5,
+	 *   timeout: 2000,
+	 *   capacity: 100
+	 * })
+	 * ```
 	 */
 	constructor(options: QueueAdapterOptions = {}) {
 		this.capacity = options.capacity
@@ -44,18 +62,30 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 		}
 	}
 
-	/** Logger backing this adapter. */
+	/**
+	 * Access the logger port used by this queue adapter.
+	 *
+	 * @returns The configured LoggerPort instance
+	 */
 	get logger(): LoggerPort { return this.#logger }
 
-	/** Diagnostic port used for telemetry and error signaling. */
+	/**
+	 * Access the diagnostic port used by this queue adapter for telemetry and error signaling.
+	 *
+	 * @returns The configured DiagnosticPort instance
+	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
 	 * Enqueue a single item to the in-memory FIFO queue.
-	 * @param item
-	 * @throws ORK1050 when capacity is set and exceeded.
-	 * @returns -
+	 *
+	 * @param item - The item to add to the queue
+	 * @throws Error with code ORK1050 when capacity is set and would be exceeded
+	 *
 	 * @example
+	 * ```ts
+	 * await queue.enqueue({ id: 1, data: 'task payload' })
+	 * ```
 	 */
 	async enqueue(item: T): Promise<void> {
 		if (typeof this.capacity === 'number' && this.items.length >= this.capacity) {
@@ -64,20 +94,60 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 		this.items.push(item)
 	}
 
-	/** Dequeue and return the next item, or undefined when empty. */
+	/**
+	 * Dequeue and return the next item from the queue.
+	 *
+	 * @returns The next item in FIFO order, or undefined if the queue is empty
+	 *
+	 * @example
+	 * ```ts
+	 * const item = await queue.dequeue()
+	 * if (item) console.log('Processing:', item)
+	 * ```
+	 */
 	async dequeue(): Promise<T | undefined> { return this.items.length ? this.items.shift() : undefined }
 
-	/** Return the number of items currently enqueued. */
+	/**
+	 * Return the current number of items in the queue.
+	 *
+	 * @returns The queue size
+	 *
+	 * @example
+	 * ```ts
+	 * const currentSize = await queue.size()
+	 * console.log(`Queue has ${currentSize} items`)
+	 * ```
+	 */
 	async size(): Promise<number> { return this.items.length }
 
 	/**
-	 * Run a set of tasks with optional concurrency, per-task timeouts, and a shared deadline.
-	 * - When both timeout and deadline are provided, the effective cap is the lower of the two per task.
-	 * - If the shared deadline elapses, execution aborts early with code ORK1053.
-	 * @param tasks
-	 * @param options
-	 * @returns -
+	 * Run a set of tasks with optional concurrency control, timeouts, and a shared deadline.
+	 *
+	 * Tasks are executed with the specified concurrency limit (defaults to unlimited). Results are
+	 * returned in the same order as the input tasks, regardless of completion timing. When both
+	 * a per-task timeout and a shared deadline are provided, the effective limit is the minimum
+	 * of the two for each task. If the shared deadline elapses or a task times out, execution
+	 * aborts with an error (ORK1052 for task timeout, ORK1053 for shared deadline exceeded).
+	 *
+	 * @typeParam R - The return type of the tasks
+	 * @param tasks - Array of task functions (sync or async) to execute
+	 * @param options - Run options (overrides constructor defaults)
+	 * @param options.concurrency - Maximum number of tasks to run concurrently
+	 * @param options.timeout - Per-task timeout in milliseconds
+	 * @param options.deadline - Shared deadline in milliseconds for all tasks
+	 * @param options.signal - AbortSignal to cancel execution
+	 * @returns Array of task results in the same order as input tasks
+	 * @throws Error with code ORK1051 when aborted, ORK1052 on task timeout, or ORK1053 on shared deadline exceeded
+	 *
 	 * @example
+	 * ```ts
+	 * const results = await queue.run([
+	 *   async () => fetchUser(1),
+	 *   async () => fetchUser(2),
+	 *   async () => fetchUser(3),
+	 * ], { concurrency: 2, timeout: 5000 })
+	 * console.log('Fetched users:', results)
+	 * ```
 	 */
 	async run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options: QueueRunOptions = {}): Promise<ReadonlyArray<R>> {
 		const opts: QueueRunOptions = { ...this.defaults, ...options }

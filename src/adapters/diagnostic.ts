@@ -10,11 +10,14 @@ import type {
 import { safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 
+/** Internal base error class with code and helpUrl support. */
 class BaseError extends Error {
 	constructor(message: string, public code?: string, public helpUrl?: string) {
 		super(message)
 	}
 }
+
+/** Internal aggregate lifecycle error with details and errors arrays. */
 class AggregateLifecycleError extends BaseError {
 	constructor(message: string, public details: LifecycleErrorDetail[], public errors: Error[], code?: string, helpUrl?: string) {
 		super(message, code, helpUrl)
@@ -22,28 +25,37 @@ class AggregateLifecycleError extends BaseError {
 }
 
 /**
- * DiagnosticAdapter: safe delegator to a LoggerPort with keyed message overrides.
- * - Provides log/error/fail/help/aggregate and metric/trace/event methods.
- * - Never throws outward except fail/aggregate which build and throw errors after logging.
+ * Diagnostic adapter providing safe logging, error reporting, and telemetry.
  *
- * Example
- * -------
+ * Acts as a delegator to a LoggerPort with keyed message overrides for consistent
+ * log levels and messages. Provides methods for logging (log), error reporting (error),
+ * error construction and throwing (fail), building errors without throwing (help),
+ * aggregating lifecycle errors (aggregate), and telemetry (metric/trace/event).
+ *
+ * Never throws from safe methods (log, error, metric, trace, event). Only fail() and
+ * aggregate() throw errors after logging them.
+ *
+ * @example
  * ```ts
- * import { DiagnosticAdapter } from '@orkestrel/core'
+ * import { DiagnosticAdapter, ORCHESTRATOR_MESSAGES } from '@orkestrel/core'
  *
- * const diag = new DiagnosticAdapter()
- * // Emit an error and throw with a stable code
+ * const diag = new DiagnosticAdapter({ messages: ORCHESTRATOR_MESSAGES })
+ * diag.log('info', 'orchestrator.phase', { phase: 'start' })
+ *
+ * // Build and throw an error with a code
  * try {
  *   diag.fail('ORK1007', { scope: 'orchestrator', message: 'Duplicate registration' })
  * } catch (e) {
- *   // e is an Error with optional code/helpUrl
+ *   console.error('Caught:', e.code, e.message)
  * }
  *
- * // Aggregate multiple lifecycle errors
- * const errs = [new Error('boom'), new Error('bye')]
+ * // Aggregate multiple errors
+ * const errors = [new Error('task1 failed'), new Error('task2 failed')]
  * try {
- *   diag.aggregate('ORK1017', errs, { scope: 'orchestrator', message: 'Errors during destroy' })
- * } catch (e) {}
+ *   diag.aggregate('ORK1017', errors, { scope: 'orchestrator', message: 'Errors during destroy' })
+ * } catch (e) {
+ *   // e is an AggregateLifecycleError with .details and .errors
+ * }
  * ```
  */
 export class DiagnosticAdapter implements DiagnosticPort {
@@ -52,10 +64,20 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	readonly #messages: ReadonlyMap<string, MessageMapEntry>
 
 	/**
+	 * Construct a DiagnosticAdapter with optional logger and message overrides.
 	 *
-	 * @param options
-	 * @returns -
+	 * @param options - Configuration options
+	 * @param options.logger - Optional logger port for emitting log entries (default: LoggerAdapter)
+	 * @param options.messages - Array of diagnostic messages with keys, levels, and message templates
+	 *
 	 * @example
+	 * ```ts
+	 * import { DiagnosticAdapter, LIFECYCLE_MESSAGES } from '@orkestrel/core'
+	 * const diag = new DiagnosticAdapter({
+	 *   logger: customLogger,
+	 *   messages: LIFECYCLE_MESSAGES
+	 * })
+	 * ```
 	 */
 	constructor(options?: DiagnosticAdapterOptions) {
 		this.#logger = options?.logger ?? new LoggerAdapter()
@@ -66,8 +88,9 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	/**
+	 * Access the logger port used by this diagnostic adapter.
 	 *
-	 * @example
+	 * @returns The configured LoggerPort instance
 	 */
 	get logger(): LoggerPort { return this.#logger }
 
@@ -76,13 +99,20 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	// ---------------------------
 
 	/**
-	 * Write a log entry with a level, message key, and optional fields.
-	 * The key is resolved via the message map to a final level/message.
-	 * @param level
-	 * @param message
-	 * @param fields
-	 * @returns -
+	 * Write a log entry with a level, message key, and optional structured fields.
+	 *
+	 * The message key is resolved via the internal message map to determine the final
+	 * log level and message template. Delegates to the logger port and never throws.
+	 *
+	 * @param level - Fallback log level when the key is not found in the message map
+	 * @param message - Message key or literal message string
+	 * @param fields - Optional structured data to include with the log entry
+	 *
 	 * @example
+	 * ```ts
+	 * diag.log('info', 'orchestrator.phase', { phase: 'start', layer: 1 })
+	 * diag.log('error', 'ORK1007', { scope: 'orchestrator' })
+	 * ```
 	 */
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void {
 		const resolved = this.resolve(message, { level, message })
@@ -91,11 +121,21 @@ export class DiagnosticAdapter implements DiagnosticPort {
 
 	/**
 	 * Report an error to the logger with optional context fields.
-	 * Does not throw; use fail() to throw with a code.
-	 * @param err
-	 * @param context
-	 * @returns -
+	 *
+	 * Does not throw; logs the error with structured context. Use fail() to build and throw
+	 * an error with a code. Coerces non-Error values to Error instances.
+	 *
+	 * @param err - Error instance or value to report
+	 * @param context - Optional structured context including code, scope, and extra fields
+	 *
 	 * @example
+	 * ```ts
+	 * try {
+	 *   await riskyOperation()
+	 * } catch (e) {
+	 *   diag.error(e, { scope: 'orchestrator', code: 'ORK1013' })
+	 * }
+	 * ```
 	 */
 	error(err: unknown, context: DiagnosticErrorContext = {}): void {
 		const e = err instanceof Error ? err : new Error(String(err))
@@ -107,11 +147,23 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	/**
 	 * Build an Error using a key/code, log it, and throw it.
 	 *
-	 * @param key - Code or name used to resolve a message and severity.
-	 * @param context - Optional structured context including message override and helpUrl.
-	 * @throws Error with optional .code and .helpUrl.
-	 * @returns -
+	 * Resolves the key in the message map to determine the log level and message template.
+	 * Constructs an error with optional code and helpUrl properties, logs it, then throws.
+	 *
+	 * @param key - Code or message key (e.g., 'ORK1007') used to resolve message and severity
+	 * @param context - Optional structured context including message override, helpUrl, name, and scope
+	 * @throws Error with optional .code and .helpUrl properties
+	 *
 	 * @example
+	 * ```ts
+	 * if (isDuplicate) {
+	 *   diag.fail('ORK1007', {
+	 *     scope: 'orchestrator',
+	 *     message: 'Duplicate registration',
+	 *     helpUrl: 'https://example.com/errors#ORK1007'
+	 *   })
+	 * }
+	 * ```
 	 */
 	fail(key: string, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): never {
 		const { message: overrideMsg, helpUrl, name, ...rest } = context
@@ -125,12 +177,23 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	/**
-	 * Build a helpful Error using a known key/code without throwing.
-	 * Useful when you want to attach the error to other structures.
-	 * @param key
-	 * @param context
-	 * @returns -
+	 * Build an Error using a known key/code without throwing.
+	 *
+	 * Useful when you need to construct an error to attach to other structures or pass
+	 * to callbacks. Does not log or throw the error.
+	 *
+	 * @param key - Code or message key used to resolve the error message
+	 * @param context - Optional context including message override, helpUrl, and name
+	 * @returns Constructed Error instance with optional code and helpUrl properties
+	 *
 	 * @example
+	 * ```ts
+	 * const timeoutErr = diag.help('ORK1021', {
+	 *   message: 'Hook onStart timed out',
+	 *   helpUrl: HELP.lifecycle
+	 * })
+	 * return Promise.reject(timeoutErr)
+	 * ```
 	 */
 	help(key: string, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): Error {
 		const { message: overrideMsg, helpUrl, name, ...rest } = context
@@ -140,14 +203,26 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	/**
-	 * Build and throw an aggregate error from a set of lifecycle details or errors.
+	 * Build and throw an aggregate error from a collection of lifecycle details or errors.
 	 *
-	 * @param key - Code used for the aggregate error (e.g., ORK1013).
-	 * @param detailsOrErrors - Collection of details or errors (mixed).
-	 * @param context - Optional message override and helpUrl.
-	 * @throws Aggregate error containing .details and .errors arrays.
-	 * @returns -
+	 * Normalizes mixed arrays of LifecycleErrorDetail and Error instances into a uniform
+	 * details array, constructs an AggregateLifecycleError, logs it, and throws. The thrown
+	 * error includes .details and .errors arrays for inspection.
+	 *
+	 * @param key - Code used for the aggregate error (e.g., 'ORK1013', 'ORK1014', 'ORK1015')
+	 * @param detailsOrErrors - Array of LifecycleErrorDetail and/or Error instances to aggregate
+	 * @param context - Optional message override, helpUrl, and other context fields
+	 * @throws AggregateLifecycleError with .details and .errors arrays
+	 *
 	 * @example
+	 * ```ts
+	 * const failures: LifecycleErrorDetail[] = [...]
+	 * diag.aggregate('ORK1013', failures, {
+	 *   scope: 'orchestrator',
+	 *   message: 'Errors during start phase',
+	 *   helpUrl: HELP.orchestrator
+	 * })
+	 * ```
 	 */
 	aggregate(key: string, detailsOrErrors: ReadonlyArray<LifecycleErrorDetail | Error>, context: (DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }) = {}): never {
 		const details = this.normalizeAggregateDetails(detailsOrErrors)
@@ -165,11 +240,19 @@ export class DiagnosticAdapter implements DiagnosticPort {
 
 	/**
 	 * Emit a metric with a numeric value and optional tags.
-	 * @param name
-	 * @param value
-	 * @param tags
-	 * @returns -
+	 *
+	 * Resolves the metric name in the message map, logs with the resolved level and message,
+	 * and includes the numeric value and tags as structured fields.
+	 *
+	 * @param name - Metric name (e.g., 'queue.size', 'http.latency')
+	 * @param value - Numeric metric value
+	 * @param tags - Optional key-value tags for filtering and grouping
+	 *
 	 * @example
+	 * ```ts
+	 * diag.metric('queue.size', 42, { queueName: 'tasks', priority: 'high' })
+	 * diag.metric('http.latency', 125.5, { endpoint: '/api/users' })
+	 * ```
 	 */
 	metric(name: string, value: number, tags: Record<string, string | number | boolean> = {}): void {
 		const resolved = this.resolve(name, { level: 'info', message: name })
@@ -177,11 +260,19 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	/**
-	 * Emit a trace-level payload for debugging.
-	 * @param name
-	 * @param payload
-	 * @returns -
+	 * Emit a trace-level payload for detailed debugging.
+	 *
+	 * Resolves the trace name in the message map and logs at debug level with the provided
+	 * payload as structured fields.
+	 *
+	 * @param name - Trace name (e.g., 'lifecycle.transition', 'orchestrator.layers')
+	 * @param payload - Optional structured data for the trace entry
+	 *
 	 * @example
+	 * ```ts
+	 * diag.trace('lifecycle.transition', { from: 'created', to: 'started' })
+	 * diag.trace('orchestrator.layers', { layers: [[A], [B, C]] })
+	 * ```
 	 */
 	trace(name: string, payload: Record<string, unknown> = {}): void {
 		const resolved = this.resolve(name, { level: 'debug', message: name })
@@ -189,11 +280,19 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	/**
-	 * Emit a general event payload for analytics/telemetry.
-	 * @param name
-	 * @param payload
-	 * @returns -
+	 * Emit a general event payload for analytics or telemetry.
+	 *
+	 * Resolves the event name in the message map and logs at info level with the provided
+	 * payload as structured fields. Used for application events, not errors or traces.
+	 *
+	 * @param name - Event name (e.g., 'lifecycle.hook', 'orchestrator.component.start')
+	 * @param payload - Optional structured event data
+	 *
 	 * @example
+	 * ```ts
+	 * diag.event('lifecycle.hook', { hook: 'onStart', state: 'started' })
+	 * diag.event('orchestrator.component.start', { token: 'Database', layer: 0 })
+	 * ```
 	 */
 	event(name: string, payload: Record<string, unknown> = {}): void {
 		const resolved = this.resolve(name, { level: 'info', message: name })
@@ -204,15 +303,18 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	// Internals
 	// ---------------------------
 
+	/** Resolve a message key to level and message using the message map with a fallback. */
 	private resolve(key: string, fallback: MessageMapEntry): MessageMapEntry {
 		const entry = this.#messages.get(key)
 		return entry ? { level: entry.level ?? fallback.level, message: entry.message ?? fallback.message } : fallback
 	}
 
+	/** Shape an Error into a serializable object for logging. */
 	private shapeErr(e: Error): { name: string, message: string, stack?: string } {
 		return { name: e.name, message: e.message, stack: e.stack }
 	}
 
+	/** Build a BaseError with code and helpUrl. */
 	private buildError(key: string, message: string, opts: { helpUrl?: string, name?: string, context?: DiagnosticErrorContext }): BaseError {
 		const { helpUrl, name, context } = opts
 		const orkLike = /^ORK\d{4}$/.test(key) ? key : undefined
@@ -222,6 +324,7 @@ export class DiagnosticAdapter implements DiagnosticPort {
 		return e
 	}
 
+	/** Normalize a mixed array of LifecycleErrorDetail and Error instances into uniform details. */
 	private normalizeAggregateDetails(items: ReadonlyArray<LifecycleErrorDetail | Error>): LifecycleErrorDetail[] {
 		const out: LifecycleErrorDetail[] = []
 		for (const it of items) {

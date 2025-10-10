@@ -52,10 +52,24 @@ export abstract class Lifecycle {
 	readonly #diagnostic: DiagnosticPort
 
 	/**
+	 * Construct a Lifecycle with optional configuration for timeouts, emitters, queue, logger, and diagnostic ports.
 	 *
-	 * @param opts
-	 * @returns -
+	 * @param opts - Configuration options
+	 * @param opts.timeouts - Timeout in milliseconds for each lifecycle hook (default: 5000)
+	 * @param opts.emitInitial - Whether to emit the current state immediately on first transition listener (default: true)
+	 * @param opts.emitter - Optional custom emitter port
+	 * @param opts.queue - Optional custom queue port for serializing hooks
+	 * @param opts.logger - Optional logger port
+	 * @param opts.diagnostic - Optional diagnostic port for telemetry and errors
+	 *
 	 * @example
+	 * ```ts
+	 * class MyService extends Lifecycle {
+	 *   constructor() {
+	 *     super({ timeouts: 10000 }) // 10 second timeout
+	 *   }
+	 * }
+	 * ```
 	 */
 	constructor(opts: LifecycleOptions = {}) {
 		this.timeouts = opts.timeouts ?? 5000
@@ -67,20 +81,46 @@ export abstract class Lifecycle {
 		this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1, logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
-	/** Emitter used for lifecycle events (transition, hook notifications, errors). */
+	/**
+	 * Access the emitter port used for lifecycle events.
+	 *
+	 * Events include: 'transition', 'create', 'start', 'stop', 'destroy', 'error'.
+	 *
+	 * @returns The EmitterPort instance for lifecycle events
+	 */
 	get emitter(): EmitterPort<LifecycleEventMap> { return this.#emitter }
 
-	/** Queue used to serialize hooks and enforce deadlines. */
+	/**
+	 * Access the queue port used to serialize hooks and enforce deadlines.
+	 *
+	 * @returns The QueuePort instance for running lifecycle hooks
+	 */
 	get queue(): QueuePort { return this.#queue }
 
-	/** Logger backing this lifecycle (propagated to default adapters). */
+	/**
+	 * Access the logger port backing this lifecycle.
+	 *
+	 * This logger is propagated to default adapters when not explicitly provided.
+	 *
+	 * @returns The LoggerPort instance
+	 */
 	get logger(): LoggerPort { return this.#logger }
 
-	/** Diagnostic port used for telemetry/errors. */
+	/**
+	 * Access the diagnostic port used for telemetry and error reporting.
+	 *
+	 * @returns The DiagnosticPort instance
+	 */
 	get diagnostics(): DiagnosticPort { return this.#diagnostic }
 
-	/** Current lifecycle state. */
+	/**
+	 * Get the current lifecycle state.
+	 *
+	 * @returns The current state: 'created', 'started', 'stopped', or 'destroyed'
+	 */
 	get state(): LifecycleState { return this._state }
+
+	/** Internal method to set state and emit transition events. */
 	protected setState(next: LifecycleState): void {
 		// avoid emitting when state doesn't actually change
 		if (this._state === next) return
@@ -91,13 +131,22 @@ export abstract class Lifecycle {
 	}
 
 	/**
-	 * Subscribe to lifecycle events.
+	 * Subscribe to a lifecycle event.
 	 *
-	 * @typeParam T - Event key in the {@link LifecycleEventMap}.
-	 * @param evt - One of 'transition' | 'create' | 'start' | 'stop' | 'destroy' | 'error'.
-	 * @param fn - Listener receiving tuple-typed args for the event.
-	 * @returns this for chaining.
+	 * Supported events: 'transition', 'create', 'start', 'stop', 'destroy', 'error'.
+	 * The first 'transition' listener will receive the current state immediately when emitInitial is true (default).
+	 *
+	 * @typeParam T - Event key in the lifecycle event map
+	 * @param evt - Event name to subscribe to
+	 * @param fn - Listener function receiving tuple-typed arguments for the event
+	 * @returns This lifecycle instance for chaining
+	 *
 	 * @example
+	 * ```ts
+	 * lifecycle.on('transition', (state) => console.log('State:', state))
+	 * lifecycle.on('error', (err) => console.error('Lifecycle error:', err))
+	 * lifecycle.on('start', () => console.log('Started'))
+	 * ```
 	 */
 	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
 		// Schedule initial emission on first transition subscription (if enabled)
@@ -111,17 +160,25 @@ export abstract class Lifecycle {
 
 	/**
 	 * Unsubscribe a previously registered listener.
-	 * @param evt
-	 * @param fn
-	 * @returns this for chaining.
+	 *
+	 * @typeParam T - Event key in the lifecycle event map
+	 * @param evt - Event name to unsubscribe from
+	 * @param fn - The exact listener function to remove (must be same reference used in `on`)
+	 * @returns This lifecycle instance for chaining
+	 *
 	 * @example
+	 * ```ts
+	 * const handler = (state) => console.log(state)
+	 * lifecycle.on('transition', handler)
+	 * lifecycle.off('transition', handler)
+	 * ```
 	 */
 	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
 		this.emitter.off(evt, fn)
 		return this
 	}
 
-	// Run a lifecycle hook and transition atomically under a queue-imposed deadline.
+	/** Internal method to run a lifecycle hook and transition atomically under a queue-imposed deadline. */
 	private async runHook(hookName: LifecycleHook, hook: () => Promise<void> | void, from: LifecycleState, target: LifecycleState): Promise<void> {
 		const tasks: Array<() => Promise<void> | void> = [
 			() => hook(),
@@ -147,32 +204,81 @@ export abstract class Lifecycle {
 		}
 	}
 
-	/** Create the lifecycle (no-op by default); may be called before start in complex setups. */
+	/**
+	 * Create the lifecycle (idempotent no-op by default).
+	 *
+	 * May be called before start in complex setups. Override onCreate() to add creation behavior.
+	 *
+	 * @throws Error with code ORK1020 if the current state is not 'created'
+	 *
+	 * @example
+	 * ```ts
+	 * await lifecycle.create()
+	 * ```
+	 */
 	async create(): Promise<void> {
 		if (this._state !== 'created') this.diagnostics.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: `Invalid lifecycle transition from ${this._state} to created`, helpUrl: HELP.lifecycle })
 		await this.runHook('create', () => this.onCreate(), this._state, 'created')
 	}
 
-	/** Transition from 'created' or 'stopped' to 'started'. */
+	/**
+	 * Transition from 'created' or 'stopped' to 'started'.
+	 *
+	 * Invokes the onStart hook and emits 'start' and 'transition' events on success.
+	 *
+	 * @throws Error with code ORK1020 if the transition is invalid
+	 * @throws Error with code ORK1021 if the hook times out
+	 * @throws Error with code ORK1022 if the hook throws an error
+	 *
+	 * @example
+	 * ```ts
+	 * await lifecycle.start()
+	 * ```
+	 */
 	async start(): Promise<void> {
 		this.validateTransition('started')
 		await this.runHook('start', () => this.onStart(), this._state, 'started')
 	}
 
-	/** Transition from 'started' to 'stopped'. */
+	/**
+	 * Transition from 'started' to 'stopped'.
+	 *
+	 * Invokes the onStop hook and emits 'stop' and 'transition' events on success.
+	 *
+	 * @throws Error with code ORK1020 if the transition is invalid (e.g., not currently 'started')
+	 * @throws Error with code ORK1021 if the hook times out
+	 * @throws Error with code ORK1022 if the hook throws an error
+	 *
+	 * @example
+	 * ```ts
+	 * await lifecycle.stop()
+	 * ```
+	 */
 	async stop(): Promise<void> {
 		this.validateTransition('stopped')
 		await this.runHook('stop', () => this.onStop(), this._state, 'stopped')
 	}
 
-	/** Transition to 'destroyed' and remove all listeners; safe to call multiple times. */
+	/**
+	 * Transition to 'destroyed' and remove all listeners.
+	 *
+	 * Safe to call multiple times (idempotent). Invokes the onDestroy hook and removes all event listeners.
+	 *
+	 * @throws Error with code ORK1021 if the hook times out
+	 * @throws Error with code ORK1022 if the hook throws an error
+	 *
+	 * @example
+	 * ```ts
+	 * await lifecycle.destroy()
+	 * ```
+	 */
 	async destroy(): Promise<void> {
 		this.validateTransition('destroyed')
 		await this.runHook('destroy', () => this.onDestroy(), this._state, 'destroyed')
 		this.emitter.removeAllListeners()
 	}
 
-	// Validate state-machine transitions and throw with ORK1020 on invalid edges.
+	/** Internal method to validate state-machine transitions and throw ORK1020 on invalid edges. */
 	private validateTransition(target: LifecycleState): void {
 		const from = this._state
 		const fail = (to: LifecycleState) => this.diagnostics.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: `Invalid lifecycle transition from ${from} to ${to}`, helpUrl: HELP.lifecycle })
@@ -182,21 +288,24 @@ export abstract class Lifecycle {
 		if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) fail(target)
 	}
 
-	// Hooks (override in subclasses)
-	/** Optional hook called during create(). */
+	/** Optional hook called during create() - override in subclasses to add creation behavior. */
 	protected async onCreate(): Promise<void> {}
-	/** Optional hook called during start(). */
+
+	/** Optional hook called during start() - override in subclasses to add startup behavior. */
 	protected async onStart(): Promise<void> {}
-	/** Optional hook called during stop(). */
+
+	/** Optional hook called during stop() - override in subclasses to add shutdown behavior. */
 	protected async onStop(): Promise<void> {}
-	/** Optional hook called during destroy(). */
+
+	/** Optional hook called during destroy() - override in subclasses to add cleanup behavior. */
 	protected async onDestroy(): Promise<void> {}
+
 	/**
 	 * Optional hook called around each transition after the main hook has run.
-	 * @param _from
-	 * @param _to
-	 * @param _hook
-	 * @returns -
+	 *
+	 * @param _from - State transitioning from
+	 * @param _to - State transitioning to
+	 * @param _hook - The lifecycle hook that was executed
 	 */
 	protected async onTransition(_from: LifecycleState, _to: LifecycleState, _hook: LifecycleHook): Promise<void> {}
 }

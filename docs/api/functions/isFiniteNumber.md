@@ -6,7 +6,7 @@
 
 > **isFiniteNumber**(`x`): `x is number`
 
-Defined in: [helpers.ts:84](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/helpers.ts#L84)
+Defined in: [helpers.ts:105](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L105)
 
 Check whether a value is a finite number (excludes NaN and Infinity).
 

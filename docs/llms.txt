@@ -21,6 +21,7 @@ This file contains links to all documentation sections following the llmstxt.org
 - [Class: DiagnosticAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/DiagnosticAdapter.md): # Class: DiagnosticAdapter
 - [Class: EmitterAdapter\<EMap\>](https://github.com/orkestrel/core/blob/main/docs/api/classes/EmitterAdapter.md): # Class: EmitterAdapter\<EMap\>
 - [Class: EventAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/EventAdapter.md): # Class: EventAdapter
+- [Class: FakeLogger](https://github.com/orkestrel/core/blob/main/docs/api/classes/FakeLogger.md): # Class: FakeLogger
 - [Class: LayerAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/LayerAdapter.md): # Class: LayerAdapter
 - [Abstract Class: Lifecycle](https://github.com/orkestrel/core/blob/main/docs/api/classes/Lifecycle.md): # Abstract Class: Lifecycle
 - [Class: LoggerAdapter](https://github.com/orkestrel/core/blob/main/docs/api/classes/LoggerAdapter.md): # Class: LoggerAdapter
@@ -51,6 +52,7 @@ This file contains links to all documentation sections following the llmstxt.org
 - [Function: isFactoryProviderWithObject()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFactoryProviderWithObject.md): # Function: isFactoryProviderWithObject()
 - [Function: isFactoryProviderWithTuple()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFactoryProviderWithTuple.md): # Function: isFactoryProviderWithTuple()
 - [Function: isFiniteNumber()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFiniteNumber.md): # Function: isFiniteNumber()
+- [Function: isFunction()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isFunction.md): # Function: isFunction()
 - [Function: isLifecycleErrorDetail()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isLifecycleErrorDetail.md): # Function: isLifecycleErrorDetail()
 - [Function: isObject()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isObject.md): # Function: isObject()
 - [Function: isPromiseLike()](https://github.com/orkestrel/core/blob/main/docs/api/functions/isPromiseLike.md): # Function: isPromiseLike()

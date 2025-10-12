@@ -6,4 +6,4 @@
 
 > **AggregateLifecycleError** = `Error` & `Readonly`\<\{ `code?`: `string`; `details`: `ReadonlyArray`\<[`LifecycleErrorDetail`](../interfaces/LifecycleErrorDetail.md)\>; `errors`: `ReadonlyArray`\<`Error`\>; `helpUrl?`: `string`; \}\>
 
-Defined in: [types.ts:156](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L156)
+Defined in: [types.ts:155](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L155)

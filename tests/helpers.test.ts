@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { LifecycleErrorDetail, LoggerPort, LogLevel } from '@orkestrel/core'
-import {
+import type { LifecycleErrorDetail } from '@orkestrel/core'
+import { FakeLogger,
 	hasOwn,
 	isValueProvider,
 	isFactoryProvider,
@@ -21,15 +21,7 @@ import {
 	createTokens,
 	DiagnosticAdapter,
 	isAggregateLifecycleError,
-	isLifecycleErrorDetail,
-} from '@orkestrel/core'
-
-class FakeLogger implements LoggerPort {
-	public entries: { level: LogLevel, message: string, fields?: Record<string, unknown> }[] = []
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void {
-		this.entries.push({ level, message, fields })
-	}
-}
+	isLifecycleErrorDetail } from '@orkestrel/core'
 
 const logger = new FakeLogger()
 

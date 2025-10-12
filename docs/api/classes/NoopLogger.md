@@ -4,18 +4,14 @@
 
 # Class: NoopLogger
 
-Defined in: [adapters/logger.ts:57](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/adapters/logger.ts#L57)
+Defined in: [adapters/logger.ts:143](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L143)
 
-Silent logger implementation that discards all log messages.
-
-Useful for tests or when you need to disable logging entirely without changing code.
+No-op logger that discards messages and exposes the same shape as LoggerAdapter.
 
 ## Example
 
 ```ts
-import { NoopLogger } from '@orkestrel/core'
-const logger = new NoopLogger()
-logger.log('info', 'This will not be logged')
+const n = new NoopLogger(); n.info('x')
 ```
 
 ## Implements
@@ -34,33 +30,27 @@ logger.log('info', 'This will not be logged')
 
 ## Methods
 
-### log()
+### debug()
 
-> **log**(`_level`, `_message`, `_fields?`): `void`
+> **debug**(`_message`, ...`_args`): `void`
 
-Defined in: [adapters/logger.ts:72](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/adapters/logger.ts#L72)
+Defined in: [adapters/logger.ts:155](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L155)
 
-No-op log method that intentionally does nothing with log messages.
+No-op debug method.
 
 #### Parameters
-
-##### \_level
-
-[`LogLevel`](../type-aliases/LogLevel.md)
-
-Log level (ignored)
 
 ##### \_message
 
 `string`
 
-Log message (ignored)
+ignored
 
-##### \_fields?
+##### \_args
 
-`Record`\<`string`, `unknown`\>
+...`unknown`[]
 
-Optional fields (ignored)
+ignored
 
 #### Returns
 
@@ -71,10 +61,175 @@ void
 #### Example
 
 ```ts
-const logger = new NoopLogger()
-logger.log('warn', 'dropped')
+new NoopLogger().debug('x')
+```
+
+#### Implementation of
+
+[`LoggerPort`](../interfaces/LoggerPort.md).[`debug`](../interfaces/LoggerPort.md#debug)
+
+***
+
+### error()
+
+> **error**(`_message`, ...`_args`): `void`
+
+Defined in: [adapters/logger.ts:191](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L191)
+
+No-op error method.
+
+#### Parameters
+
+##### \_message
+
+`string`
+
+ignored
+
+##### \_args
+
+...`unknown`[]
+
+ignored
+
+#### Returns
+
+`void`
+
+void
+
+#### Example
+
+```ts
+new NoopLogger().error('x')
+```
+
+#### Implementation of
+
+[`LoggerPort`](../interfaces/LoggerPort.md).[`error`](../interfaces/LoggerPort.md#error)
+
+***
+
+### info()
+
+> **info**(`_message`, ...`_args`): `void`
+
+Defined in: [adapters/logger.ts:167](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L167)
+
+No-op info method.
+
+#### Parameters
+
+##### \_message
+
+`string`
+
+ignored
+
+##### \_args
+
+...`unknown`[]
+
+ignored
+
+#### Returns
+
+`void`
+
+void
+
+#### Example
+
+```ts
+new NoopLogger().info('x')
+```
+
+#### Implementation of
+
+[`LoggerPort`](../interfaces/LoggerPort.md).[`info`](../interfaces/LoggerPort.md#info)
+
+***
+
+### log()
+
+> **log**(`_level`, `_message`, `_fields?`): `void`
+
+Defined in: [adapters/logger.ts:204](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L204)
+
+No-op generic log method.
+
+#### Parameters
+
+##### \_level
+
+[`LogLevel`](../type-aliases/LogLevel.md)
+
+ignored
+
+##### \_message
+
+`string`
+
+ignored
+
+##### \_fields?
+
+`Record`\<`string`, `unknown`\>
+
+ignored
+
+#### Returns
+
+`void`
+
+void
+
+#### Example
+
+```ts
+new NoopLogger().log('info', 'x')
 ```
 
 #### Implementation of
 
 [`LoggerPort`](../interfaces/LoggerPort.md).[`log`](../interfaces/LoggerPort.md#log)
+
+***
+
+### warn()
+
+> **warn**(`_message`, ...`_args`): `void`
+
+Defined in: [adapters/logger.ts:179](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L179)
+
+No-op warn method.
+
+#### Parameters
+
+##### \_message
+
+`string`
+
+ignored
+
+##### \_args
+
+...`unknown`[]
+
+ignored
+
+#### Returns
+
+`void`
+
+void
+
+#### Example
+
+```ts
+new NoopLogger().warn('x')
+```
+
+#### Implementation of
+
+[`LoggerPort`](../interfaces/LoggerPort.md).[`warn`](../interfaces/LoggerPort.md#warn)

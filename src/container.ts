@@ -69,9 +69,10 @@ import { LoggerAdapter } from './adapters/logger'
  * ```
  */
 export class Container {
+	#destroyed = false
+
 	readonly #registry: RegistryAdapter<Registration<unknown>>
-	private readonly parent?: Container
-	private destroyed = false
+	readonly #parent?: Container
 	readonly #diagnostic: DiagnosticPort
 	readonly #logger: LoggerPort
 
@@ -85,7 +86,7 @@ export class Container {
 	 *
 	 */
 	constructor(opts: ContainerOptions = {}) {
-		this.parent = opts.parent
+		this.#parent = opts.parent
 		this.#logger = opts.logger ?? new LoggerAdapter()
 		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: CONTAINER_MESSAGES })
 		this.#registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
@@ -138,7 +139,7 @@ export class Container {
 	 * ```
 	 */
 	register<T>(token: Token<T>, provider: Provider<T>, lock?: boolean): this {
-		this.assertNotDestroyed()
+		this.#assertNotDestroyed()
 		this.#registry.set(token, { token, provider }, lock)
 		return this
 	}
@@ -174,7 +175,7 @@ export class Container {
 	 * ```
 	 */
 	has<T>(token: Token<T>): boolean {
-		return !!this.#registry.get(token) || (this.parent?.has(token) ?? false)
+		return !!this.#registry.get(token) || (this.#parent?.has(token) ?? false)
 	}
 
 	// Overload: resolve a single token strictly.
@@ -199,17 +200,17 @@ export class Container {
 	 */
 	resolve(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>): unknown {
 		if (isToken(tokenOrMap)) {
-			const reg = this.lookup(tokenOrMap)
+			const reg = this.#lookup(tokenOrMap)
 			if (!reg) {
 				this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tokenOrMap)}`, helpUrl: HELP.providers })
 			}
-			return this.materialize(reg).value
+			return this.#materialize(reg).value
 		}
 		if (isTokenRecord(tokenOrMap)) {
-			return this.retrievalMap(tokenOrMap, true)
+			return this.#retrievalMap(tokenOrMap, true)
 		}
 		if (isTokenArray(tokenOrMap)) {
-			return this.retrievalTuple(tokenOrMap, true)
+			return this.#retrievalTuple(tokenOrMap, true)
 		}
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: resolve() called with invalid argument' })
 	}
@@ -237,14 +238,14 @@ export class Container {
 	 */
 	get(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>): unknown {
 		if (isToken(tokenOrMap)) {
-			const reg = this.lookup(tokenOrMap)
-			return reg ? this.materialize(reg).value : undefined
+			const reg = this.#lookup(tokenOrMap)
+			return reg ? this.#materialize(reg).value : undefined
 		}
 		if (isTokenRecord(tokenOrMap)) {
-			return this.retrievalMap(tokenOrMap, false)
+			return this.#retrievalMap(tokenOrMap, false)
 		}
 		if (isTokenArray(tokenOrMap)) {
-			return this.retrievalTuple(tokenOrMap, false)
+			return this.#retrievalTuple(tokenOrMap, false)
 		}
 		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: get() called with invalid argument' })
 	}
@@ -316,8 +317,8 @@ export class Container {
 	 * ```
 	 */
 	async destroy(): Promise<void> {
-		if (this.destroyed) return
-		this.destroyed = true
+		if (this.#destroyed) return
+		this.#destroyed = true
 		const errors: Error[] = []
 		for (const key of this.#registry.list()) {
 			const reg = this.#registry.get(key)
@@ -338,59 +339,59 @@ export class Container {
 	}
 
 	// Lookup a registration by token, searching parent containers as needed.
-	private lookup<T>(token: Token<T>): Registration<T> | undefined {
+	#lookup<T>(token: Token<T>): Registration<T> | undefined {
 		const here = this.#registry.get(token)
-		if (here && this.isRegistrationOf(here, token)) return here
-		return this.parent?.lookup(token)
+		if (here && this.#isRegistrationOf(here, token)) return here
+		return this.#parent ? this.#parent.#lookup(token) : undefined
 	}
 
 	// Narrow a registration to its token type by identity.
-	private isRegistrationOf<T>(reg: Registration<unknown>, token: Token<T>): reg is Registration<T> {
+	#isRegistrationOf<T>(reg: Registration<unknown>, token: Token<T>): reg is Registration<T> {
 		return reg.token === token
 	}
 
 	// Resolve or instantiate a provider tied to a registration (memoized).
-	private materialize<T>(reg: Registration<T>): ResolvedProvider<T> {
+	#materialize<T>(reg: Registration<T>): ResolvedProvider<T> {
 		if (reg.resolved) return reg.resolved
-		const resolved = this.instantiate(reg.provider)
+		const resolved = this.#instantiate(reg.provider)
 		reg.resolved = resolved
 		return resolved
 	}
 
 	// Instantiate a provider (value/factory/class) and wrap lifecycle if present.
-	private instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
+	#instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
 		return matchProvider(provider, {
-			raw: value => this.wrapLifecycle(value, false),
-			value: p => this.wrapLifecycle(p.useValue, false),
-			factoryTuple: p => this.wrapLifecycle(p.useFactory(...this.resolve(p.inject)), true),
-			factoryObject: p => this.wrapLifecycle(p.useFactory(this.resolve(p.inject)), true),
-			factoryContainer: p => this.wrapLifecycle(p.useFactory(this), true),
-			factoryNoDeps: p => this.wrapLifecycle(p.useFactory(), true),
-			classTuple: p => this.wrapLifecycle(new p.useClass(...this.resolve(p.inject)), true),
-			classObject: p => this.wrapLifecycle(new p.useClass(this.resolve(p.inject)), true),
-			classContainer: p => this.wrapLifecycle(new p.useClass(this), true),
-			classNoDeps: p => this.wrapLifecycle(new p.useClass(), true),
+			raw: value => this.#wrapLifecycle(value, false),
+			value: p => this.#wrapLifecycle(p.useValue, false),
+			factoryTuple: p => this.#wrapLifecycle(p.useFactory(...this.resolve(p.inject)), true),
+			factoryObject: p => this.#wrapLifecycle(p.useFactory(this.resolve(p.inject)), true),
+			factoryContainer: p => this.#wrapLifecycle(p.useFactory(this), true),
+			factoryNoDeps: p => this.#wrapLifecycle(p.useFactory(), true),
+			classTuple: p => this.#wrapLifecycle(new p.useClass(...this.resolve(p.inject)), true),
+			classObject: p => this.#wrapLifecycle(new p.useClass(this.resolve(p.inject)), true),
+			classContainer: p => this.#wrapLifecycle(new p.useClass(this), true),
+			classNoDeps: p => this.#wrapLifecycle(new p.useClass(), true),
 		})
 	}
 
 	// Wrap a value with lifecycle metadata when it is a Lifecycle.
-	private wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
+	#wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
 		return value instanceof Lifecycle ? { value, lifecycle: value, disposable } : { value, disposable }
 	}
 
 	// Ensure the container hasn't been destroyed before mutating state.
-	private assertNotDestroyed(): void {
-		if (this.destroyed) {
+	#assertNotDestroyed(): void {
+		if (this.#destroyed) {
 			this.#diagnostic.fail('ORK1005', { scope: 'container', message: 'Container already destroyed', helpUrl: HELP.container })
 		}
 	}
 
 	// Consolidated map retrieval for resolve()/get() (strict toggles error behavior).
-	private retrievalMap(tokens: TokenRecord, strict: boolean): Record<string, unknown> {
+	#retrievalMap(tokens: TokenRecord, strict: boolean): Record<string, unknown> {
 		const out: Record<string, unknown> = {}
 		for (const key of Object.keys(tokens)) {
 			const tk = tokens[key]
-			const reg = this.lookup(tk)
+			const reg = this.#lookup(tk)
 			if (!reg) {
 				if (strict) {
 					this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tk)}`, helpUrl: HELP.providers })
@@ -398,17 +399,17 @@ export class Container {
 				out[key] = undefined
 				continue
 			}
-			out[key] = this.materialize(reg).value
+			out[key] = this.#materialize(reg).value
 		}
 		return out
 	}
 
 	// Consolidated tuple retrieval for resolve()/get() when given an array of tokens.
-	private retrievalTuple(tokens: ReadonlyArray<Token<unknown>>, strict: boolean): ReadonlyArray<unknown> {
+	#retrievalTuple(tokens: ReadonlyArray<Token<unknown>>, strict: boolean): ReadonlyArray<unknown> {
 		const out: unknown[] = new Array(tokens.length)
 		for (let i = 0; i < tokens.length; i++) {
 			const tk = tokens[i]
-			const reg = this.lookup(tk)
+			const reg = this.#lookup(tk)
 			if (!reg) {
 				if (strict) {
 					this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tk)}`, helpUrl: HELP.providers })
@@ -416,7 +417,7 @@ export class Container {
 				out[i] = undefined
 				continue
 			}
-			out[i] = this.materialize(reg).value
+			out[i] = this.#materialize(reg).value
 		}
 		return out
 	}
@@ -430,9 +431,9 @@ function containerResolve<A extends readonly unknown[]>(tokens: InjectTuple<A>, 
 function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
 function containerResolve(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>, name?: string | symbol): unknown {
 	const c = containerRegistry.resolve(name)
-	if (isTokenArray(tokenOrMap)) return c.resolve(tokenOrMap)
-	if (isTokenRecord(tokenOrMap)) return c.resolve(tokenOrMap)
 	if (isToken(tokenOrMap)) return c.resolve(tokenOrMap)
+	if (isTokenRecord(tokenOrMap)) return c.resolve(tokenOrMap)
+	if (isTokenArray(tokenOrMap)) return c.resolve(tokenOrMap)
 	containerRegistry.diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: container.resolve called with invalid argument' })
 }
 

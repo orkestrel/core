@@ -6,7 +6,7 @@
 
 > **isLifecycleErrorDetail**(`x`): x is \{ context: "normal" \| "rollback" \| "container"; durationMs: number; error: Error; phase: "start" \| "stop" \| "destroy"; timedOut: boolean; tokenDescription: string \}
 
-Defined in: [helpers.ts:591](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/helpers.ts#L591)
+Defined in: [helpers.ts:612](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L612)
 
 Runtime guard for LifecycleErrorDetail using a schema definition.
 

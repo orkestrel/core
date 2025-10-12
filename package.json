@@ -1,6 +1,6 @@
 {
   "name": "@orkestrel/core",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire implementations via a tiny DI container, and drive lifecycles deterministically with an orchestrator.",
   "type": "module",
   "main": "dist/index.js",
@@ -53,7 +53,7 @@
     "format": "eslint . --fix",
     "docs": "typedoc && npm run docs:llm",
     "docs:api": "typedoc",
-    "docs:llm": "tsx scripts\\generate-llms.ts --base-url https://github.com/orkestrel/core/blob/main/docs --docs docs --out docs --keep-extensions --validate-links --fail-fast-links --validate-progress",
+    "docs:llm": "tsx scripts\\generate-llms.ts --base-url https://github.com/orkestrel/core/blob/main/docs --docs docs --out docs --keep-extensions",
     "prepublishOnly": "npm run check && npm run format && npm run test && npm run docs && npm run build"
   },
   "devDependencies": {

@@ -13,14 +13,15 @@ import { Lifecycle } from './lifecycle.js'
  *
  * // Define a component by subclassing Adapter and overriding hooks
  * class HttpServer extends Adapter {
- *   private server?: { listen: () => Promise<void>, close: () => Promise<void> }
- *   constructor(private readonly port: number) { super() }
+ *   #server?: { listen: () => Promise<void>, close: () => Promise<void> }
+ *   readonly #port: number
+ *   constructor(port: number) { super(); this.#port = port }
  *   protected async onStart() {
  *     // create server; await server.listen()
- *     this.server = undefined
+ *     this.#server = undefined
  *   }
  *   protected async onStop() {
- *     // await this.server?.close()
+ *     // await this.#server?.close()
  *   }
  * }
  *

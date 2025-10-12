@@ -4,7 +4,7 @@
 
 # Interface: LayerPort
 
-Defined in: [types.ts:215](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L215)
+Defined in: [types.ts:214](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L214)
 
 ## Methods
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:215](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > **compute**\<`T`\>(`nodes`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [types.ts:216](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L216)
+Defined in: [types.ts:215](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L215)
 
 #### Type Parameters
 
@@ -36,7 +36,7 @@ readonly [`LayerNode`](LayerNode.md)\<`T`\>[]
 
 > **group**\<`T`\>(`tokens`, `layers`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [types.ts:217](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L217)
+Defined in: [types.ts:216](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L216)
 
 #### Type Parameters
 

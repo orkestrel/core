@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import type { Provider } from '@orkestrel/core'
 import { NoopLogger,
 	Orchestrator, orchestrator, createToken, Container, Adapter, register, tokenDescription, QueueAdapter,
-	isAggregateLifecycleError, isLifecycleErrorDetail,
+	isAggregateLifecycleError, isLifecycleErrorDetail, hasOwn,
 } from '@orkestrel/core'
 
 let logger: NoopLogger
@@ -39,14 +39,14 @@ class FailingDestroyComponent extends Adapter {
 }
 
 class SlowStart extends Adapter {
-	private readonly delayMs: number
+	readonly #delayMs: number
 	constructor(delayMs: number) {
 		super({ logger })
-		this.delayMs = delayMs
+		this.#delayMs = delayMs
 	}
 
 	protected async onStart(): Promise<void> {
-		await new Promise(r => setTimeout(r, this.delayMs))
+		await new Promise(r => setTimeout(r, this.#delayMs))
 	}
 }
 
@@ -61,14 +61,14 @@ class FailingStopDestroyComponent extends Adapter {
 }
 
 class SlowStop extends Adapter {
-	private readonly delayMs: number
+	readonly #delayMs: number
 	constructor(delayMs: number) {
 		super({ logger })
-		this.delayMs = delayMs
+		this.#delayMs = delayMs
 	}
 
 	protected async onStop(): Promise<void> {
-		await new Promise(r => setTimeout(r, this.delayMs))
+		await new Promise(r => setTimeout(r, this.#delayMs))
 	}
 }
 
@@ -147,7 +147,7 @@ class FailingOnStart extends Adapter {
 
 type HasOrder = { startedAt: number | null, stoppedAt: number | null }
 function hasOrder(x: unknown): x is HasOrder {
-	return typeof x === 'object' && x !== null && 'startedAt' in x && 'stoppedAt' in x
+	return hasOwn(x, 'startedAt', 'stoppedAt')
 }
 
 test('Orchestrator suite', { concurrency: false }, async (t) => {
@@ -558,14 +558,16 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		class ConcurrencyProbe extends Adapter {
 			static activeStart = 0
 			static peakStart = 0
-			constructor(private readonly delayMs: number) {
+			readonly #delayMs: number
+			constructor(delayMs: number) {
 				super({ logger })
+				this.#delayMs = delayMs
 			}
 
 			protected async onStart() {
 				ConcurrencyProbe.activeStart++
 				ConcurrencyProbe.peakStart = Math.max(ConcurrencyProbe.peakStart, ConcurrencyProbe.activeStart)
-				await new Promise(r => setTimeout(r, this.delayMs))
+				await new Promise(r => setTimeout(r, this.#delayMs))
 				ConcurrencyProbe.activeStart--
 			}
 		}
@@ -592,21 +594,23 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			static peakStop = 0
 			static activeDestroy = 0
 			static peakDestroy = 0
-			constructor(private readonly delayMs: number) {
+			readonly #delayMs: number
+			constructor(delayMs: number) {
 				super({ logger })
+				this.#delayMs = delayMs
 			}
 
 			protected async onStop() {
 				ConcurrencyProbe.activeStop++
 				ConcurrencyProbe.peakStop = Math.max(ConcurrencyProbe.peakStop, ConcurrencyProbe.activeStop)
-				await new Promise(r => setTimeout(r, this.delayMs))
+				await new Promise(r => setTimeout(r, this.#delayMs))
 				ConcurrencyProbe.activeStop--
 			}
 
 			protected async onDestroy() {
 				ConcurrencyProbe.activeDestroy++
 				ConcurrencyProbe.peakDestroy = Math.max(ConcurrencyProbe.peakDestroy, ConcurrencyProbe.activeDestroy)
-				await new Promise(r => setTimeout(r, this.delayMs))
+				await new Promise(r => setTimeout(r, this.#delayMs))
 				ConcurrencyProbe.activeDestroy--
 			}
 		}
@@ -1032,8 +1036,15 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		const DEP = createToken<number>('ClassWithContainer:DEP')
 		class NeedsC extends Adapter {
 			public got: number | undefined
-			constructor(private readonly c: Container) { super({ logger }) }
-			protected async onStart() { this.got = this.c.resolve(DEP) }
+			readonly #c: Container
+			constructor(c: Container) {
+				super({ logger })
+				this.#c = c
+			}
+
+			protected async onStart() {
+				this.got = this.#c.resolve(DEP)
+			}
 		}
 		const T = createToken<NeedsC>('ClassWithContainer:COMP')
 		const app = new Orchestrator(new Container({ logger }), { logger })

@@ -70,6 +70,27 @@ export function isBoolean(x: unknown): x is boolean {
 }
 
 /**
+ * Check whether a value is a function.
+ *
+ * @param x - Value to check
+ * @returns True if x is a function, false otherwise
+ *
+ * @example
+ * ```ts
+ * const f = (a: number) => a
+ * if (isFunction(f)) {
+ *   // f: (a: number) => number
+ * }
+ * isFunction(42) // false
+ * ```
+ */
+export function isFunction(x: unknown): x is (...args: unknown[]) => unknown
+export function isFunction<T>(x: T): x is Extract<T, (...args: unknown[]) => unknown>
+export function isFunction<T extends (...args: unknown[]) => unknown>(x: unknown): x is (...args: Parameters<T>) => ReturnType<T> {
+	return typeof x === 'function'
+}
+
+/**
  * Check whether a value is a finite number (excludes NaN and Infinity).
  *
  * @param x - Value to check
@@ -175,15 +196,15 @@ export function hasSchema<S extends SchemaSpec>(obj: unknown, schema: S): obj is
 	for (const [k, rule] of Object.entries(schema)) {
 		if (!Object.prototype.hasOwnProperty.call(obj, k)) return false
 		const val = obj[k]
-		if (typeof rule === 'string') {
-			if (rule === 'object') {
+		if (isString(rule)) {
+			if (isObject(rule)) {
 				if (!isObject(val)) return false
 			}
 			else if (typeof val !== rule) {
 				return false
 			}
 		}
-		else if (typeof rule === 'function') {
+		else if (isFunction(rule)) {
 			if (!rule(val)) return false
 		}
 		else {
@@ -379,7 +400,7 @@ export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>):
  * ```
  */
 export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is ClassProviderWithContainer<T> {
-	return !hasOwn(p, 'inject') && typeof p.useClass === 'function' && p.useClass.length >= 1
+	return !hasOwn(p, 'inject') && isFunction(p.useClass) && p.useClass.length >= 1
 }
 
 /**
@@ -396,7 +417,7 @@ export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is Class
  * ```
  */
 export function isClassProviderNoDeps<T>(p: ClassProvider<T>): p is ClassProviderNoDeps<T> {
-	return !hasOwn(p, 'inject') && typeof p.useClass === 'function' && p.useClass.length === 0
+	return !hasOwn(p, 'inject') && isFunction(p.useClass) && p.useClass.length === 0
 }
 
 /**
@@ -448,7 +469,7 @@ export function isFactoryProviderWithObject<T>(p: Provider<T> | FactoryProvider<
  * ```
  */
 export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is FactoryProviderWithContainer<T> {
-	return !hasOwn(p, 'inject') && typeof p.useFactory === 'function' && p.useFactory.length >= 1
+	return !hasOwn(p, 'inject') && isFunction(p.useFactory) && p.useFactory.length >= 1
 }
 
 /**
@@ -465,7 +486,7 @@ export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is F
  * ```
  */
 export function isFactoryProviderNoDeps<T>(p: FactoryProvider<T>): p is FactoryProviderNoDeps<T> {
-	return !hasOwn(p, 'inject') && typeof p.useFactory === 'function' && p.useFactory.length === 0
+	return !hasOwn(p, 'inject') && isFunction(p.useFactory) && p.useFactory.length === 0
 }
 
 /**
@@ -512,10 +533,10 @@ export function getTag(x: unknown): string {
  * ```
  */
 export function isAsyncFunction(fn: unknown): fn is (...args: unknown[]) => Promise<unknown> {
-	if (typeof fn !== 'function') return false
+	if (!isFunction(fn)) return false
 	if (getTag(fn) === '[object AsyncFunction]') return true
 	const proto = Object.getPrototypeOf(fn)
-	const ctorName = typeof proto?.constructor?.name === 'string' ? proto.constructor.name : undefined
+	const ctorName = isString(proto?.constructor?.name) ? proto.constructor.name : undefined
 	return ctorName === 'AsyncFunction'
 }
 
@@ -537,7 +558,7 @@ export function isPromiseLike<T = unknown>(x: unknown): x is PromiseLike<T> {
 	if (t !== 'object' && t !== 'function') return false
 	if (getTag(x) === '[object Promise]') return true
 	if (!hasOwn(x, 'then')) return false
-	return typeof x.then === 'function'
+	return isFunction(x.then)
 }
 
 /**

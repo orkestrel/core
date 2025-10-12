@@ -1,35 +1,125 @@
 import type { LogLevel, LoggerPort } from '../types.js'
 
 /**
- * Minimal console-backed logger implementation that routes log messages by level.
+ * Console-like logger adapter.
  *
- * Routes log messages to the appropriate console method based on level (debug/info/warn/error).
- * Swallows any console errors to avoid cascading failures.
+ * Provides per-level methods (debug, info, warn, error) similar to console,
+ * plus a compatibility `log(level, message, fields?)` method.
+ *
+ * All methods accept a message string and optional args. When the first extra
+ * arg is an object it will be treated as structured fields and logged along
+ * with the message.
  *
  * @example
  * ```ts
- * import { LoggerAdapter } from '@orkestrel/core'
- * const logger = new LoggerAdapter()
- * logger.log('info', 'Application started', { version: '1.0.0', user: 'alice' })
- * logger.log('error', 'Failed to connect', { retries: 3 })
+ * const lg = new LoggerAdapter()
+ * lg.info('started', { env: 'dev' })
  * ```
  */
 export class LoggerAdapter implements LoggerPort {
 	/**
-	 * Log a message with the specified level and optional structured fields.
+	 * Debug-level log.
 	 *
-	 * @param level - Log level: 'debug', 'info', 'warn', or 'error'
-	 * @param message - Human-readable log message
-	 * @param fields - Optional structured data to include with the log entry
-	 * @returns void (writes to console methods)
+	 * A short debug message; additional args may include a fields object.
 	 *
+	 * @param message - Human readable message to log
+	 * @param args - Optional extra arguments or a fields object
+	 * @returns void
 	 * @example
 	 * ```ts
-	 * logger.log('info', 'User logged in', { userId: '123', sessionId: 'abc' })
+	 * logger.debug('initialized', { port: 3000 })
+	 * ```
+	 */
+	debug(message: string, ...args: unknown[]): void {
+		const payload = this.#buildPayload(message, args)
+		this.#safeConsoleCall('debug', payload)
+	}
+
+	/**
+	 * Info-level log.
+	 *
+	 * Informational message for normal operations.
+	 *
+	 * @param message - Human readable message to log
+	 * @param args - Optional extra arguments or a fields object
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * logger.info('listening', { host: '0.0.0.0' })
+	 * ```
+	 */
+	info(message: string, ...args: unknown[]): void {
+		const payload = this.#buildPayload(message, args)
+		this.#safeConsoleCall('info', payload)
+	}
+
+	/**
+	 * Warn-level log.
+	 *
+	 * Non-fatal warning indicating a potential issue.
+	 *
+	 * @param message - Human readable message to log
+	 * @param args - Optional extra arguments or a fields object
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * logger.warn('slow-response', { ms: 1024 })
+	 * ```
+	 */
+	warn(message: string, ...args: unknown[]): void {
+		const payload = this.#buildPayload(message, args)
+		this.#safeConsoleCall('warn', payload)
+	}
+
+	/**
+	 * Error-level log.
+	 *
+	 * @param message - Human readable message to log
+	 * @param args - Optional extra arguments or a fields object
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * logger.error('failed', { err })
+	 * ```
+	 */
+	error(message: string, ...args: unknown[]): void {
+		const payload = this.#buildPayload(message, args)
+		this.#safeConsoleCall('error', payload)
+	}
+
+	/**
+	 * Generic log method for compatibility with LoggerPort interface. The
+	 * optional fields parameter is supported for existing callers.
+	 *
+	 * @param level - Log level to use
+	 * @param message - Message to log
+	 * @param fields - Optional structured fields object
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * logger.log('info', 'app.started', { version: '1.0' })
 	 * ```
 	 */
 	log(level: LogLevel, message: string, fields: Record<string, unknown> = {}): void {
-		const payload = { msg: message, ...fields }
+		// Normalize to the per-level methods so behavior is consistent.
+		if (level === 'debug') this.debug(message, fields)
+		else if (level === 'info') this.info(message, fields)
+		else if (level === 'warn') this.warn(message, fields)
+		else this.error(message, fields)
+	}
+
+	// Build a payload object combining the message and optional structured fields.
+	#buildPayload(message: string, args: unknown[]): unknown {
+		const first = args[0]
+		if (first && typeof first === 'object' && !Array.isArray(first)) {
+			return { msg: message, ...first as Record<string, unknown> }
+		}
+		if (args.length > 0) return [message, ...args]
+		return message
+	}
+
+	// Internal helper to call console methods safely.
+	#safeConsoleCall(level: LogLevel, payload: unknown): void {
 		try {
 			if (level === 'debug') console.debug(payload)
 			else if (level === 'info') console.info(payload)
@@ -43,33 +133,164 @@ export class LoggerAdapter implements LoggerPort {
 }
 
 /**
- * Silent logger implementation that discards all log messages.
- *
- * Useful for tests or when you need to disable logging entirely without changing code.
+ * No-op logger that discards messages and exposes the same shape as LoggerAdapter.
  *
  * @example
  * ```ts
- * import { NoopLogger } from '@orkestrel/core'
- * const logger = new NoopLogger()
- * logger.log('info', 'This will not be logged')
+ * const n = new NoopLogger(); n.info('x')
  * ```
  */
 export class NoopLogger implements LoggerPort {
 	/**
-	 * No-op log method that intentionally does nothing with log messages.
+	 * No-op debug method.
 	 *
-	 * @param _level - Log level (ignored)
-	 * @param _message - Log message (ignored)
-	 * @param _fields - Optional fields (ignored)
+	 * @param _message - ignored
+	 * @param _args - ignored
 	 * @returns void
-	 *
 	 * @example
 	 * ```ts
-	 * const logger = new NoopLogger()
-	 * logger.log('warn', 'dropped')
+	 * new NoopLogger().debug('x')
 	 * ```
 	 */
-	log(_level: LogLevel, _message: string, _fields?: Record<string, unknown>): void {
-		// intentionally no-op
-	}
+	debug(_message: string, ..._args: unknown[]): void { /* no-op */ }
+	/**
+	 * No-op info method.
+	 *
+	 * @param _message - ignored
+	 * @param _args - ignored
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * new NoopLogger().info('x')
+	 * ```
+	 */
+	info(_message: string, ..._args: unknown[]): void { /* no-op */ }
+	/**
+	 * No-op warn method.
+	 *
+	 * @param _message - ignored
+	 * @param _args - ignored
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * new NoopLogger().warn('x')
+	 * ```
+	 */
+	warn(_message: string, ..._args: unknown[]): void { /* no-op */ }
+	/**
+	 * No-op error method.
+	 *
+	 * @param _message - ignored
+	 * @param _args - ignored
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * new NoopLogger().error('x')
+	 * ```
+	 */
+	error(_message: string, ..._args: unknown[]): void { /* no-op */ }
+	/**
+	 * No-op generic log method.
+	 *
+	 * @param _level - ignored
+	 * @param _message - ignored
+	 * @param _fields - ignored
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * new NoopLogger().log('info', 'x')
+	 * ```
+	 */
+	log(_level: LogLevel, _message: string, _fields?: Record<string, unknown>): void { /* no-op */ }
+}
+
+/**
+ * Lightweight in-memory logger intended for tests.
+ *
+ * Implements the `LoggerPort` interface and captures log entries in-memory so
+ * unit tests can assert on messages, levels and structured fields. This helper
+ * mirrors the public surface of `LoggerAdapter` but is not intended for
+ * production use.
+ *
+ * @example
+ * ```ts
+ * const lg = new FakeLogger()
+ * lg.info('started', { env: 'test' })
+ * // assert on captured entries
+ * expect(lg.entries[0]).toMatchObject({ level: 'info', message: 'started', fields: { env: 'test' } })
+ * ```
+ */
+export class FakeLogger implements LoggerPort {
+	public entries: { level: LogLevel, message: string, fields?: Record<string, unknown> }[] = []
+
+	/**
+	 * Capture a debug-level entry.
+	 *
+	 * @param message - Human readable message
+	 * @param payload - Optional structured payload or extra args
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * const lg = new FakeLogger()
+	 * lg.debug('verbose', { key: 'value' })
+	 * ```
+	 */
+	debug(message: string, payload?: unknown): void { this.entries.push({ level: 'debug', message, fields: (payload && typeof payload === 'object' && !Array.isArray(payload)) ? payload as Record<string, unknown> : undefined }) }
+
+	/**
+	 * Capture an info-level entry.
+	 *
+	 * @param message - Human readable message
+	 * @param payload - Optional structured payload or extra args
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * const lg = new FakeLogger()
+	 * lg.info('started', { env: 'test' })
+	 * ```
+	 */
+	info(message: string, payload?: unknown): void { this.entries.push({ level: 'info', message, fields: (payload && typeof payload === 'object' && !Array.isArray(payload)) ? payload as Record<string, unknown> : undefined }) }
+
+	/**
+	 * Capture a warn-level entry.
+	 *
+	 * @param message - Human readable message
+	 * @param payload - Optional structured payload or extra args
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * const lg = new FakeLogger()
+	 * lg.warn('slow-response', { ms: 123 })
+	 * ```
+	 */
+	warn(message: string, payload?: unknown): void { this.entries.push({ level: 'warn', message, fields: (payload && typeof payload === 'object' && !Array.isArray(payload)) ? payload as Record<string, unknown> : undefined }) }
+
+	/**
+	 * Capture an error-level entry.
+	 *
+	 * @param message - Human readable message
+	 * @param payload - Optional structured payload or extra args
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * const lg = new FakeLogger()
+	 * lg.error('failed', { err: new Error('boom') })
+	 * ```
+	 */
+	error(message: string, payload?: unknown): void { this.entries.push({ level: 'error', message, fields: (payload && typeof payload === 'object' && !Array.isArray(payload)) ? payload as Record<string, unknown> : undefined }) }
+
+	/**
+	 * Compatibility log method.
+	 *
+	 * @param level - Log level
+	 * @param message - Human readable message
+	 * @param fields - Optional structured fields
+	 * @returns void
+	 * @example
+	 * ```ts
+	 * const lg = new FakeLogger()
+	 * lg.log('info', 'app.started', { version: '1.0' })
+	 * ```
+	 */
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void { this.entries.push({ level, message, fields }) }
 }

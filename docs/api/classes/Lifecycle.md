@@ -4,7 +4,7 @@
 
 # Abstract Class: Lifecycle
 
-Defined in: [lifecycle.ts:44](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L44)
+Defined in: [lifecycle.ts:44](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L44)
 
 Abstract deterministic lifecycle with hook timeouts and events.
 
@@ -26,9 +26,9 @@ Options
 import { Lifecycle } from '@orkestrel/core'
 
 class Cache extends Lifecycle {
-  private map = new Map<string, string>()
+  #map = new Map<string, string>()
   protected async onStart() { // warm up, connect, etc. }
-  protected async onStop() { this.map.clear() }
+  protected async onStop() { this.#map.clear() }
 }
 
 const c = new Cache({ timeouts: 2000 })
@@ -48,7 +48,7 @@ await c.destroy()
 
 > **new Lifecycle**(`opts`): `Lifecycle`
 
-Defined in: [lifecycle.ts:65](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L65)
+Defined in: [lifecycle.ts:66](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L66)
 
 Construct a Lifecycle with optional configuration for timeouts, emitters, queue, logger, and diagnostic ports.
 
@@ -78,7 +78,7 @@ Configuration options:
 
 > **get** **diagnostics**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [lifecycle.ts:105](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L105)
+Defined in: [lifecycle.ts:106](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L106)
 
 Access the diagnostic port used for telemetry and error reporting.
 
@@ -96,7 +96,7 @@ The DiagnosticPort instance
 
 > **get** **emitter**(): [`EmitterPort`](../interfaces/EmitterPort.md)\<[`LifecycleEventMap`](../type-aliases/LifecycleEventMap.md)\>
 
-Defined in: [lifecycle.ts:82](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L82)
+Defined in: [lifecycle.ts:83](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L83)
 
 Access the emitter port used for lifecycle events.
 
@@ -116,7 +116,7 @@ The EmitterPort instance for lifecycle events
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [lifecycle.ts:98](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L98)
+Defined in: [lifecycle.ts:99](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L99)
 
 Access the logger port backing this lifecycle.
 
@@ -136,7 +136,7 @@ The LoggerPort instance
 
 > **get** **queue**(): [`QueuePort`](../interfaces/QueuePort.md)
 
-Defined in: [lifecycle.ts:89](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L89)
+Defined in: [lifecycle.ts:90](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L90)
 
 Access the queue port used to serialize hooks and enforce deadlines.
 
@@ -154,7 +154,7 @@ The QueuePort instance for running lifecycle hooks
 
 > **get** **state**(): [`LifecycleState`](../type-aliases/LifecycleState.md)
 
-Defined in: [lifecycle.ts:112](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L112)
+Defined in: [lifecycle.ts:113](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L113)
 
 Get the current lifecycle state.
 
@@ -170,7 +170,7 @@ The current state: 'created', 'started', 'stopped', or 'destroyed'
 
 > **create**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:210](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L210)
+Defined in: [lifecycle.ts:211](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L211)
 
 Create the lifecycle (idempotent no-op by default).
 
@@ -196,7 +196,7 @@ await lifecycle.create()
 
 > **destroy**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:266](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L266)
+Defined in: [lifecycle.ts:267](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L267)
 
 Transition to 'destroyed' and remove all listeners.
 
@@ -226,7 +226,7 @@ await lifecycle.destroy()
 
 > **off**\<`T`\>(`evt`, `fn`): `this`
 
-Defined in: [lifecycle.ts:167](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L167)
+Defined in: [lifecycle.ts:168](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L168)
 
 Unsubscribe a previously registered listener.
 
@@ -272,7 +272,7 @@ lifecycle.off('transition', handler)
 
 > **on**\<`T`\>(`evt`, `fn`): `this`
 
-Defined in: [lifecycle.ts:142](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L142)
+Defined in: [lifecycle.ts:143](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L143)
 
 Subscribe to a lifecycle event.
 
@@ -321,7 +321,7 @@ lifecycle.on('start', () => console.log('Started'))
 
 > `protected` **onCreate**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:283](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L283)
+Defined in: [lifecycle.ts:284](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L284)
 
 #### Returns
 
@@ -333,7 +333,7 @@ Defined in: [lifecycle.ts:283](https://github.com/orkestrel/core/blob/36bb4ac962
 
 > `protected` **onDestroy**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:292](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L292)
+Defined in: [lifecycle.ts:293](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L293)
 
 #### Returns
 
@@ -345,7 +345,7 @@ Defined in: [lifecycle.ts:292](https://github.com/orkestrel/core/blob/36bb4ac962
 
 > `protected` **onStart**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:286](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L286)
+Defined in: [lifecycle.ts:287](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L287)
 
 #### Returns
 
@@ -357,7 +357,7 @@ Defined in: [lifecycle.ts:286](https://github.com/orkestrel/core/blob/36bb4ac962
 
 > `protected` **onStop**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:289](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L289)
+Defined in: [lifecycle.ts:290](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L290)
 
 #### Returns
 
@@ -369,7 +369,7 @@ Defined in: [lifecycle.ts:289](https://github.com/orkestrel/core/blob/36bb4ac962
 
 > `protected` **onTransition**(`_from`, `_to`, `_hook`): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L295)
+Defined in: [lifecycle.ts:296](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L296)
 
 #### Parameters
 
@@ -395,7 +395,7 @@ Defined in: [lifecycle.ts:295](https://github.com/orkestrel/core/blob/36bb4ac962
 
 > `protected` **setState**(`next`): `void`
 
-Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L115)
+Defined in: [lifecycle.ts:116](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L116)
 
 #### Parameters
 
@@ -413,7 +413,7 @@ Defined in: [lifecycle.ts:115](https://github.com/orkestrel/core/blob/36bb4ac962
 
 > **start**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:229](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L229)
+Defined in: [lifecycle.ts:230](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L230)
 
 Transition from 'created' or 'stopped' to 'started'.
 
@@ -447,7 +447,7 @@ await lifecycle.start()
 
 > **stop**(): `Promise`\<`void`\>
 
-Defined in: [lifecycle.ts:248](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/lifecycle.ts#L248)
+Defined in: [lifecycle.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/lifecycle.ts#L249)
 
 Transition from 'started' to 'stopped'.
 

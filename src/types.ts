@@ -16,9 +16,6 @@ export interface ValueProvider<T> { readonly useValue: T }
 export type InjectTuple<A extends readonly unknown[]> = { readonly [K in keyof A]: Token<A[K]> }
 export type InjectObject<O extends Record<string, unknown>> = Readonly<{ [K in keyof O]: Token<O[K]> }>
 
-// Enable safe bivariance for parameter types on function/constructor properties
-// export type Bivariant<T> = { readonly bivarianceHack: T }['bivarianceHack']
-
 export type FactoryProviderNoDeps<T> = { readonly useFactory: () => T }
 export type FactoryProviderWithContainer<T> = { readonly useFactory: (container: Container) => T }
 export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
@@ -27,7 +24,6 @@ export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
 }
 export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useFactory: (deps: O) => T
-	// readonly useFactory: Bivariant<(deps: O) => T>
 	readonly inject: InjectObject<O>
 }
 export type FactoryProvider<T>
@@ -47,7 +43,6 @@ export type ClassProviderWithTuple<T, A extends readonly unknown[]> = {
 }
 export type ClassProviderWithObject<T, O extends Record<string, unknown>> = {
 	readonly useClass: new (deps: O) => T
-	// readonly useClass: Bivariant<new (deps: O) => T>
 	readonly inject: InjectObject<O>
 }
 export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithContainer<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
@@ -108,6 +103,10 @@ export type FromSchema<S extends SchemaSpec> = { [K in keyof S]: ResolveRule<S[K
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 export interface LoggerPort {
+	debug(message: string, ...args: unknown[]): void
+	info(message: string, ...args: unknown[]): void
+	warn(message: string, ...args: unknown[]): void
+	error(message: string, ...args: unknown[]): void
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
 }
 

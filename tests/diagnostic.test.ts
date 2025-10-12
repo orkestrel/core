@@ -1,14 +1,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DiagnosticAdapter, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES, CONTAINER_MESSAGES, REGISTRY_MESSAGES, QUEUE_MESSAGES, PORTS_MESSAGES, isAggregateLifecycleError } from '@orkestrel/core'
-import type { LoggerPort, LogLevel } from '@orkestrel/core'
-
-class FakeLogger implements LoggerPort {
-	public entries: { level: LogLevel, message: string, fields?: Record<string, unknown> }[] = []
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void {
-		this.entries.push({ level, message, fields })
-	}
-}
+import {
+	DiagnosticAdapter,
+	ORCHESTRATOR_MESSAGES,
+	LIFECYCLE_MESSAGES,
+	INTERNAL_MESSAGES,
+	CONTAINER_MESSAGES,
+	REGISTRY_MESSAGES,
+	QUEUE_MESSAGES,
+	PORTS_MESSAGES,
+	isAggregateLifecycleError,
+	FakeLogger,
+} from '@orkestrel/core'
 
 const logger = new FakeLogger()
 

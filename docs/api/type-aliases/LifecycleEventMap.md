@@ -6,7 +6,7 @@
 
 > **LifecycleEventMap** = `object`
 
-Defined in: [types.ts:227](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L227)
+Defined in: [types.ts:226](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L226)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [types.ts:227](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > **create**: \[\]
 
-Defined in: [types.ts:229](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L229)
+Defined in: [types.ts:228](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L228)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [types.ts:229](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > **destroy**: \[\]
 
-Defined in: [types.ts:232](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L232)
+Defined in: [types.ts:231](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L231)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [types.ts:232](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > **error**: \[`Error`\]
 
-Defined in: [types.ts:233](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L233)
+Defined in: [types.ts:232](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L232)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [types.ts:233](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > **start**: \[\]
 
-Defined in: [types.ts:230](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L230)
+Defined in: [types.ts:229](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L229)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [types.ts:230](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > **stop**: \[\]
 
-Defined in: [types.ts:231](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L231)
+Defined in: [types.ts:230](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L230)
 
 ***
 
@@ -54,4 +54,4 @@ Defined in: [types.ts:231](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > **transition**: \[[`LifecycleState`](LifecycleState.md)\]
 
-Defined in: [types.ts:228](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L228)
+Defined in: [types.ts:227](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L227)

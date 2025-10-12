@@ -6,7 +6,7 @@
 
 > **isRawProviderValue**\<`T`\>(`p`): `p is T`
 
-Defined in: [helpers.ts:637](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/helpers.ts#L637)
+Defined in: [helpers.ts:658](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L658)
 
 Check if provider input is a raw value (not a provider object).
 

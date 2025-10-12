@@ -1,5 +1,5 @@
 import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, EmitterListener, EventMap, LoggerPort } from '../types.js'
-import { safeInvoke } from '../helpers.js'
+import { safeInvoke, isFunction } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 
@@ -24,7 +24,7 @@ import { DiagnosticAdapter } from './diagnostic.js'
  */
 export class EmitterAdapter<EMap extends EventMap = EventMap> implements EmitterPort<EMap> {
 	// Internal registry of per-event listeners.
-	private readonly listeners = new Map<keyof EMap & string, Set<unknown>>()
+	readonly #listeners = new Map<keyof EMap & string, Set<unknown>>()
 
 	readonly #logger: LoggerPort
 	readonly #diagnostic: DiagnosticPort
@@ -56,21 +56,6 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
-	// Type guard to narrow stored unknowns to a properly-typed listener for event E.
-	private isListener<E extends keyof EMap & string>(v: unknown): v is EmitterListener<EMap, E> {
-		return typeof v === 'function'
-	}
-
-	// Fetch existing Set for an event or create it lazily.
-	private getOrCreateSet<E extends keyof EMap & string>(event: E): Set<unknown> {
-		let set = this.listeners.get(event)
-		if (!set) {
-			set = new Set<unknown>()
-			this.listeners.set(event, set)
-		}
-		return set
-	}
-
 	/**
 	 * Register a listener function for a specific event.
 	 *
@@ -84,7 +69,12 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * ```
 	 */
 	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this {
-		this.getOrCreateSet(event).add(fn)
+		let set = this.#listeners.get(event)
+		if (!set) {
+			set = new Set<unknown>()
+			this.#listeners.set(event, set)
+		}
+		set.add(fn)
 		return this
 	}
 
@@ -103,10 +93,10 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * ```
 	 */
 	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this {
-		const set = this.listeners.get(event)
+		const set = this.#listeners.get(event)
 		if (set) {
 			set.delete(fn)
-			if (set.size === 0) this.listeners.delete(event)
+			if (set.size === 0) this.#listeners.delete(event)
 		}
 		return this
 	}
@@ -124,11 +114,11 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * ```
 	 */
 	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void {
-		const set = this.listeners.get(event)
+		const set = this.#listeners.get(event)
 		if (!set || set.size === 0) return
 		const snapshot = Array.from(set)
 		for (const v of snapshot) {
-			if (this.isListener<E>(v)) {
+			if (isFunction(v)) {
 				safeInvoke(v, ...args)
 			}
 		}
@@ -144,5 +134,5 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * emitter.removeAllListeners()
 	 * ```
 	 */
-	removeAllListeners(): void { this.listeners.clear() }
+	removeAllListeners(): void { this.#listeners.clear() }
 }

@@ -4,7 +4,7 @@
 
 # Interface: RegistryAdapterOptions\<T\>
 
-Defined in: [types.ts:338](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L338)
+Defined in: [types.ts:337](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L337)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:338](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > `readonly` `optional` **default**: `object`
 
-Defined in: [types.ts:340](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L340)
+Defined in: [types.ts:339](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L339)
 
 #### key?
 
@@ -34,7 +34,7 @@ Defined in: [types.ts:340](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:342](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L342)
+Defined in: [types.ts:341](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L341)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [types.ts:342](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > `readonly` `optional` **label**: `string`
 
-Defined in: [types.ts:339](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L339)
+Defined in: [types.ts:338](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L338)
 
 ***
 
@@ -50,4 +50,4 @@ Defined in: [types.ts:339](https://github.com/orkestrel/core/blob/36bb4ac962a6eb
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:341](https://github.com/orkestrel/core/blob/36bb4ac962a6eb83d3b3b7e1d15ed7b2fd751427/src/types.ts#L341)
+Defined in: [types.ts:340](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L340)

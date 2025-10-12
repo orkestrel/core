@@ -1,5 +1,5 @@
 import type { EventHandler, EventPort, EventAdapterOptions, LoggerPort, DiagnosticPort } from '../types.js'
-import { safeInvoke } from '../helpers.js'
+import { safeInvoke, isFunction } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 
@@ -23,9 +23,9 @@ import { DiagnosticAdapter } from './diagnostic.js'
  * ```
  */
 export class EventAdapter implements EventPort {
-	private readonly map = new Map<string, Set<unknown>>()
-	private readonly onError?: (err: unknown, topic: string) => void
-	private readonly sequential: boolean
+	readonly #map = new Map<string, Set<unknown>>()
+	readonly #onError?: (err: unknown, topic: string) => void
+	readonly #sequential: boolean
 
 	readonly #logger: LoggerPort
 	readonly #diagnostic: DiagnosticPort
@@ -41,8 +41,8 @@ export class EventAdapter implements EventPort {
 	 *
 	 */
 	constructor(options: EventAdapterOptions = {}) {
-		this.onError = options.onError
-		this.sequential = options.sequential !== false
+		this.#onError = options.onError
+		this.#sequential = options.sequential !== false
 
 		this.#logger = options?.logger ?? new LoggerAdapter()
 		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
@@ -62,9 +62,6 @@ export class EventAdapter implements EventPort {
 	 */
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
-	// Type guard to narrow unknown values to EventHandler.
-	private isHandler<T>(v: unknown): v is EventHandler<T> { return typeof v === 'function' }
-
 	/**
 	 * Publish a payload to a topic, invoking all subscribed handlers.
 	 *
@@ -81,14 +78,14 @@ export class EventAdapter implements EventPort {
 	 * ```
 	 */
 	async publish<T>(topic: string, payload: T): Promise<void> {
-		const handlers = this.map.get(topic)
+		const handlers = this.#map.get(topic)
 		if (!handlers || handlers.size === 0) return
-		const arr = Array.from(handlers).filter(this.isHandler<T>)
+		const arr = Array.from(handlers).filter(h => isFunction(h))
 		const handleErr = (err: unknown) => {
-			safeInvoke(this.onError, err, topic)
+			safeInvoke(this.#onError, err, topic)
 			safeInvoke(this.#diagnostic.error.bind(this.#diagnostic), err, { scope: 'internal', extra: { topic, original: err, originalMessage: err instanceof Error ? err.message : String(err), originalStack: err instanceof Error ? err.stack : undefined } })
 		}
-		if (this.sequential) {
+		if (this.#sequential) {
 			for (const h of arr) {
 				try {
 					await h(payload)
@@ -129,15 +126,15 @@ export class EventAdapter implements EventPort {
 	 * ```
 	 */
 	async subscribe<T>(topic: string, handler: EventHandler<T>): Promise<() => void | Promise<void>> {
-		let set = this.map.get(topic)
+		let set = this.#map.get(topic)
 		if (!set) {
 			set = new Set<unknown>()
-			this.map.set(topic, set)
+			this.#map.set(topic, set)
 		}
 		set.add(handler)
 		return async () => {
 			set?.delete(handler)
-			if (set?.size === 0) this.map.delete(topic)
+			if (set?.size === 0) this.#map.delete(topic)
 		}
 	}
 
@@ -153,6 +150,6 @@ export class EventAdapter implements EventPort {
 	 * ```
 	 */
 	topics(): ReadonlyArray<string> {
-		return Array.from(this.map.keys())
+		return Array.from(this.#map.keys())
 	}
 }

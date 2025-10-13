@@ -6,9 +6,9 @@
 
 > **isClassProvider**\<`T`\>(`p`): `p is ClassProvider<T>`
 
-Defined in: [helpers.ts:350](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L350)
+Defined in: [helpers.ts:151](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L151)
 
-Check if provider has a ClassProvider shape (`{ useClass }`).
+Check if a provider is a ClassProvider (`{ useClass }`).
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Check if provider has a ClassProvider shape (`{ useClass }`).
 
 `T`
 
-Provider value type
+Provided value type
 
 ## Parameters
 
@@ -24,13 +24,13 @@ Provider value type
 
 [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Provider to check
+Provider input
 
 ## Returns
 
 `p is ClassProvider<T>`
 
-True if p is ClassProvider
+True if `p` is a `ClassProvider`
 
 ## Example
 

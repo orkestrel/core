@@ -3,8 +3,9 @@ import assert from 'node:assert/strict'
 import type { Provider } from '@orkestrel/core'
 import { NoopLogger,
 	Orchestrator, orchestrator, createToken, Container, Adapter, register, tokenDescription, QueueAdapter,
-	isAggregateLifecycleError, isLifecycleErrorDetail, hasOwn,
+	isAggregateLifecycleError, isLifecycleErrorDetail,
 } from '@orkestrel/core'
+import { hasOwn } from '@orkestrel/validator'
 
 let logger: NoopLogger
 

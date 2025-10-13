@@ -2,7 +2,6 @@ import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import type { LifecycleErrorDetail } from '@orkestrel/core'
 import { FakeLogger,
-	hasOwn,
 	isValueProvider,
 	isFactoryProvider,
 	isFactoryProviderNoDeps,
@@ -11,10 +10,6 @@ import { FakeLogger,
 	isClassProvider,
 	isClassProviderNoDeps,
 	isClassProviderWithTuple,
-	isZeroArg,
-	getTag,
-	isAsyncFunction,
-	isPromiseLike,
 	safeInvoke,
 	isTokenRecord,
 	createToken,
@@ -34,13 +29,6 @@ describe('helpers suite', () => {
 		assert.equal(Object.keys(Ts).length, 2)
 		assert.equal(Ts.a.description, 'ns:a')
 		assert.equal(Ts.b.description, 'ns:b')
-	})
-
-	test('hasOwn works with prototype-less objects', () => {
-		const o = Object.create(null) as Record<string, unknown>
-		o.x = 1
-		assert.equal(hasOwn(o, 'x'), true)
-		assert.equal(hasOwn(o, 'y' as never), false)
 	})
 
 	test('provider guards: value/factory/class variants', () => {
@@ -71,39 +59,6 @@ describe('helpers suite', () => {
 		assert.equal(isClassProvider(cNoDeps), true)
 		assert.equal(isClassProviderNoDeps(cNoDeps), true)
 		assert.equal(isClassProviderWithTuple<typeof cWithTuple, [number, string]>(cWithTuple), true)
-	})
-
-	test('isZeroArg correctly detects zero-arg functions', () => {
-		const z = () => 1
-		const one = (a: unknown) => a
-		assert.equal(isZeroArg(z), true)
-		assert.equal(isZeroArg(one as unknown as () => unknown), false)
-	})
-
-	test('getTag returns built-in [[Class]] names', () => {
-		assert.equal(getTag([]), '[object Array]')
-		assert.equal(getTag(Promise.resolve()), '[object Promise]')
-		assert.equal(getTag(new Map()), '[object Map]')
-	})
-
-	test('isAsyncFunction and isPromiseLike', async () => {
-		async function afn() {
-			return 1
-		}
-		function normal() {
-			return 1
-		}
-		function returnsPromise() {
-			return Promise.resolve(2)
-		}
-		const thenable = { then: (r: (v: number) => void) => r(3) }
-		assert.equal(isAsyncFunction(afn), true)
-		assert.equal(isAsyncFunction(normal), false)
-		assert.equal(isAsyncFunction(returnsPromise), false)
-		assert.equal(isPromiseLike(Promise.resolve(1)), true)
-		assert.equal(isPromiseLike(thenable), true)
-		assert.equal(isPromiseLike(normal), false)
-		assert.equal(isPromiseLike(null), false)
 	})
 
 	test('safeInvoke never throws and still calls function', () => {

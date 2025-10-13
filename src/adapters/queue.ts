@@ -2,7 +2,7 @@ import type { DiagnosticPort, LoggerPort, QueueAdapterOptions, QueuePort, QueueR
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
-import { isFiniteNumber } from '../helpers.js'
+import { isNumber } from '@orkestrel/validator'
 
 /**
  * In-memory task queue with concurrency control, timeouts, and shared deadlines.
@@ -149,14 +149,14 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 		if (n === 0) return []
 		const c0 = opts.concurrency
 		const c = (() => {
-			if (!isFiniteNumber(c0)) return n
+			if (!isNumber(c0)) return n
 			const v = Math.floor(c0)
 			return v > 0 ? Math.min(v, n) : n
 		})()
 
 		const results = new Array<R>(n)
 		const d = opts.deadline
-		const sharedEnd = isFiniteNumber(d)
+		const sharedEnd = isNumber(d)
 			? Date.now() + Math.max(0, Math.floor(d))
 			: undefined
 		let abortError: unknown | null = null
@@ -167,7 +167,7 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 			const now = Date.now()
 			const remaining = sharedEnd ? Math.max(0, sharedEnd - now) : undefined
 			const t0 = opts.timeout
-			const taskCap = isFiniteNumber(t0)
+			const taskCap = isNumber(t0)
 				? Math.max(0, Math.floor(t0))
 				: undefined
 			const cap = remaining == null ? taskCap : (taskCap == null ? remaining : Math.min(remaining, taskCap))

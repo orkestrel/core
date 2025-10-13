@@ -6,9 +6,9 @@
 
 > **isClassProviderNoDeps**\<`T`\>(`p`): `p is ClassProviderNoDeps<T>`
 
-Defined in: [helpers.ts:419](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L419)
+Defined in: [helpers.ts:216](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L216)
 
-Check if class provider has no dependencies (zero-arg constructor).
+Class provider with a zero‑argument constructor (no dependencies).
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Check if class provider has no dependencies (zero-arg constructor).
 
 `T`
 
-Provider value type
+Provided value type
 
 ## Parameters
 
@@ -24,13 +24,13 @@ Provider value type
 
 [`ClassProvider`](../type-aliases/ClassProvider.md)\<`T`\>
 
-ClassProvider to check
+Class provider input
 
 ## Returns
 
 `p is ClassProviderNoDeps<T>`
 
-True if zero-arg constructor (and no explicit inject)
+True if the `useClass` constructor has arity 0 and no `inject`
 
 ## Example
 

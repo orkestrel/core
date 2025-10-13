@@ -8,9 +8,15 @@
 
 > **matchProvider**\<`T`\>(`provider`, `h`): [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Defined in: [helpers.ts:716](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L716)
+Defined in: [helpers.ts:437](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L437)
 
 Match a provider against its specific shape and dispatch to typed handlers.
+
+Recognized shapes (checked in order):
+1) raw value (not a provider object)
+2) value provider: `{ useValue }`
+3) factory providers: tuple | object | container | noDeps
+4) class providers: tuple | object | container | noDeps
 
 ### Type Parameters
 
@@ -38,19 +44,11 @@ Handlers for each supported provider shape
 
 [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-When handlers return Provider<T>, the normalized Provider<T>; otherwise the custom type R
-
-### Remarks
-
-Recognized shapes (checked in order):
-1. raw value (not an object provider)
-2. value provider: `{ useValue }`
-3. factory providers: tuple | object | container | noDeps
-4. class providers: tuple | object | container | noDeps
+When handlers return `Provider<T>`, the normalized `Provider<T>`; otherwise the custom type `R`
 
 ### Throws
 
-Error with code ORK1099 when the provider shape is unknown (internal invariant)
+Error with code `ORK1099` when the provider shape is unknown (internal invariant)
 
 ### Example
 
@@ -73,9 +71,15 @@ const out = matchProvider(42, {
 
 > **matchProvider**\<`T`, `R`\>(`provider`, `h`): `R`
 
-Defined in: [helpers.ts:717](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L717)
+Defined in: [helpers.ts:438](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L438)
 
 Match a provider against its specific shape and dispatch to typed handlers.
+
+Recognized shapes (checked in order):
+1) raw value (not a provider object)
+2) value provider: `{ useValue }`
+3) factory providers: tuple | object | container | noDeps
+4) class providers: tuple | object | container | noDeps
 
 ### Type Parameters
 
@@ -109,19 +113,11 @@ Handlers for each supported provider shape
 
 `R`
 
-When handlers return Provider<T>, the normalized Provider<T>; otherwise the custom type R
-
-### Remarks
-
-Recognized shapes (checked in order):
-1. raw value (not an object provider)
-2. value provider: `{ useValue }`
-3. factory providers: tuple | object | container | noDeps
-4. class providers: tuple | object | container | noDeps
+When handlers return `Provider<T>`, the normalized `Provider<T>`; otherwise the custom type `R`
 
 ### Throws
 
-Error with code ORK1099 when the provider shape is unknown (internal invariant)
+Error with code `ORK1099` when the provider shape is unknown (internal invariant)
 
 ### Example
 

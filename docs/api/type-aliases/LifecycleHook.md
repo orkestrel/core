@@ -6,4 +6,4 @@
 
 > **LifecycleHook** = `"create"` \| `"start"` \| `"stop"` \| `"destroy"`
 
-Defined in: [types.ts:116](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L116)
+Defined in: [types.ts:116](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L116)

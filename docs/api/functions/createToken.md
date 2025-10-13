@@ -6,7 +6,9 @@
 
 > **createToken**\<`_T`\>(`description`): [`Token`](../type-aliases/Token.md)\<`_T`\>
 
-Defined in: [helpers.ts:218](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L218)
+Defined in: [helpers.ts:33](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L33)
+
+Create a unique Token (a branded `symbol`) with a human‑friendly description.
 
 ## Type Parameters
 
@@ -22,10 +24,16 @@ The value type carried by the token (typing only)
 
 `string`
 
-Symbol description used in diagnostics
+The symbol description shown in diagnostics and logs
 
 ## Returns
 
 [`Token`](../type-aliases/Token.md)\<`_T`\>
 
-A new unique symbol token
+A new unique token symbol
+
+## Example
+
+```ts
+const Port = createToken<{ ping(): void }>('Port')
+```

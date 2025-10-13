@@ -24,13 +24,10 @@ import type {
 	DiagnosticPort,
 	LoggerPort,
 } from './types.js'
+import { isPromiseLike, isAsyncFunction, hasSchema, arrayOf, isFunction } from '@orkestrel/validator'
 import {
-	isPromiseLike,
-	isAsyncFunction,
 	tokenDescription,
 	safeInvoke,
-	hasSchema,
-	arrayOf,
 	isLifecycleErrorDetail,
 	isRawProviderValue,
 	isFactoryProvider,
@@ -41,7 +38,6 @@ import {
 	isClassProviderWithObject,
 	matchProvider,
 	isValueProvider,
-	isFunction,
 } from './helpers.js'
 import { Container, container } from './container.js'
 import { Lifecycle } from './lifecycle.js'
@@ -232,8 +228,7 @@ export class Orchestrator {
 		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
 		for (let i = 0; i < layers.length; i++) {
 			const layer = layers[i]
-			type StartResult = OrchestratorStartResult
-			const jobs: Array<Task<StartResult>> = []
+			const jobs: Array<Task<OrchestratorStartResult>> = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
 				if (inst instanceof Lifecycle && inst.state === 'created') {

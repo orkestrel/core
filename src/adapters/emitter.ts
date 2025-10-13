@@ -1,5 +1,6 @@
 import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, EmitterListener, EventMap, LoggerPort } from '../types.js'
-import { safeInvoke, isFunction } from '../helpers.js'
+import { safeInvoke } from '../helpers.js'
+import { isFunction } from '@orkestrel/validator'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 

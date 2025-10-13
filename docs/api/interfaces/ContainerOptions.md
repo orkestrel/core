@@ -4,7 +4,7 @@
 
 # Interface: ContainerOptions
 
-Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L247)
+Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L247)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L247)
+Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L247)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L247)
+Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L247)
 
 ***
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **parent**: [`Container`](../classes/Container.md)
 
-Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L247)
+Defined in: [types.ts:247](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L247)

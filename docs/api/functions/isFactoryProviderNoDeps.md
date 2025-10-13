@@ -6,9 +6,9 @@
 
 > **isFactoryProviderNoDeps**\<`T`\>(`p`): `p is FactoryProviderNoDeps<T>`
 
-Defined in: [helpers.ts:488](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L488)
+Defined in: [helpers.ts:281](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L281)
 
-Check if factory provider has no dependencies (zero-arg function).
+Factory provider with a zero‑argument function (no dependencies).
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Check if factory provider has no dependencies (zero-arg function).
 
 `T`
 
-Provider value type
+Provided value type
 
 ## Parameters
 
@@ -24,17 +24,17 @@ Provider value type
 
 [`FactoryProvider`](../type-aliases/FactoryProvider.md)\<`T`\>
 
-FactoryProvider to check
+Factory provider input
 
 ## Returns
 
 `p is FactoryProviderNoDeps<T>`
 
-True if zero-arg factory (and no explicit inject)
+True if the `useFactory` function has arity 0 and no `inject`
 
 ## Example
 
 ```ts
 const fp: FactoryProviderNoDeps<number> = { useFactory: () => 1 }
-isZeroArg(fp.useFactory) // true
+isFactoryProviderNoDeps(fp) // true
 ```

@@ -4,7 +4,7 @@
 
 # Class: DiagnosticAdapter
 
-Defined in: [adapters/diagnostic.ts:67](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L67)
+Defined in: [adapters/diagnostic.ts:67](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L67)
 
 Diagnostic adapter providing safe logging, error reporting, and telemetry.
 
@@ -50,7 +50,7 @@ try {
 
 > **new DiagnosticAdapter**(`options?`): `DiagnosticAdapter`
 
-Defined in: [adapters/diagnostic.ts:79](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L79)
+Defined in: [adapters/diagnostic.ts:79](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L79)
 
 Construct a DiagnosticAdapter with optional logger and message overrides.
 
@@ -77,7 +77,7 @@ Configuration options:
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/diagnostic.ts:91](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L91)
+Defined in: [adapters/diagnostic.ts:91](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L91)
 
 Access the logger port used by this diagnostic adapter.
 
@@ -93,7 +93,7 @@ The configured LoggerPort instance
 
 > **aggregate**(`key`, `errors`, `context`): `never`
 
-Defined in: [adapters/diagnostic.ts:184](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L184)
+Defined in: [adapters/diagnostic.ts:184](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L184)
 
 Aggregate multiple errors into a single structured AggregateDiagnosticError and throw it.
 
@@ -142,7 +142,7 @@ diag.aggregate('ORK1017', errs, { scope: 'orchestrator' })
 
 > **error**(`err`, `context`): `void`
 
-Defined in: [adapters/diagnostic.ts:123](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L123)
+Defined in: [adapters/diagnostic.ts:123](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L123)
 
 Report an error to the logger with optional context fields.
 
@@ -183,7 +183,7 @@ diag.error(new Error('boom'), { scope: 'orchestrator', code: 'ORK1013' })
 
 > **event**(`name`, `payload?`): `void`
 
-Defined in: [adapters/diagnostic.ts:242](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L242)
+Defined in: [adapters/diagnostic.ts:242](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L242)
 
 Emit a telemetry event with a name and payload.
 
@@ -225,7 +225,7 @@ diag.event('orchestrator.component.start', { token: 'Database' })
 
 > **fail**(`key`, `context`): `never`
 
-Defined in: [adapters/diagnostic.ts:142](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L142)
+Defined in: [adapters/diagnostic.ts:142](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L142)
 
 Build an Error using a key/code, log it, and throw it.
 
@@ -268,7 +268,7 @@ diag.fail('ORK1007', { scope: 'orchestrator', message: 'Duplicate registration' 
 
 > **help**(`key`, `context`): `Error`
 
-Defined in: [adapters/diagnostic.ts:164](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L164)
+Defined in: [adapters/diagnostic.ts:164](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L164)
 
 Build an Error using a key/code and return it (without throwing).
 
@@ -309,7 +309,7 @@ const timeoutErr = diag.help('ORK1021', { message: 'Hook onStart timed out' })
 
 > **log**(`level`, `message`, `fields?`): `void`
 
-Defined in: [adapters/diagnostic.ts:106](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L106)
+Defined in: [adapters/diagnostic.ts:106](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L106)
 
 Write a log entry with a level, message key, and optional structured fields.
 
@@ -356,7 +356,7 @@ diag.log('info', 'orchestrator.phase', { phase: 'start', layer: 1 })
 
 > **metric**(`name`, `value`, `tags?`): `void`
 
-Defined in: [adapters/diagnostic.ts:207](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L207)
+Defined in: [adapters/diagnostic.ts:207](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L207)
 
 Emit a metric with a numeric value and optional tags.
 
@@ -402,7 +402,7 @@ diag.metric('queue.size', 42, { queueName: 'tasks' })
 
 > **trace**(`name`, `payload?`): `void`
 
-Defined in: [adapters/diagnostic.ts:225](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/diagnostic.ts#L225)
+Defined in: [adapters/diagnostic.ts:225](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/diagnostic.ts#L225)
 
 Emit a trace span with a name and optional fields.
 

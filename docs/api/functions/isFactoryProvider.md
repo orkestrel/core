@@ -6,9 +6,9 @@
 
 > **isFactoryProvider**\<`T`\>(`p`): `p is FactoryProvider<T>`
 
-Defined in: [helpers.ts:333](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L333)
+Defined in: [helpers.ts:135](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L135)
 
-Check if provider has a FactoryProvider shape (`{ useFactory }`).
+Check if a provider is a FactoryProvider (`{ useFactory }`).
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Check if provider has a FactoryProvider shape (`{ useFactory }`).
 
 `T`
 
-Provider value type
+Provided value type
 
 ## Parameters
 
@@ -24,13 +24,13 @@ Provider value type
 
 [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Provider to check
+Provider input
 
 ## Returns
 
 `p is FactoryProvider<T>`
 
-True if p is FactoryProvider
+True if `p` is a `FactoryProvider`
 
 ## Example
 

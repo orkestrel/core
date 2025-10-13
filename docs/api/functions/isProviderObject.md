@@ -6,9 +6,9 @@
 
 > **isProviderObject**(`x`): x is Readonly\<Record\<string, unknown\>\> & (\{ useValue: unknown \} \| \{ useFactory: unknown \} \| \{ useClass: unknown \})
 
-Defined in: [helpers.ts:642](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L642)
+Defined in: [helpers.ts:368](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L368)
 
-Check if a value looks like a provider object (has `useValue`/`useFactory`/`useClass`).
+Check if a value looks like a provider object (has one of `useValue`/`useFactory`/`useClass`).
 
 ## Parameters
 
@@ -22,7 +22,7 @@ Value to check
 
 x is Readonly\<Record\<string, unknown\>\> & (\{ useValue: unknown \} \| \{ useFactory: unknown \} \| \{ useClass: unknown \})
 
-True if x has at least one provider key
+True if `x` has at least one provider key
 
 ## Example
 

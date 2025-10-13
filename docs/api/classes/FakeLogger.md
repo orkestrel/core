@@ -4,7 +4,7 @@
 
 # Class: FakeLogger
 
-Defined in: [adapters/logger.ts:223](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L223)
+Defined in: [adapters/logger.ts:223](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/logger.ts#L223)
 
 Lightweight in-memory logger intended for tests.
 
@@ -42,7 +42,7 @@ expect(lg.entries[0]).toMatchObject({ level: 'info', message: 'started', fields:
 
 > **entries**: `object`[] = `[]`
 
-Defined in: [adapters/logger.ts:224](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L224)
+Defined in: [adapters/logger.ts:224](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/logger.ts#L224)
 
 #### fields?
 
@@ -62,7 +62,7 @@ Defined in: [adapters/logger.ts:224](https://github.com/orkestrel/core/blob/ccb1
 
 > **debug**(`message`, `payload?`): `void`
 
-Defined in: [adapters/logger.ts:238](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L238)
+Defined in: [adapters/logger.ts:238](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/logger.ts#L238)
 
 Capture a debug-level entry.
 
@@ -103,7 +103,7 @@ lg.debug('verbose', { key: 'value' })
 
 > **error**(`message`, `payload?`): `void`
 
-Defined in: [adapters/logger.ts:280](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L280)
+Defined in: [adapters/logger.ts:280](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/logger.ts#L280)
 
 Capture an error-level entry.
 
@@ -144,7 +144,7 @@ lg.error('failed', { err: new Error('boom') })
 
 > **info**(`message`, `payload?`): `void`
 
-Defined in: [adapters/logger.ts:252](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L252)
+Defined in: [adapters/logger.ts:252](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/logger.ts#L252)
 
 Capture an info-level entry.
 
@@ -185,7 +185,7 @@ lg.info('started', { env: 'test' })
 
 > **log**(`level`, `message`, `fields?`): `void`
 
-Defined in: [adapters/logger.ts:295](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L295)
+Defined in: [adapters/logger.ts:295](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/logger.ts#L295)
 
 Compatibility log method.
 
@@ -232,7 +232,7 @@ lg.log('info', 'app.started', { version: '1.0' })
 
 > **warn**(`message`, `payload?`): `void`
 
-Defined in: [adapters/logger.ts:266](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L266)
+Defined in: [adapters/logger.ts:266](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/logger.ts#L266)
 
 Capture a warn-level entry.
 

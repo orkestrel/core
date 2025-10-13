@@ -6,9 +6,12 @@
 
 > **safeInvoke**\<`TArgs`\>(`fn`, ...`args`): `void`
 
-Defined in: [helpers.ts:576](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L576)
+Defined in: [helpers.ts:301](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L301)
 
 Safely invoke an optional function with arguments, swallowing any errors.
+
+Useful for optional callbacks and diagnostic hooks. Errors are intentionally ignored
+to avoid cascading failures in listeners/loggers.
 
 ## Type Parameters
 
@@ -16,28 +19,31 @@ Safely invoke an optional function with arguments, swallowing any errors.
 
 `TArgs` *extends* `unknown`[]
 
-Tuple type of function arguments
+Tuple of argument types
 
 ## Parameters
 
 ### fn
 
-Optional function to invoke (no-op if undefined)
+Optional function to call
 
-`undefined` | (...`args`) => `unknown`
+(...`args`) => `unknown` | `undefined`
 
 ### args
 
 ...`TArgs`
 
-Arguments to pass to the function
+Arguments to pass to `fn`
 
 ## Returns
 
 `void`
 
+void
+
 ## Example
 
 ```ts
 safeInvoke((x: number) => console.log(x), 1)
+safeInvoke(undefined, 'ignored')
 ```

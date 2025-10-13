@@ -6,9 +6,9 @@
 
 > **isRawProviderValue**\<`T`\>(`p`): `p is T`
 
-Defined in: [helpers.ts:658](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L658)
+Defined in: [helpers.ts:383](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L383)
 
-Check if provider input is a raw value (not a provider object).
+Check if a provider input is a raw value (i.e., not a provider object).
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Check if provider input is a raw value (not a provider object).
 
 `T`
 
-Provider value type
+Provided value type
 
 ## Parameters
 
@@ -24,13 +24,13 @@ Provider value type
 
 [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Provider to check
+Provider input
 
 ## Returns
 
 `p is T`
 
-True if p is not a provider object
+True if `p` is not an object provider
 
 ## Example
 

@@ -28,19 +28,19 @@ const exportedClasses = [
 	'ExportDefaultDeclaration > ClassDeclaration',
 ]
 const exportedMethods = [
-	'ExportNamedDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind=\'method\'][accessibility!=private][accessibility!=protected]',
-	'ExportDefaultDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind=\'method\'][accessibility!=private][accessibility!=protected]',
+	'ExportNamedDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind="method"][accessibility!=private][accessibility!=protected]',
+	'ExportDefaultDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind="method"][accessibility!=private][accessibility!=protected]',
 ]
 const exportedGetters = [
-	'ExportNamedDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind=\'get\'][accessibility!=private][accessibility!=protected]',
-	'ExportDefaultDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind=\'get\'][accessibility!=private][accessibility!=protected]',
+	'ExportNamedDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind="get"][accessibility!=private][accessibility!=protected]',
+	'ExportDefaultDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind="get"][accessibility!=private][accessibility!=protected]',
 ]
 const exportedSetters = [
-	'ExportNamedDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind=\'set\'][accessibility!=private][accessibility!=protected]',
-	'ExportDefaultDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind=\'set\'][accessibility!=private][accessibility!=protected]',
+	'ExportNamedDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind="set"][accessibility!=private][accessibility!=protected]',
+	'ExportDefaultDeclaration > ClassDeclaration > ClassBody > MethodDefinition[kind="set"][accessibility!=private][accessibility!=protected]',
 ]
 
-// Project-specific TSDoc/JSDoc rules aligned with docs/contribute.md
+// Project-specific TSDoc/JSDoc rules aligned with guides/contribute.md
 const tsdocConfig = {
 	name: 'orkestrel/tsdoc',
 	plugins: { jsdoc, tsdoc },
@@ -85,12 +85,36 @@ const tsdocConfig = {
 	},
 }
 
+// Restrict type/interface declarations to the canonical src/types.ts file
+const restrictTypesOutsideTypes = {
+	name: 'orkestrel/restrict-types-outside-types',
+	files: ['src/**/*.ts', 'src/**/*.tsx'],
+	rules: {
+		'no-restricted-syntax': [
+			'error',
+			{ selector: 'TSTypeAliasDeclaration', message: 'Define type aliases only in src/types.ts.' },
+			{ selector: 'TSInterfaceDeclaration', message: 'Define interfaces only in src/types.ts.' },
+		],
+	},
+}
+
+// Allow type/interface declarations within src/types.ts
+const allowTypesInTypesFile = {
+	name: 'orkestrel/allow-types-in-types',
+	files: ['src/types.ts'],
+	rules: {
+		'no-restricted-syntax': 'off',
+	},
+}
+
 export default [
-	// Ignore docs from linting
+	// Ignore guides from linting
 	{ name: 'orkestrel/ignores', ignores: ['docs/**'] },
 	...base,
 	orkTs,
 	// Enable example processing and defaults via built-in jsdoc config for ESLint 9
 	...jsdoc.configs.examples,
 	tsdocConfig,
+	restrictTypesOutsideTypes,
+	allowTypesInTypesFile,
 ]

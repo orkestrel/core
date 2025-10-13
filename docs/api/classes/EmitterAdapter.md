@@ -4,7 +4,7 @@
 
 # Class: EmitterAdapter\<EMap\>
 
-Defined in: [adapters/emitter.ts:25](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L25)
+Defined in: [adapters/emitter.ts:26](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L26)
 
 In-memory event emitter implementation with typed tuple-based events.
 
@@ -41,7 +41,7 @@ emitter.removeAllListeners()
 
 > **new EmitterAdapter**\<`EMap`\>(`options`): `EmitterAdapter`\<`EMap`\>
 
-Defined in: [adapters/emitter.ts:40](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L40)
+Defined in: [adapters/emitter.ts:41](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L41)
 
 Construct an EmitterAdapter with optional logger and diagnostic ports.
 
@@ -68,7 +68,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/emitter.ts:57](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L57)
+Defined in: [adapters/emitter.ts:58](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L58)
 
 Access the diagnostic port used by this emitter.
 
@@ -86,7 +86,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/emitter.ts:50](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L50)
+Defined in: [adapters/emitter.ts:51](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L51)
 
 Access the logger port used by this emitter.
 
@@ -102,7 +102,7 @@ The configured LoggerPort instance
 
 > **emit**\<`E`\>(`event`, ...`args`): `void`
 
-Defined in: [adapters/emitter.ts:116](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L116)
+Defined in: [adapters/emitter.ts:117](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L117)
 
 Emit an event with arguments, invoking all registered listeners synchronously.
 
@@ -149,7 +149,7 @@ emitter.emit('data', 'hello world')
 
 > **off**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [adapters/emitter.ts:95](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L95)
+Defined in: [adapters/emitter.ts:96](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L96)
 
 Remove a previously registered listener for a specific event.
 
@@ -198,7 +198,7 @@ emitter.off('data', handler)
 
 > **on**\<`E`\>(`event`, `fn`): `this`
 
-Defined in: [adapters/emitter.ts:71](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L71)
+Defined in: [adapters/emitter.ts:72](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L72)
 
 Register a listener function for a specific event.
 
@@ -245,7 +245,7 @@ emitter.on('data', (value: string) => console.log('data:', value))
 
 > **removeAllListeners**(): `void`
 
-Defined in: [adapters/emitter.ts:137](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/emitter.ts#L137)
+Defined in: [adapters/emitter.ts:138](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/emitter.ts#L138)
 
 Remove all registered listeners for all events.
 

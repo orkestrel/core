@@ -4,7 +4,7 @@
 
 # Interface: RegisterOptions
 
-Defined in: [types.ts:319](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L319)
+Defined in: [types.ts:319](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L319)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:319](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `optional` **dependencies**: `Record`\<`string`, [`Token`](../type-aliases/Token.md)\<`unknown`\>\> \| [`Token`](../type-aliases/Token.md)\<`unknown`\>[]
 
-Defined in: [types.ts:320](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L320)
+Defined in: [types.ts:320](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L320)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:320](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `optional` **timeouts**: `number` \| `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:321](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L321)
+Defined in: [types.ts:321](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L321)

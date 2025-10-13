@@ -6,7 +6,7 @@
 
 > `const` **container**: (`name?`) => [`Container`](../classes/Container.md) & `object`
 
-Defined in: [container.ts:487](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/container.ts#L487)
+Defined in: [container.ts:487](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/container.ts#L487)
 
 Global container getter and manager.
 
@@ -14,11 +14,11 @@ Global container getter and manager.
 
 ### get()
 
-> **get**: \{\<`T`\>(`token`, `name?`): `undefined` \| `T`; \<`A`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| A\[K\<K\>\] \}; \<`O`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| O\[K\] \}; \<`TMap`\>(`tokens`, `name?`): [`OptionalResolvedMap`](../type-aliases/OptionalResolvedMap.md)\<`TMap`\>; \} = `containerGet`
+> **get**: \{\<`T`\>(`token`, `name?`): `T` \| `undefined`; \<`A`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: A\[K\<K\>\] \| undefined \}; \<`O`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: O\[K\] \| undefined \}; \<`TMap`\>(`tokens`, `name?`): [`OptionalResolvedMap`](../type-aliases/OptionalResolvedMap.md)\<`TMap`\>; \} = `containerGet`
 
 #### Call Signature
 
-> \<`T`\>(`token`, `name?`): `undefined` \| `T`
+> \<`T`\>(`token`, `name?`): `T` \| `undefined`
 
 ##### Type Parameters
 
@@ -38,11 +38,11 @@ Global container getter and manager.
 
 ##### Returns
 
-`undefined` \| `T`
+`T` \| `undefined`
 
 #### Call Signature
 
-> \<`A`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| A\[K\<K\>\] \}
+> \<`A`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: A\[K\<K\>\] \| undefined \}
 
 ##### Type Parameters
 
@@ -62,11 +62,11 @@ Global container getter and manager.
 
 ##### Returns
 
-\{ \[K in string \| number \| symbol\]: undefined \| A\[K\<K\>\] \}
+\{ \[K in string \| number \| symbol\]: A\[K\<K\>\] \| undefined \}
 
 #### Call Signature
 
-> \<`O`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| O\[K\] \}
+> \<`O`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: O\[K\] \| undefined \}
 
 ##### Type Parameters
 
@@ -86,7 +86,7 @@ Global container getter and manager.
 
 ##### Returns
 
-\{ \[K in string \| number \| symbol\]: undefined \| O\[K\] \}
+\{ \[K in string \| number \| symbol\]: O\[K\] \| undefined \}
 
 #### Call Signature
 

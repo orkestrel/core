@@ -4,7 +4,7 @@
 
 # Class: EventAdapter
 
-Defined in: [adapters/event.ts:25](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/event.ts#L25)
+Defined in: [adapters/event.ts:26](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/event.ts#L26)
 
 Topic-based asynchronous publish-subscribe event bus.
 
@@ -35,7 +35,7 @@ await unsubscribe()
 
 > **new EventAdapter**(`options`): `EventAdapter`
 
-Defined in: [adapters/event.ts:43](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/event.ts#L43)
+Defined in: [adapters/event.ts:44](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/event.ts#L44)
 
 Construct an EventAdapter with optional configuration.
 
@@ -63,7 +63,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/event.ts:63](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/event.ts#L63)
+Defined in: [adapters/event.ts:64](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/event.ts#L64)
 
 Access the diagnostic port used by this event adapter.
 
@@ -81,7 +81,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/event.ts:56](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/event.ts#L56)
+Defined in: [adapters/event.ts:57](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/event.ts#L57)
 
 Access the logger port used by this event adapter.
 
@@ -97,7 +97,7 @@ The configured LoggerPort instance
 
 > **publish**\<`T`\>(`topic`, `payload`): `Promise`\<`void`\>
 
-Defined in: [adapters/event.ts:80](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/event.ts#L80)
+Defined in: [adapters/event.ts:81](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/event.ts#L81)
 
 Publish a payload to a topic, invoking all subscribed handlers.
 
@@ -145,7 +145,7 @@ await bus.publish('user:created', { id: 'u123', name: 'Bob' })
 
 > **subscribe**\<`T`\>(`topic`, `handler`): `Promise`\<() => `void` \| `Promise`\<`void`\>\>
 
-Defined in: [adapters/event.ts:128](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/event.ts#L128)
+Defined in: [adapters/event.ts:129](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/event.ts#L129)
 
 Subscribe a handler function to a topic.
 
@@ -198,7 +198,7 @@ await unsubscribe()
 
 > **topics**(): readonly `string`[]
 
-Defined in: [adapters/event.ts:152](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/event.ts#L152)
+Defined in: [adapters/event.ts:153](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/adapters/event.ts#L153)
 
 List all currently active topic names that have at least one subscriber.
 

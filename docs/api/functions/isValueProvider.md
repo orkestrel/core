@@ -6,9 +6,9 @@
 
 > **isValueProvider**\<`T`\>(`p`): `p is ValueProvider<T>`
 
-Defined in: [helpers.ts:317](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L317)
+Defined in: [helpers.ts:120](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L120)
 
-Check if provider has a ValueProvider shape (`{ useValue }`).
+Check if a provider is a ValueProvider (`{ useValue }`).
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Check if provider has a ValueProvider shape (`{ useValue }`).
 
 `T`
 
-Provider value type
+Provided value type
 
 ## Parameters
 
@@ -24,16 +24,16 @@ Provider value type
 
 [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Provider to check
+Provider input
 
 ## Returns
 
 `p is ValueProvider<T>`
 
-True if p is ValueProvider
+True if `p` is a `ValueProvider`
 
 ## Example
 
 ```ts
-isValueProvider({ useValue: 42 }) // true
+isValueProvider({ useValue: 1 }) // true
 ```

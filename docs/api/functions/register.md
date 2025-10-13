@@ -36,7 +36,7 @@ await app.start([entry])
 
 > **register**\<`T`, `A`\>(`token`, `provider`, `options?`): [`OrchestratorRegistration`](../interfaces/OrchestratorRegistration.md)\<`T`\>
 
-Defined in: [orchestrator.ts:630](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/orchestrator.ts#L630)
+Defined in: [orchestrator.ts:625](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/orchestrator.ts#L625)
 
 ### Type Parameters
 
@@ -70,7 +70,7 @@ Defined in: [orchestrator.ts:630](https://github.com/orkestrel/core/blob/ccb1709
 
 > **register**\<`T`, `O`\>(`token`, `provider`, `options?`): [`OrchestratorRegistration`](../interfaces/OrchestratorRegistration.md)\<`T`\>
 
-Defined in: [orchestrator.ts:631](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/orchestrator.ts#L631)
+Defined in: [orchestrator.ts:626](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/orchestrator.ts#L626)
 
 ### Type Parameters
 
@@ -104,7 +104,7 @@ Defined in: [orchestrator.ts:631](https://github.com/orkestrel/core/blob/ccb1709
 
 > **register**\<`T`\>(`token`, `provider`, `options?`): [`OrchestratorRegistration`](../interfaces/OrchestratorRegistration.md)\<`T`\>
 
-Defined in: [orchestrator.ts:632](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/orchestrator.ts#L632)
+Defined in: [orchestrator.ts:627](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/orchestrator.ts#L627)
 
 ### Type Parameters
 

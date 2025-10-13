@@ -6,9 +6,11 @@
 
 > **tokenDescription**(`token`): `string`
 
-Defined in: [helpers.ts:596](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L596)
+Defined in: [helpers.ts:322](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L322)
 
-Helper to format token symbols consistently for logs and diagnostics.
+Format token symbols consistently for logs and diagnostics.
+
+Returns the symbol description when available, otherwise `String(token)`.
 
 ## Parameters
 
@@ -16,16 +18,16 @@ Helper to format token symbols consistently for logs and diagnostics.
 
 `symbol`
 
-Symbol token to format
+Token symbol to format
 
 ## Returns
 
 `string`
 
-The token's description or its string representation
+Token description or its string representation
 
 ## Example
 
 ```ts
-tokenDescription(Symbol('UserService')) // 'UserService'
+tokenDescription(Symbol('User')) // 'User'
 ```

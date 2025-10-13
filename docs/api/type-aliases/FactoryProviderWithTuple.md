@@ -6,7 +6,7 @@
 
 > **FactoryProviderWithTuple**\<`T`, `A`\> = `object`
 
-Defined in: [types.ts:21](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L21)
+Defined in: [types.ts:21](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L21)
 
 ## Type Parameters
 
@@ -24,7 +24,7 @@ Defined in: [types.ts:21](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > `readonly` **inject**: [`InjectTuple`](InjectTuple.md)\<`A`\>
 
-Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L23)
+Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L23)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [types.ts:23](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > `readonly` **useFactory**: (...`args`) => `T`
 
-Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L22)
+Defined in: [types.ts:22](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/types.ts#L22)
 
 #### Parameters
 

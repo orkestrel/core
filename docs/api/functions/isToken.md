@@ -6,9 +6,9 @@
 
 > **isToken**(`x`): `x is Token<unknown>`
 
-Defined in: [helpers.ts:266](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L266)
+Defined in: [helpers.ts:71](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L71)
 
-Runtime check that a value is a Token (Symbol).
+Guard that checks a value is a token (`symbol`).
 
 ## Parameters
 
@@ -22,7 +22,7 @@ Value to check
 
 `x is Token<unknown>`
 
-True if x is a symbol
+True if `x` is a `symbol`
 
 ## Example
 

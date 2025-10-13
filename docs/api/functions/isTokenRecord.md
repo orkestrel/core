@@ -6,9 +6,9 @@
 
 > **isTokenRecord**(`x`): `x is Record<string, Token<unknown>>`
 
-Defined in: [helpers.ts:296](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L296)
+Defined in: [helpers.ts:100](https://github.com/orkestrel/core/blob/cbe5b2d7b027ca6f0f1301ef32750afb69b4764b/src/helpers.ts#L100)
 
-Guard that checks an object is a map whose values are all tokens.
+Guard that checks an object is a string‑keyed record whose values are all tokens.
 
 ## Parameters
 
@@ -22,10 +22,11 @@ Value to check
 
 `x is Record<string, Token<unknown>>`
 
-True if x is an object (not array) with token values
+True if `x` is a non‑array object and all own string keys map to tokens
 
 ## Example
 
 ```ts
 isTokenRecord({ a: Symbol('a') }) // true
+isTokenRecord([Symbol('a')])      // false (array)
 ```

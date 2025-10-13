@@ -48,7 +48,7 @@
   "scripts": {
     "clear": "node -e \"try{require('fs').rmSync(process.argv[1],{recursive:true,force:true})}catch(e){}\"",
     "build": "npm run clear dist && vite build && tsc -p tsconfig.build.json",
-    "test": "tsx --test tests\\**\\*.ts",
+    "test": "vitest run",
     "check": "tsc -p tsconfig.json",
     "format": "eslint . --fix",
     "docs": "typedoc && npm run docs:llm",
@@ -68,6 +68,7 @@
     "typedoc-plugin-frontmatter": "^1.3.0",
     "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.9.3",
-    "vite": "^7.1.9"
+    "vite": "^7.1.9",
+    "vitest": "^3.2.4"
   }
 }

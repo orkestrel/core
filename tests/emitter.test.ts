@@ -1,11 +1,11 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { EmitterAdapter, NoopLogger } from '@orkestrel/core'
 
 const logger = new NoopLogger()
 
-test('Emitter suite', async (t) => {
-	await t.test('on/emit calls listeners with args', () => {
+describe('Emitter suite', () => {
+	test('on/emit calls listeners with args', () => {
 		const em = new EmitterAdapter({ logger })
 		let called = 0
 		let payload: unknown[] = []
@@ -20,7 +20,7 @@ test('Emitter suite', async (t) => {
 		assert.deepEqual(payload, [1, 'a'])
 	})
 
-	await t.test('off removes a specific listener', () => {
+	test('off removes a specific listener', () => {
 		const em = new EmitterAdapter({ logger })
 		let a = 0
 		let b = 0
@@ -40,7 +40,7 @@ test('Emitter suite', async (t) => {
 		assert.equal(b, 1)
 	})
 
-	await t.test('removeAllListeners clears all', () => {
+	test('removeAllListeners clears all', () => {
 		const em = new EmitterAdapter({ logger })
 		let count = 0
 		function l() {
@@ -54,7 +54,7 @@ test('Emitter suite', async (t) => {
 		assert.equal(count, 0)
 	})
 
-	await t.test('listener error is isolated and does not throw outward', () => {
+	test('listener error is isolated and does not throw outward', () => {
 		const em = new EmitterAdapter({ logger })
 		let okCalled = 0
 		em.on('e', () => {
@@ -67,7 +67,7 @@ test('Emitter suite', async (t) => {
 		assert.equal(okCalled, 1)
 	})
 
-	await t.test('listeners are invoked in insertion order', () => {
+	test('listeners are invoked in insertion order', () => {
 		const em = new EmitterAdapter({ logger })
 		const order: number[] = []
 		em.on('o', () => order.push(1))
@@ -77,7 +77,7 @@ test('Emitter suite', async (t) => {
 		assert.deepEqual(order, [1, 2, 3])
 	})
 
-	await t.test('listener can unsubscribe itself during emit without skipping others', () => {
+	test('listener can unsubscribe itself during emit without skipping others', () => {
 		const em = new EmitterAdapter({ logger })
 		const seen: number[] = []
 		const self = () => {

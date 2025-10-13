@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import {
 	DiagnosticAdapter,
@@ -15,15 +15,15 @@ import {
 
 const logger = new FakeLogger()
 
-test('Diagnostic suite', async (t) => {
-	await t.test('Timeout-like error via DiagnosticAdapter.help', () => {
+describe('Diagnostic suite', () => {
+	test('Timeout-like error via DiagnosticAdapter.help', () => {
 		const d = new DiagnosticAdapter({ logger })
 		const err = d.help('ORK1021', { name: 'TimeoutError', message: 'Hook \'start\' timed out after 123ms' })
 		assert.match(err.message, /timed out/i)
 		assert.equal(err.name, 'TimeoutError')
 	})
 
-	await t.test('aggregate collects errors and surfaces .details/.errors', () => {
+	test('aggregate collects errors and surfaces .details/.errors', () => {
 		const d = new DiagnosticAdapter({ logger })
 		const e1 = new Error('boom1')
 		const e2 = new Error('boom2')
@@ -32,18 +32,17 @@ test('Diagnostic suite', async (t) => {
 			assert.fail('should throw')
 		}
 		catch (e) {
-			assert.ok(isAggregateLifecycleError(e))
-			const agg = e
-			assert.equal(agg.message, 'agg')
-			assert.ok(Array.isArray(agg.details))
-			assert.equal(agg.details?.length, 2)
-			assert.ok(Array.isArray(agg.errors))
-			assert.equal(agg.errors?.length, 2)
+			if (!isAggregateLifecycleError(e)) assert.fail('expected aggregate lifecycle error')
+			assert.equal(e.message, 'agg')
+			assert.ok(Array.isArray(e.details))
+			assert.equal(e.details.length, 2)
+			assert.ok(Array.isArray(e.errors))
+			assert.equal(e.errors.length, 2)
 		}
 	})
 
 	// Tiny shape guard spot-checks for convenience
-	await t.test('isAggregateLifecycleError shape checks (valid/invalid)', () => {
+	test('isAggregateLifecycleError shape checks (valid/invalid)', () => {
 		const d = new DiagnosticAdapter({ logger })
 		try {
 			d.aggregate('ORK1017', [new Error('x')], { message: 'agg' })
@@ -57,7 +56,7 @@ test('Diagnostic suite', async (t) => {
 	})
 
 	// DiagnosticAdapter tests (unified messages mapping)
-	await t.test('DiagnosticAdapter default behavior without overrides', () => {
+	test('DiagnosticAdapter default behavior without overrides', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger })
 		d.log('info', 'hello')
@@ -66,7 +65,7 @@ test('Diagnostic suite', async (t) => {
 		assert.equal(logger.entries[0].message, 'hello')
 	})
 
-	await t.test('DiagnosticAdapter overrides apply via messages array (log)', () => {
+	test('DiagnosticAdapter overrides apply via messages array (log)', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: [{ key: 'hello', level: 'warn', message: 'hi' }] })
 		d.log('info', 'hello')
@@ -75,7 +74,7 @@ test('Diagnostic suite', async (t) => {
 		assert.equal(logger.entries[0].message, 'hi')
 	})
 
-	await t.test('DiagnosticAdapter overrides apply for metric/trace/event', () => {
+	test('DiagnosticAdapter overrides apply for metric/trace/event', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: [
 			{ key: 'm1', message: 'metric-one' },
@@ -101,16 +100,16 @@ test('Diagnostic suite', async (t) => {
 		assert.deepEqual(logger.entries[0].fields, { b: 2 })
 	})
 
-	await t.test('DiagnosticAdapter error uses context.code when provided', () => {
+	test('DiagnosticAdapter error uses context.code when provided', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: [{ key: 'MYCODE', level: 'warn', message: 'bad things' }] })
 		d.error(new Error('boom'), { code: 'MYCODE' as unknown as never })
 		assert.equal(logger.entries[0].level, 'warn')
 		assert.equal(logger.entries[0].message, 'bad things')
-		assert.ok(logger.entries[0].fields && 'err' in (logger.entries[0].fields))
+		assert.ok(logger.entries[0].fields && 'err' in (logger.entries[0].fields as object))
 	})
 
-	await t.test('DiagnosticAdapter error falls back to error name key when no code', () => {
+	test('DiagnosticAdapter error falls back to error name key when no code', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: [{ key: 'Error', level: 'error', message: 'oops mapped' }] })
 		d.error(new Error('original'))
@@ -119,7 +118,7 @@ test('Diagnostic suite', async (t) => {
 	})
 
 	// Domain message maps resolution
-	await t.test('orchestrator + lifecycle + internal message maps', () => {
+	test('orchestrator + lifecycle + internal message maps', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: [...ORCHESTRATOR_MESSAGES, ...LIFECYCLE_MESSAGES, ...INTERNAL_MESSAGES] })
 		// orchestrator code
@@ -138,7 +137,7 @@ test('Diagnostic suite', async (t) => {
 		}
 	})
 
-	await t.test('container message map', () => {
+	test('container message map', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: CONTAINER_MESSAGES })
 		try {
@@ -148,7 +147,7 @@ test('Diagnostic suite', async (t) => {
 		assert.equal(logger.entries[0]?.message, 'Container: already destroyed')
 	})
 
-	await t.test('registry message map', () => {
+	test('registry message map', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: REGISTRY_MESSAGES })
 		try {
@@ -158,7 +157,7 @@ test('Diagnostic suite', async (t) => {
 		assert.equal(logger.entries[0]?.message, 'Registry: no default instance')
 	})
 
-	await t.test('queue message map', () => {
+	test('queue message map', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: QUEUE_MESSAGES })
 		try {
@@ -168,7 +167,7 @@ test('Diagnostic suite', async (t) => {
 		assert.equal(logger.entries[0]?.message, 'Queue: capacity exceeded')
 	})
 
-	await t.test('ports message map', () => {
+	test('ports message map', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: PORTS_MESSAGES })
 		try {

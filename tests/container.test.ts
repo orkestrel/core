@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test, beforeEach, afterEach } from 'vitest'
 import assert from 'node:assert/strict'
 import { createToken, Container, container, Adapter, NoopLogger, isAggregateLifecycleError } from '@orkestrel/core'
 
@@ -18,19 +18,17 @@ class FailingOnDestroy extends Adapter {
 	}
 }
 
-test('Container suite', { concurrency: false }, async (t) => {
-	// Fresh logger per subtest
-	t.beforeEach(() => {
+describe('Container suite', () => {
+	beforeEach(() => {
 		logger = new NoopLogger()
 	})
-	// Ensure we don’t leak named containers across subtests (keep default)
-	t.afterEach(() => {
+	afterEach(() => {
 		for (const name of container.list()) {
 			container.clear(name, true)
 		}
 	})
 
-	await t.test('value provider resolution', () => {
+	test('value provider resolution', () => {
 		const TOK = createToken<number>('num')
 		const c = new Container({ logger })
 		c.register(TOK, { useValue: 42 })
@@ -38,7 +36,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.equal(c.has(TOK), true)
 	})
 
-	await t.test('strict resolve missing token throws', () => {
+	test('strict resolve missing token throws', () => {
 		const MISSING = createToken<number>('missing:strict')
 		const c = new Container({ logger })
 		assert.throws(() => c.resolve(MISSING), (err: unknown) => {
@@ -48,7 +46,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 	})
 
 	// Inject tests
-	await t.test('factory provider with inject array resolves dependencies by order', () => {
+	test('factory provider with inject array resolves dependencies by order', () => {
 		const A = createToken<number>('A')
 		const B = createToken<string>('B')
 		const OUT = createToken<{ a: number, b: string }>('OUT')
@@ -60,7 +58,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.deepEqual(v, { a: 10, b: 'hi' })
 	})
 
-	await t.test('factory provider with inject object resolves named dependencies', () => {
+	test('factory provider with inject object resolves named dependencies', () => {
 		const A = createToken<number>('A2')
 		const B = createToken<string>('B2')
 		const SUM = createToken<number>('SUM')
@@ -73,7 +71,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 
 	class NeedsDeps { constructor(public readonly a: number, public readonly b: string) {} }
 
-	await t.test('class provider with inject array constructs with resolved dependencies', () => {
+	test('class provider with inject array constructs with resolved dependencies', () => {
 		const A = createToken<number>('A3')
 		const B = createToken<string>('B3')
 		const C = createToken<NeedsDeps>('C3')
@@ -86,7 +84,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.equal(inst.b, 'z')
 	})
 
-	await t.test('factory provider resolution and get/has', () => {
+	test('factory provider resolution and get/has', () => {
 		const TOK = createToken<{ v: number }>('obj')
 		const MISS = createToken('missing')
 		const c = new Container({ logger })
@@ -96,7 +94,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.equal(c.has(MISS), false)
 	})
 
-	await t.test('object-map strict resolution and optional get()', () => {
+	test('object-map strict resolution and optional get()', () => {
 		const A = createToken<number>('A')
 		const B = createToken<string>('B')
 		const C = createToken<boolean>('C')
@@ -112,7 +110,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		)
 	})
 
-	await t.test('class provider without autostart; child container lookup', async () => {
+	test('class provider without autostart; child container lookup', async () => {
 		const TOK = createToken<TestLifecycle>('life')
 		const c = new Container({ logger })
 		c.register(TOK, { useFactory: () => new TestLifecycle({ logger }) })
@@ -128,7 +126,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.ok(inst.stopped >= 0)
 	})
 
-	await t.test('destroy aggregates errors and is idempotent', async () => {
+	test('destroy aggregates errors and is idempotent', async () => {
 		const BAD = createToken<FailingOnDestroy>('bad')
 		const c = new Container({ logger })
 		c.register(BAD, { useFactory: () => new FailingOnDestroy({ logger }) })
@@ -150,7 +148,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		await c.destroy()
 	})
 
-	await t.test('global helper supports default symbol and named string keys', () => {
+	test('global helper supports default symbol and named string keys', () => {
 		// clear any existing registrations (default is protected and will remain)
 		for (const name of container.list()) container.clear(name, true)
 		const ALT = new Container({ logger })
@@ -172,7 +170,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		)
 	})
 
-	await t.test('callable getter resolves a token map with resolve({ ... })', () => {
+	test('callable getter resolves a token map with resolve({ ... })', () => {
 		// ensure clean registry state (default persists)
 		for (const name of container.list()) container.clear(name, true)
 		const A = createToken<number>('A')
@@ -184,7 +182,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.deepStrictEqual({ a, b }, { a: 123, b: 'xyz' })
 	})
 
-	await t.test('named container resolves a token map with resolve({ ... })', () => {
+	test('named container resolves a token map with resolve({ ... })', () => {
 		// clear any existing registrations (default persists)
 		for (const name of container.list()) container.clear(name, true)
 		const namedC = new Container({ logger })
@@ -197,7 +195,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.deepStrictEqual({ a, b }, { a: 2, b: 'z' })
 	})
 
-	await t.test('using(fn) runs in a child scope and destroys it after', async () => {
+	test('using(fn) runs in a child scope and destroys it after', async () => {
 		class Scoped extends Adapter {
 			public destroyed = false
 			protected async onDestroy() { this.destroyed = true }
@@ -216,7 +214,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		)
 	})
 
-	await t.test('using(apply, fn) registers overrides in a child scope', async () => {
+	test('using(apply, fn) registers overrides in a child scope', async () => {
 		const T = createToken<string>('scoped:val')
 		const root = new Container({ logger })
 		// no root registration
@@ -235,7 +233,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.equal(root.get(T), undefined)
 	})
 
-	await t.test('register with lock prevents re-registration for the same token', () => {
+	test('register with lock prevents re-registration for the same token', () => {
 		const T = createToken<number>('lockReg')
 		const c = new Container({ logger })
 		c.register(T, { useValue: 1 }, true) // lock
@@ -243,7 +241,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.throws(() => c.register(T, { useValue: 2 }), /Cannot replace locked provider/)
 	})
 
-	await t.test('set with lock prevents overwriting value', () => {
+	test('set with lock prevents overwriting value', () => {
 		const T = createToken<string>('lockSet')
 		const c = new Container({ logger })
 		c.set(T, 'A', true)
@@ -251,7 +249,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.throws(() => c.set(T, 'B'), /Cannot replace locked provider/)
 	})
 
-	await t.test('child inherits providers via has/get from parent', () => {
+	test('child inherits providers via has/get from parent', () => {
 		const T = createToken<number>('parent:val')
 		const parent = new Container({ logger })
 		parent.set(T, 99)
@@ -263,7 +261,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 	})
 
 	// NEW: Promise-handling for using
-	await t.test('using(fn) resolves promised return value', async () => {
+	test('using(fn) resolves promised return value', async () => {
 		const T = createToken<string>('using:return')
 		const root = new Container({ logger })
 		const out = await root.using(async (scope) => {
@@ -274,7 +272,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.equal(out, 'x-done')
 	})
 
-	await t.test('global container.using supports named containers and async apply/fn', async () => {
+	test('global container.using supports named containers and async apply/fn', async () => {
 		// reset registry state
 		for (const name of container.list()) container.clear(name, true)
 		const named = new Container({ logger })
@@ -297,7 +295,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.equal(named.get(T), undefined)
 	})
 
-	await t.test('global container.using(fn) with name runs in a child scope without leaking', async () => {
+	test('global container.using(fn) with name runs in a child scope without leaking', async () => {
 		for (const name of container.list()) container.clear(name, true)
 		const named = new Container({ logger })
 		container.set('tenantY', named)
@@ -312,7 +310,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.equal(named.get(T), undefined)
 	})
 
-	await t.test('resolve with tuple returns values in order', () => {
+	test('resolve with tuple returns values in order', () => {
 		const A = createToken<number>('tuple:A')
 		const B = createToken<string>('tuple:B')
 		const c = new Container({ logger })
@@ -322,7 +320,7 @@ test('Container suite', { concurrency: false }, async (t) => {
 		assert.deepStrictEqual([a, b], [7, 'eight'])
 	})
 
-	await t.test('get with tuple returns optional values in order', () => {
+	test('get with tuple returns optional values in order', () => {
 		const A = createToken<number>('tuple2:A')
 		const B = createToken<string>('tuple2:B')
 		const C = createToken<boolean>('tuple2:C')

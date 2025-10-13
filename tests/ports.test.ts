@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { extendPorts, createPortToken, createPortTokens, Orchestrator, NoopLogger } from '@orkestrel/core'
 
@@ -9,8 +9,8 @@ class InMemoryEmailAdapter implements EmailPort { async send() { /* no-op */ } }
 
 interface FeatureFlagPort { isEnabled(flag: string): boolean }
 
-test('Ports suite', async (t) => {
-	await t.test('createPortTokens creates a base token set; extendPorts merges', async () => {
+describe('Ports suite', () => {
+	test('createPortTokens creates a base token set; extendPorts merges', async () => {
 		const Base = createPortTokens({ email: {} as EmailPort })
 		const Extended = extendPorts(Base, { featureFlag: {} as FeatureFlagPort })
 		assert.ok(Base.email)
@@ -24,14 +24,14 @@ test('Ports suite', async (t) => {
 		await orch.destroy()
 	})
 
-	await t.test('extendPorts (single-arg) creates tokens from shape', () => {
+	test('extendPorts (single-arg) creates tokens from shape', () => {
 		const Only = extendPorts({ email: {} as EmailPort }) as { email: ReturnType<typeof createPortToken<EmailPort>> }
 		assert.ok(Only.email)
 		assert.equal(typeof Only.email.description, 'string')
 		assert.equal(typeof Only.email, 'symbol')
 	})
 
-	await t.test('extendPorts duplicate key throws', () => {
+	test('extendPorts duplicate key throws', () => {
 		const Base = createPortTokens({ email: {} as EmailPort })
 		assert.throws(() => extendPorts(Base, { email: {} as EmailPort }), (err: unknown) => {
 			const e = err as { message?: string, code?: string }
@@ -41,13 +41,13 @@ test('Ports suite', async (t) => {
 		})
 	})
 
-	await t.test('createPortToken produces unique token', () => {
+	test('createPortToken produces unique token', () => {
 		const T1 = createPortToken<EmailPort>('emailCustom')
 		const T2 = createPortToken<EmailPort>('emailCustom')
 		assert.notEqual(T1, T2)
 	})
 
-	await t.test('extendPorts returns frozen, read-only token map', () => {
+	test('extendPorts returns frozen, read-only token map', () => {
 		const Base = createPortTokens({ email: {} as EmailPort })
 		const Extended = extendPorts(Base, { featureFlag: {} as FeatureFlagPort })
 		assert.equal(Object.isFrozen(Extended), true)

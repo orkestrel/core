@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { Adapter, NoopLogger } from '@orkestrel/core'
 
@@ -12,8 +12,8 @@ class MyAdapter extends Adapter {
 	protected async onDestroy(): Promise<void> { this.calls.push('destroy') }
 }
 
-test('Adapter suite', async (t) => {
-	await t.test('inherits Lifecycle behavior and invokes protected hooks', async () => {
+describe('Adapter suite', () => {
+	test('inherits Lifecycle behavior and invokes protected hooks', async () => {
 		const a = new MyAdapter({ logger })
 		assert.equal(a.state, 'created')
 		await a.create()

@@ -1,11 +1,11 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { EventAdapter, NoopLogger } from '@orkestrel/core'
 
 const logger = new NoopLogger()
 
-test('Event suite', async (t) => {
-	await t.test('subscribe/publish sequentially and unsubscribe', async () => {
+describe('Event suite', () => {
+	test('subscribe/publish sequentially and unsubscribe', async () => {
 		const ev = new EventAdapter({ logger })
 		const seen: number[] = []
 		const unsub = await ev.subscribe<number>('t', (n) => {
@@ -19,7 +19,7 @@ test('Event suite', async (t) => {
 		assert.deepEqual(seen, [1, 2])
 	})
 
-	await t.test('concurrent publish isolates handler errors', async () => {
+	test('concurrent publish isolates handler errors', async () => {
 		let errCount = 0
 		const ev = new EventAdapter({ onError: () => {
 			errCount++
@@ -35,7 +35,7 @@ test('Event suite', async (t) => {
 		assert.deepStrictEqual({ errCount, called }, { errCount: 1, called: true })
 	})
 
-	await t.test('topics return active topics and clean up', async () => {
+	test('topics return active topics and clean up', async () => {
 		const bus = new EventAdapter({ logger })
 		assert.deepEqual(bus.topics(), [])
 		const offA = await bus.subscribe('A', async () => {
@@ -59,7 +59,7 @@ test('Event suite', async (t) => {
 		assert.deepEqual(bus.topics(), [])
 	})
 
-	await t.test('handler can unsubscribe itself during publish', async () => {
+	test('handler can unsubscribe itself during publish', async () => {
 		const bus = new EventAdapter({ logger })
 		let calls = 0
 		const off = await bus.subscribe('self', async () => {

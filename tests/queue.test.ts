@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { QueueAdapter, NoopLogger } from '@orkestrel/core'
 
@@ -8,8 +8,8 @@ function delay(ms: number) {
 
 const logger = new NoopLogger()
 
-test('Queue suite', async (t) => {
-	await t.test('preserves result order with full parallelism', async () => {
+describe('Queue suite', () => {
+	test('preserves result order with full parallelism', async () => {
 		const q = new QueueAdapter({ logger })
 		const tasks = [
 			async () => {
@@ -29,7 +29,7 @@ test('Queue suite', async (t) => {
 		assert.deepEqual(out, ['a', 'b', 'c'])
 	})
 
-	await t.test('respects concurrency cap', async () => {
+	test('respects concurrency cap', async () => {
 		const q = new QueueAdapter({ logger })
 		let active = 0
 		let maxActive = 0
@@ -47,7 +47,7 @@ test('Queue suite', async (t) => {
 		assert.ok(maxActive <= cap, `max active ${maxActive} should be <= ${cap}`)
 	})
 
-	await t.test('propagates task errors (rejects)', async () => {
+	test('propagates task errors (rejects)', async () => {
 		const q = new QueueAdapter({ logger })
 		const err = new Error('boom')
 		const tasks = [
@@ -60,7 +60,7 @@ test('Queue suite', async (t) => {
 		await assert.rejects(() => q.run(tasks, { concurrency: 2 }), { message: 'boom' })
 	})
 
-	await t.test('FIFO enqueue/dequeue preserves order', async () => {
+	test('FIFO enqueue/dequeue preserves order', async () => {
 		const q = new QueueAdapter<string>({ logger })
 		await q.enqueue('a')
 		await q.enqueue('b')
@@ -72,7 +72,7 @@ test('Queue suite', async (t) => {
 		assert.equal(await q.size(), 0)
 	})
 
-	await t.test('dequeue on empty returns undefined', async () => {
+	test('dequeue on empty returns undefined', async () => {
 		const q = new QueueAdapter<number>({ logger })
 		assert.equal(await q.size(), 0)
 		assert.equal(await q.dequeue(), undefined)
@@ -81,7 +81,7 @@ test('Queue suite', async (t) => {
 		assert.equal(await q.dequeue(), undefined)
 	})
 
-	await t.test('enforces capacity on enqueue', async () => {
+	test('enforces capacity on enqueue', async () => {
 		const q = new QueueAdapter<number>({ capacity: 2, logger })
 		await q.enqueue(1)
 		await q.enqueue(2)
@@ -92,7 +92,7 @@ test('Queue suite', async (t) => {
 		assert.equal(await q.size(), 2)
 	})
 
-	await t.test('dequeue after capacity enforcement still works', async () => {
+	test('dequeue after capacity enforcement still works', async () => {
 		const q = new QueueAdapter<string>({ capacity: 1, logger })
 		await q.enqueue('a')
 		await assert.rejects(() => q.enqueue('b'))
@@ -101,7 +101,7 @@ test('Queue suite', async (t) => {
 		assert.equal(await q.size(), 0)
 	})
 
-	await t.test('run with concurrency=1 runs tasks sequentially and preserves order', async () => {
+	test('run with concurrency=1 runs tasks sequentially and preserves order', async () => {
 		const q = new QueueAdapter({ logger })
 		let active = 0
 		let maxActive = 0
@@ -118,7 +118,7 @@ test('Queue suite', async (t) => {
 		assert.equal(maxActive, 1)
 	})
 
-	await t.test('run supports per-task timeout', async () => {
+	test('run supports per-task timeout', async () => {
 		const q = new QueueAdapter({ logger })
 		const tasks = [
 			async () => {
@@ -136,7 +136,7 @@ test('Queue suite', async (t) => {
 		})
 	})
 
-	await t.test('run with deadline enforces shared time budget across tasks', async () => {
+	test('run with deadline enforces shared time budget across tasks', async () => {
 		const q = new QueueAdapter({ logger })
 		const tasks = [
 			async () => {
@@ -158,7 +158,7 @@ test('Queue suite', async (t) => {
 		})
 	})
 
-	await t.test('run with abort signal stops scheduling and rejects', async () => {
+	test('run with abort signal stops scheduling and rejects', async () => {
 		const q = new QueueAdapter({ logger })
 		const controller = new AbortController()
 		let started = 0
@@ -177,7 +177,7 @@ test('Queue suite', async (t) => {
 		assert.ok(started >= 1)
 	})
 
-	await t.test('run with no tasks returns empty array', async () => {
+	test('run with no tasks returns empty array', async () => {
 		const q = new QueueAdapter({ logger })
 		const out = await q.run([])
 		assert.deepEqual(out, [])

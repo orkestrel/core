@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test, beforeEach } from 'vitest'
 import assert from 'node:assert/strict'
 import type { LifecycleState, QueuePort } from '@orkestrel/core'
 import { Lifecycle, NoopLogger } from '@orkestrel/core'
@@ -35,12 +35,12 @@ class HangingStart extends Lifecycle {
 	}
 }
 
-test('Lifecycle suite', async (t) => {
-	t.beforeEach(() => {
+describe('Lifecycle suite', () => {
+	beforeEach(() => {
 		logger = new NoopLogger()
 	})
 
-	await t.test('happy path transitions', async () => {
+	test('happy path transitions', async () => {
 		const lc = new TestLifecycle({ timeouts: 100, logger })
 		await lc.create()
 		assert.equal(lc.state, 'created')
@@ -55,14 +55,14 @@ test('Lifecycle suite', async (t) => {
 		assert.deepEqual(lc.log, ['create', 'start', 'stop', 'start', 'destroy'])
 	})
 
-	await t.test('failing start wraps error', async () => {
+	test('failing start wraps error', async () => {
 		const lc = new FailingStart({ timeouts: 50, logger })
 		await assert.rejects(() => lc.start(), /Hook 'start' failed/)
 		assert.equal(lc.state, 'created')
 	})
 
 	// New test: ensure non-timeout hook failures expose ORK1022 code
-	await t.test('failing start sets ORK1022 code', async () => {
+	test('failing start sets ORK1022 code', async () => {
 		const lc = new FailingStart({ timeouts: 50, logger })
 		await assert.rejects(() => lc.start(), (err: unknown) => {
 			// Narrow incrementally and check for a code property safely
@@ -75,14 +75,14 @@ test('Lifecycle suite', async (t) => {
 		})
 	})
 
-	await t.test('hook timeout triggers TimeoutError', async () => {
+	test('hook timeout triggers TimeoutError', async () => {
 		const lc = new HangingStart({ timeouts: 10, logger })
 		await assert.rejects(() => lc.start(), /timed out/)
 		assert.equal(lc.state, 'created')
 	})
 
 	// New test: ensure timeout failures expose ORK1021 code
-	await t.test('hook timeout sets ORK1021 code', async () => {
+	test('hook timeout sets ORK1021 code', async () => {
 		const lc = new HangingStart({ timeouts: 10, logger })
 		await assert.rejects(() => lc.start(), (err: unknown) => {
 			if (typeof err === 'object' && err !== null && 'code' in err) {
@@ -94,7 +94,7 @@ test('Lifecycle suite', async (t) => {
 		assert.equal(lc.state, 'created')
 	})
 
-	await t.test('invalid transition throws', async () => {
+	test('invalid transition throws', async () => {
 		const lc = new TestLifecycle({ logger })
 		await lc.start()
 		await assert.rejects(async () => lc.create(), (err: unknown) => {
@@ -105,7 +105,7 @@ test('Lifecycle suite', async (t) => {
 		await assert.rejects(() => lc.start(), /Invalid lifecycle transition/)
 	})
 
-	await t.test('onTransition runs between hook and state change (filterable in override)', async () => {
+	test('onTransition runs between hook and state change (filterable in override)', async () => {
 		class Transitions extends Lifecycle {
 			public transitions: string[] = []
 			protected async onStart(): Promise<void> {
@@ -130,7 +130,7 @@ test('Lifecycle suite', async (t) => {
 		assert.deepEqual(lc.transitions, ['created->started:start'])
 	})
 
-	await t.test('onTransition timeout surfaces as TimeoutError', async () => {
+	test('onTransition timeout surfaces as TimeoutError', async () => {
 		class SlowTransition extends Lifecycle {
 			protected async onStart(): Promise<void> {
 				// ok
@@ -145,7 +145,7 @@ test('Lifecycle suite', async (t) => {
 		assert.equal(lc.state, 'created')
 	})
 
-	await t.test('transition not emitted twice for created->created on create()', async () => {
+	test('transition not emitted twice for created->created on create()', async () => {
 		const events: LifecycleState[] = []
 		class L extends Lifecycle {
 			protected async onCreate(): Promise<void> {
@@ -163,7 +163,7 @@ test('Lifecycle suite', async (t) => {
 		assert.deepEqual(events, ['created'])
 	})
 
-	await t.test('emitInitial=false suppresses initial transition', async () => {
+	test('emitInitial=false suppresses initial transition', async () => {
 		const events: LifecycleState[] = []
 		class L extends Lifecycle {
 			protected async onStart(): Promise<void> {
@@ -180,7 +180,7 @@ test('Lifecycle suite', async (t) => {
 		assert.deepEqual(events, ['started'])
 	})
 
-	await t.test('supports injected queue and enforces concurrency=1 with shared deadline', async () => {
+	test('supports injected queue and enforces concurrency=1 with shared deadline', async () => {
 		interface Capture { calls: number, lastOptions?: { concurrency?: number, deadline?: number } }
 		const cap: Capture = { calls: 0 }
 		class FakeQueue implements QueuePort<unknown> {
@@ -205,7 +205,6 @@ test('Lifecycle suite', async (t) => {
 		const lc = new QLife({ timeouts, queue: q, logger })
 		await lc.start()
 		assert.equal(lc.state, 'started')
-		assert.equal(lc instanceof QLife, true)
 		assert.equal((lc as QLife).ok, true)
 		assert.equal(cap.calls, 1)
 		assert.equal(cap.lastOptions?.concurrency, 1)

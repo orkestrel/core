@@ -1,9 +1,9 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { LoggerAdapter, NoopLogger } from '@orkestrel/core'
 
-test('Logger suite', async (t) => {
-	await t.test('LoggerAdapter routes by level to console.*', () => {
+describe('Logger suite', () => {
+	test('LoggerAdapter routes by level to console.*', () => {
 		const calls: Array<{ name: string, payload: unknown[] }> = []
 		const orig = { debug: console.debug, info: console.info, warn: console.warn, error: console.error }
 		console.debug = (...args: unknown[]) => {
@@ -36,7 +36,7 @@ test('Logger suite', async (t) => {
 		}
 	})
 
-	await t.test('LoggerAdapter swallows console errors', () => {
+	test('LoggerAdapter swallows console errors', () => {
 		const orig = { error: console.error }
 		let threw = false
 		console.error = () => {
@@ -56,7 +56,7 @@ test('Logger suite', async (t) => {
 		assert.equal(threw, false)
 	})
 
-	await t.test('NoopLogger never throws', () => {
+	test('NoopLogger never throws', () => {
 		const l = new NoopLogger()
 		l.log('info', 'whatever', { a: 1 })
 		assert.ok(true)

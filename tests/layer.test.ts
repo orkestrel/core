@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { LayerAdapter, createToken, tokenDescription, NoopLogger } from '@orkestrel/core'
 
@@ -57,14 +57,14 @@ function buildRandomDag(rng: ReturnType<typeof makeRng>) {
 	return { n, edges, labels }
 }
 
-test('Layer suite', async (t) => {
-	await t.test('compute returns deterministic topological layers (Kahn)', () => {
+describe('Layer suite', () => {
+	test('compute returns deterministic topological layers (Kahn)', () => {
 		const layer = new LayerAdapter({ logger })
 		const layers = layer.compute(nodes())
 		assert.deepEqual(layers, [[A], [B, C], [D]])
 	})
 
-	await t.test('compute throws ORK1008 on unknown dependency', () => {
+	test('compute throws ORK1008 on unknown dependency', () => {
 		const layer = new LayerAdapter({ logger })
 		const UNKNOWN = createToken('UNKNOWN')
 		assert.throws(() => {
@@ -77,7 +77,7 @@ test('Layer suite', async (t) => {
 		})
 	})
 
-	await t.test('compute throws ORK1009 when cycle exists', () => {
+	test('compute throws ORK1009 when cycle exists', () => {
 		const layer = new LayerAdapter({ logger })
 		assert.throws(() => {
 			// A <- B <- A (cycle)
@@ -91,14 +91,14 @@ test('Layer suite', async (t) => {
 		})
 	})
 
-	await t.test('group returns tokens grouped by reverse layer order', () => {
+	test('group returns tokens grouped by reverse layer order', () => {
 		const layer = new LayerAdapter({ logger })
 		const layers = layer.compute(nodes())
 		const groups = layer.group([D, B], layers)
 		assert.deepEqual(groups, [[D], [B]])
 	})
 
-	await t.test('group ignores tokens not present in layers', () => {
+	test('group ignores tokens not present in layers', () => {
 		const layer = new LayerAdapter({ logger })
 		const layers = layer.compute(nodes())
 		const X = createToken('X')
@@ -106,11 +106,11 @@ test('Layer suite', async (t) => {
 		assert.deepEqual(groups, [[D]])
 	})
 
-	await t.test('tokenDescription formats symbols', () => {
+	test('tokenDescription formats symbols', () => {
 		assert.equal(tokenDescription(A), 'A')
 	})
 
-	await t.test('property: random DAG layering respects edges', () => {
+	test('property: random DAG layering respects edges', () => {
 		const seeds = [1, 2, 3, 123456, 987654321]
 		for (const seed of seeds) {
 			const rng = makeRng(seed)
@@ -131,7 +131,7 @@ test('Layer suite', async (t) => {
 		}
 	})
 
-	await t.test('property: reverse grouping respects edge direction for stop/destroy', () => {
+	test('property: reverse grouping respects edge direction for stop/destroy', () => {
 		const seeds = [11, 22, 333, 4444]
 		for (const seed of seeds) {
 			const rng = makeRng(seed)

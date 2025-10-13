@@ -1,11 +1,11 @@
-import { test } from 'node:test'
+import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { RegistryAdapter, NoopLogger } from '@orkestrel/core'
 
 const logger = new NoopLogger()
 
-test('Registry suite', async (t) => {
-	await t.test('with symbol default: construct/get/resolve/list and protect default', () => {
+describe('Registry suite', () => {
+	test('with symbol default: construct/get/resolve/list and protect default', () => {
 		const DEF = Symbol('def')
 		const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 42 }, logger })
 		// resolve/get default
@@ -18,7 +18,7 @@ test('Registry suite', async (t) => {
 		assert.equal(reg.clear(undefined, true), false)
 	})
 
-	await t.test('supports string and symbol named keys with default present', () => {
+	test('supports string and symbol named keys with default present', () => {
 		const DEF = Symbol('def')
 		const reg = new RegistryAdapter<string>({ label: 'thing', default: { key: DEF, value: 'default' }, logger })
 		reg.set('alpha', 'A')
@@ -31,7 +31,7 @@ test('Registry suite', async (t) => {
 		assert.throws(() => reg.resolve('alpha'), /No thing instance registered/)
 	})
 
-	await t.test('clear on non-existent names returns false and is non-destructive', () => {
+	test('clear on non-existent names returns false and is non-destructive', () => {
 		const DEF = Symbol('def')
 		const reg = new RegistryAdapter<number>({ label: 'thing', default: { key: DEF, value: 1 }, logger })
 		// clearing unknowns returns false and does not affect entries
@@ -51,13 +51,13 @@ test('Registry suite', async (t) => {
 		)
 	})
 
-	await t.test('resolve without default throws; get returns undefined', () => {
+	test('resolve without default throws; get returns undefined', () => {
 		const r = new RegistryAdapter<number>({ label: 'num', logger })
 		assert.equal(r.get(), undefined)
 		assert.throws(() => r.resolve(), /No num instance registered/)
 	})
 
-	await t.test('lock prevents overwrite and force allows clear', () => {
+	test('lock prevents overwrite and force allows clear', () => {
 		const r = new RegistryAdapter<number>({ label: 'num', default: { value: 1 }, logger })
 		r.set('x', 5, true)
 		assert.throws(() => r.set('x', 6), /Cannot replace locked/)

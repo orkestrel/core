@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { describe, test, beforeEach, afterEach } from 'vitest'
 import assert from 'node:assert/strict'
 import type { Provider } from '@orkestrel/core'
 import { NoopLogger,
@@ -150,20 +150,20 @@ function hasOrder(x: unknown): x is HasOrder {
 	return hasOwn(x, 'startedAt', 'stoppedAt')
 }
 
-test('Orchestrator suite', { concurrency: false }, async (t) => {
-	t.beforeEach(() => {
+describe('Orchestrator suite', () => {
+	beforeEach(() => {
 		logger = new NoopLogger()
 		for (const name of orchestrator.list()) {
 			orchestrator.clear(name, true)
 		}
 	})
-	t.afterEach(() => {
+	afterEach(() => {
 		for (const name of orchestrator.list()) {
 			orchestrator.clear(name, true)
 		}
 	})
 
-	await t.test('starts components in topological order', async () => {
+	test('starts components in topological order', async () => {
 		TestComponent.counter = 0
 		const A = createToken<TestComponent>('A')
 		const B = createToken<TestComponent>('B')
@@ -184,7 +184,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
 	})
 
-	await t.test('detects dependency cycles', async () => {
+	test('detects dependency cycles', async () => {
 		TestComponent.counter = 0
 		const A = createToken<TestComponent>('A')
 		const B = createToken<TestComponent>('B')
@@ -205,7 +205,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		})
 	})
 
-	await t.test('aggregates start errors and rolls back started components', async () => {
+	test('aggregates start errors and rolls back started components', async () => {
 		TestComponent.counter = 0
 		const GOOD = createToken<TestComponent>('GOOD')
 		const BAD = createToken<FailingStartComponent>('BAD')
@@ -225,7 +225,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await orch.destroy().catch(() => {})
 	})
 
-	await t.test('unknown dependency error contains context', async () => {
+	test('unknown dependency error contains context', async () => {
 		const A = createToken<TestComponent>('A')
 		const B = createToken<TestComponent>('B')
 		const a = new TestComponent('A')
@@ -239,7 +239,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		})
 	})
 
-	await t.test('destroy aggregates component and container errors', async () => {
+	test('destroy aggregates component and container errors', async () => {
 		const BAD = createToken<FailingDestroyComponent>('BAD')
 		const good = new TestComponent('GOOD')
 		const GOOD = createToken<TestComponent>('GOOD')
@@ -260,7 +260,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		})
 	})
 
-	await t.test('global getter supports default symbol and named string keys', async () => {
+	test('global getter supports default symbol and named string keys', async () => {
 		for (const name of orchestrator.list()) {
 			orchestrator.clear(name, true)
 		}
@@ -275,7 +275,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.equal(orchestrator.clear('other', true), true)
 	})
 
-	await t.test('start rollback stops previously started components on failure', async () => {
+	test('start rollback stops previously started components on failure', async () => {
 		const A = createToken<Track>('A')
 		const B = createToken<Track>('B')
 		const X = createToken<FailingStartComponent>('X')
@@ -298,7 +298,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		)
 	})
 
-	await t.test('per-lifecycle onStart timeout triggers failure with telemetry', async () => {
+	test('per-lifecycle onStart timeout triggers failure with telemetry', async () => {
 		const SLOW = createToken<SlowStart>('SLOW')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		let err: unknown
@@ -309,20 +309,16 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			err = e
 		}
 		assert.match((err as Error).message, /Errors during start/)
-		// removed formatted prefix assertion
 		type WithDiag = Error & { code?: string }
 		assert.equal((err as WithDiag).code, 'ORK1013')
-		assert.ok(isAggregateLifecycleError(err))
-		const details = (err as ReturnType<typeof isAggregateLifecycleError> extends true ? unknown : unknown) as Array<unknown> | undefined
-		const d2 = (err as { details?: unknown }).details
-		const det = Array.isArray(d2) ? d2 : details
-		assert.ok(Array.isArray(det))
+		if (!isAggregateLifecycleError(err)) assert.fail('expected aggregate lifecycle error')
+		const det = err.details
 		assert.ok(det.every(isLifecycleErrorDetail))
 		assert.ok(det.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
 		assert.ok(det.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
 	})
 
-	await t.test('per-lifecycle onStop timeout triggers failure with telemetry', async () => {
+	test('per-lifecycle onStop timeout triggers failure with telemetry', async () => {
 		const SLOW_STOP = createToken<SlowStop>('SLOW_STOP')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		await orch.start([{ token: SLOW_STOP, provider: { useFactory: () => new SlowStop(30) }, dependencies: [], timeouts: { onStop: 10 } }])
@@ -334,29 +330,25 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			err = e
 		}
 		assert.match((err as Error).message, /Errors during stop/)
-		// removed formatted prefix assertion
 		type WithDiag2 = Error & { code?: string }
 		assert.equal((err as WithDiag2).code, 'ORK1014')
-		assert.ok(isAggregateLifecycleError(err))
-		const details = (err as { details?: unknown }).details
-		assert.ok(Array.isArray(details))
+		if (!isAggregateLifecycleError(err)) assert.fail('expected aggregate lifecycle error')
+		const details = err.details
 		assert.ok(details.every(isLifecycleErrorDetail))
 		assert.ok(details.some(d => d.tokenDescription === 'SLOW_STOP' && d.phase === 'stop' && d.timedOut && Number.isFinite(d.durationMs)))
 		assert.ok(details.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
 	})
 
-	await t.test('destroy() aggregates stop and destroy errors', async () => {
+	test('destroy() aggregates stop and destroy errors', async () => {
 		const FB = createToken<FailingStopDestroyComponent>('FB')
 		const app = new Orchestrator(new Container({ logger }), { logger })
 		await app.start([register(FB, { useFactory: () => new FailingStopDestroyComponent({ logger }) })])
 		await assert.rejects(() => app.destroy(), (err: unknown) => {
 			assert.match((err as Error).message, /Errors during destroy/)
-			// removed formatted prefix assertion
 			type WithDiag = Error & { code?: string }
 			assert.equal((err as WithDiag).code, 'ORK1017')
-			assert.ok(isAggregateLifecycleError(err))
-			const details = (err as { details?: unknown }).details
-			assert.ok(Array.isArray(details))
+			if (!isAggregateLifecycleError(err)) return false
+			const details = err.details
 			assert.ok(details.every(isLifecycleErrorDetail))
 			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'stop'))
 			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'destroy'))
@@ -366,7 +358,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy().catch(() => {})
 	})
 
-	await t.test('async provider guard: useValue Promise throws at registration', () => {
+	test('async provider guard: useValue Promise throws at registration', () => {
 		const T = createToken<Promise<number>>('AsyncVal')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		assert.throws(() => orch.register(T, { useValue: Promise.resolve(1) }), (err: unknown) => {
@@ -378,7 +370,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		})
 	})
 
-	await t.test('async provider guard: useFactory Promise throws at registration', () => {
+	test('async provider guard: useFactory Promise throws at registration', () => {
 		const T = createToken<number>('AsyncFactory')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		const prov = { useFactory: async () => 1 } as unknown as Provider<number>
@@ -391,7 +383,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		})
 	})
 
-	await t.test('register helper wires dependencies correctly', async () => {
+	test('register helper wires dependencies correctly', async () => {
 		class A extends Adapter {}
 		class B extends Adapter {}
 		const TA = createToken<A>('A')
@@ -407,7 +399,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy()
 	})
 
-	await t.test('defaultTimeouts on orchestrator apply when register omits timeouts', async () => {
+	test('defaultTimeouts on orchestrator apply when register omits timeouts', async () => {
 		class SlowS extends Adapter {
 			protected async onStart() {}
 
@@ -426,13 +418,12 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 			err = e
 		}
 		assert.match((err as Error).message, /Errors during stop/)
-		// removed formatted prefix assertion
 		type WithDiag3 = Error & { code?: string }
 		assert.equal((err as WithDiag3).code, 'ORK1014')
 		await app.destroy().catch(() => {})
 	})
 
-	await t.test('events callbacks are invoked for start/stop/destroy and errors', async () => {
+	test('events callbacks are invoked for start/stop/destroy and errors', async () => {
 		class Ok extends Adapter {
 			protected async onStart() {}
 			protected async onStop() {}
@@ -479,7 +470,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		)
 	})
 
-	await t.test('register supports dependencies map and dedup/self-filter', async () => {
+	test('register supports dependencies map and dedup/self-filter', async () => {
 		class Cmp extends Adapter {
 			public startedAt: number | null = null
 			static counter = 0
@@ -502,7 +493,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy()
 	})
 
-	await t.test('register options allow per-registration onStart timeout', async () => {
+	test('register options allow per-registration onStart timeout', async () => {
 		const SLOW = createToken<SlowStart>('SLOW_REG')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		let err: unknown
@@ -515,7 +506,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.match((err as Error).message, /Errors during start/)
 	})
 
-	await t.test('tracer emits layers and per-phase outcomes', async () => {
+	test('tracer emits layers and per-phase outcomes', async () => {
 		class A extends Adapter {}
 		class B extends Adapter {}
 		const TA = createToken<A>('Tracer:A')
@@ -554,7 +545,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.deepStrictEqual({ sawStop, sawDestroy }, { sawStop: true, sawDestroy: true })
 	})
 
-	await t.test('per-layer concurrency limit caps start parallelism', async () => {
+	test('per-layer concurrency limit caps start parallelism', async () => {
 		class ConcurrencyProbe extends Adapter {
 			static activeStart = 0
 			static peakStart = 0
@@ -588,7 +579,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy()
 	})
 
-	await t.test('per-layer concurrency limit caps stop and destroy parallelism', async () => {
+	test('per-layer concurrency limit caps stop and destroy parallelism', async () => {
 		class ConcurrencyProbe extends Adapter {
 			static activeStop = 0
 			static peakStop = 0
@@ -636,7 +627,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.ok(ConcurrencyProbe.peakDestroy <= 2)
 	})
 
-	await t.test('tracer start outcomes include failures', async () => {
+	test('tracer start outcomes include failures', async () => {
 		class Good extends Adapter { protected async onStart() {} }
 		class Bad extends Adapter {
 			protected async onStart() {
@@ -671,7 +662,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy().catch(() => {})
 	})
 
-	await t.test('tracer does not emit onPhase for layers with no outcomes', async () => {
+	test('tracer does not emit onPhase for layers with no outcomes', async () => {
 		interface APort { a: true }
 		interface BPort { b: true }
 		const A = createToken<APort>('test:A')
@@ -706,7 +697,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		}
 	})
 
-	await t.test('destroy() stops then destroys in one pass', async () => {
+	test('destroy() stops then destroys in one pass', async () => {
 		class T extends Adapter {
 			public started = false
 			public stopped = false
@@ -738,7 +729,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.equal(b.state, 'destroyed')
 	})
 
-	await t.test('rollback stops all previously started components on failure', async () => {
+	test('rollback stops all previously started components on failure', async () => {
 		const rng = makeRng(42)
 		for (let iter = 0; iter < 10; iter++) {
 			const { n, edges } = buildRandomDag(rng)
@@ -773,7 +764,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		}
 	})
 
-	await t.test('register helper supports useClass with tuple inject', async () => {
+	test('register helper supports useClass with tuple inject', async () => {
 		interface LPort { info(msg: string): void }
 		const TLOG = createToken<LPort>('Reg:LOG')
 		const TCFG = createToken<{ n: number }>('Reg:CFG')
@@ -793,7 +784,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy()
 	})
 
-	await t.test('start accepts direct useClass with tuple inject in registration object', async () => {
+	test('start accepts direct useClass with tuple inject in registration object', async () => {
 		interface LPort { info(msg: string): void }
 		const TLOG = createToken<LPort>('Start:LOG')
 		const TCFG = createToken<{ n: number }>('Start:CFG')
@@ -815,7 +806,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy()
 	})
 
-	await t.test('infers dependencies from tuple inject for class provider when dependencies omitted', async () => {
+	test('infers dependencies from tuple inject for class provider when dependencies omitted', async () => {
 		let counter = 0
 		class Rec extends Adapter {
 			public startedAt: number | null = null
@@ -853,7 +844,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 	})
 
 	// NEW: inference from tuple inject without explicit dependencies (factory)
-	await t.test('infers dependencies from tuple inject for factory provider when dependencies omitted', async () => {
+	test('infers dependencies from tuple inject for factory provider when dependencies omitted', async () => {
 		let counter = 0
 		class Rec extends Adapter {
 			public startedAt: number | null = null
@@ -888,7 +879,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy()
 	})
 
-	await t.test('tracer start outcomes include failures', async () => {
+	test('tracer start outcomes include failures', async () => {
 		class Good extends Adapter { protected async onStart() {} }
 		class Bad extends Adapter {
 			protected async onStart() {
@@ -923,7 +914,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy().catch(() => {})
 	})
 
-	await t.test('events callbacks errors are isolated and do not disrupt orchestration', async () => {
+	test('events callbacks errors are isolated and do not disrupt orchestration', async () => {
 		class Ok extends Adapter {
 			protected async onStart() {}
 			protected async onStop() {}
@@ -963,7 +954,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		await app.destroy().catch(() => {})
 	})
 
-	await t.test('duplicate registration for the same token throws ORK1007', () => {
+	test('duplicate registration for the same token throws ORK1007', () => {
 		class C extends Adapter {}
 		const T = createToken<C>('dup')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
@@ -975,7 +966,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		})
 	})
 
-	await t.test('numeric defaultTimeouts apply to all phases', async () => {
+	test('numeric defaultTimeouts apply to all phases', async () => {
 		class SlowBoth extends Adapter {
 			protected async onStart() {}
 
@@ -993,14 +984,13 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		catch (e) {
 			stopErr = e
 		}
-		assert.ok(isAggregateLifecycleError(stopErr))
-		const det = (stopErr as { details?: unknown }).details
-		assert.ok(Array.isArray(det))
+		if (!isAggregateLifecycleError(stopErr)) assert.fail('expected aggregate lifecycle error')
+		const det = stopErr.details
 		assert.ok(det.some(d => d.tokenDescription === 'NumDef:SlowBoth' && d.timedOut && d.phase === 'stop'))
 		await app.destroy().catch(() => {})
 	})
 
-	await t.test('orchestrator.using(fn) awaits promised return and forwards value', async () => {
+	test('orchestrator.using(fn) awaits promised return and forwards value', async () => {
 		for (const name of orchestrator.list()) orchestrator.clear(name, true)
 		const app = new Orchestrator(new Container({ logger }), { logger })
 		orchestrator.set('app1', app)
@@ -1011,7 +1001,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.equal(value, 123)
 	})
 
-	await t.test('orchestrator.using(apply, fn) supports async apply and fn and returns value', async () => {
+	test('orchestrator.using(apply, fn) supports async apply and fn and returns value', async () => {
 		for (const name of orchestrator.list()) orchestrator.clear(name, true)
 		const app = new Orchestrator(new Container({ logger }), { logger })
 		orchestrator.set('oX', app)
@@ -1032,7 +1022,7 @@ test('Orchestrator suite', { concurrency: false }, async (t) => {
 		assert.equal(app.container.resolve(T), 7)
 	})
 
-	await t.test('class provider with container arg is supported and resolves container deps', async () => {
+	test('class provider with container arg is supported and resolves container deps', async () => {
 		const DEP = createToken<number>('ClassWithContainer:DEP')
 		class NeedsC extends Adapter {
 			public got: number | undefined

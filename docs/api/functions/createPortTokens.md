@@ -6,7 +6,7 @@
 
 > **createPortTokens**\<`T`\>(`shape`, `namespace`): [`TokensOf`](../type-aliases/TokensOf.md)\<`T`\>
 
-Defined in: [ports.ts:27](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/ports.ts#L27)
+Defined in: [ports.ts:27](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/ports.ts#L27)
 
 Create a read-only set of Port tokens from a shape object.
 

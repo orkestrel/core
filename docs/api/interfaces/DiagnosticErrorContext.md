@@ -4,7 +4,7 @@
 
 # Interface: DiagnosticErrorContext
 
-Defined in: [types.ts:128](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L128)
+Defined in: [types.ts:128](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L128)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:128](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **code**: `string`
 
-Defined in: [types.ts:130](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L130)
+Defined in: [types.ts:130](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L130)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:130](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **details**: readonly [`LifecycleErrorDetail`](LifecycleErrorDetail.md)[]
 
-Defined in: [types.ts:137](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L137)
+Defined in: [types.ts:137](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L137)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:137](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **durationMs**: `number`
 
-Defined in: [types.ts:135](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L135)
+Defined in: [types.ts:135](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L135)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:135](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **extra**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types.ts:136](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L136)
+Defined in: [types.ts:136](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L136)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [types.ts:136](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **hook**: [`LifecycleHook`](../type-aliases/LifecycleHook.md)
 
-Defined in: [types.ts:133](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L133)
+Defined in: [types.ts:133](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L133)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [types.ts:133](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **phase**: [`LifecyclePhase`](../type-aliases/LifecyclePhase.md)
 
-Defined in: [types.ts:132](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L132)
+Defined in: [types.ts:132](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L132)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [types.ts:132](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **scope**: [`DiagnosticScope`](../type-aliases/DiagnosticScope.md)
 
-Defined in: [types.ts:129](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L129)
+Defined in: [types.ts:129](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L129)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [types.ts:129](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **timedOut**: `boolean`
 
-Defined in: [types.ts:134](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L134)
+Defined in: [types.ts:134](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L134)
 
 ***
 
@@ -76,4 +76,4 @@ Defined in: [types.ts:134](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **token**: `string`
 
-Defined in: [types.ts:131](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L131)
+Defined in: [types.ts:131](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L131)

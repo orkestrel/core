@@ -4,7 +4,7 @@
 
 # Class: NoopLogger
 
-Defined in: [adapters/logger.ts:143](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L143)
+Defined in: [adapters/logger.ts:143](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L143)
 
 No-op logger that discards messages and exposes the same shape as LoggerAdapter.
 
@@ -34,7 +34,7 @@ const n = new NoopLogger(); n.info('x')
 
 > **debug**(`_message`, ...`_args`): `void`
 
-Defined in: [adapters/logger.ts:155](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L155)
+Defined in: [adapters/logger.ts:155](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L155)
 
 No-op debug method.
 
@@ -74,7 +74,7 @@ new NoopLogger().debug('x')
 
 > **error**(`_message`, ...`_args`): `void`
 
-Defined in: [adapters/logger.ts:191](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L191)
+Defined in: [adapters/logger.ts:191](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L191)
 
 No-op error method.
 
@@ -114,7 +114,7 @@ new NoopLogger().error('x')
 
 > **info**(`_message`, ...`_args`): `void`
 
-Defined in: [adapters/logger.ts:167](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L167)
+Defined in: [adapters/logger.ts:167](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L167)
 
 No-op info method.
 
@@ -154,7 +154,7 @@ new NoopLogger().info('x')
 
 > **log**(`_level`, `_message`, `_fields?`): `void`
 
-Defined in: [adapters/logger.ts:204](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L204)
+Defined in: [adapters/logger.ts:204](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L204)
 
 No-op generic log method.
 
@@ -200,7 +200,7 @@ new NoopLogger().log('info', 'x')
 
 > **warn**(`_message`, ...`_args`): `void`
 
-Defined in: [adapters/logger.ts:179](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L179)
+Defined in: [adapters/logger.ts:179](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L179)
 
 No-op warn method.
 

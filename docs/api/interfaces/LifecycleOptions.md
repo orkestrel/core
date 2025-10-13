@@ -4,7 +4,7 @@
 
 # Interface: LifecycleOptions
 
-Defined in: [types.ts:235](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L235)
+Defined in: [types.ts:235](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L235)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:235](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:241](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L241)
+Defined in: [types.ts:241](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L241)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:241](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **emitInitial**: `boolean`
 
-Defined in: [types.ts:237](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L237)
+Defined in: [types.ts:237](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L237)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:237](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **emitter**: [`EmitterPort`](EmitterPort.md)\<[`LifecycleEventMap`](../type-aliases/LifecycleEventMap.md)\>
 
-Defined in: [types.ts:238](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L238)
+Defined in: [types.ts:238](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L238)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:238](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:240](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L240)
+Defined in: [types.ts:240](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L240)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [types.ts:240](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **queue**: [`QueuePort`](QueuePort.md)\<`unknown`\>
 
-Defined in: [types.ts:239](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L239)
+Defined in: [types.ts:239](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L239)
 
 ***
 
@@ -52,4 +52,4 @@ Defined in: [types.ts:239](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **timeouts**: `number`
 
-Defined in: [types.ts:236](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L236)
+Defined in: [types.ts:236](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L236)

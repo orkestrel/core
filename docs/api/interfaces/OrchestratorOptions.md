@@ -4,7 +4,7 @@
 
 # Interface: OrchestratorOptions
 
-Defined in: [types.ts:294](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L294)
+Defined in: [types.ts:294](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L294)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:294](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **diagnostic**: [`DiagnosticPort`](DiagnosticPort.md)
 
-Defined in: [types.ts:309](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L309)
+Defined in: [types.ts:309](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L309)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:309](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **events**: `object`
 
-Defined in: [types.ts:296](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L296)
+Defined in: [types.ts:296](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L296)
 
 #### onComponentDestroy()?
 
@@ -102,7 +102,7 @@ Defined in: [types.ts:296](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **layer**: [`LayerPort`](LayerPort.md)
 
-Defined in: [types.ts:306](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L306)
+Defined in: [types.ts:306](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L306)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [types.ts:306](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **logger**: [`LoggerPort`](LoggerPort.md)
 
-Defined in: [types.ts:308](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L308)
+Defined in: [types.ts:308](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L308)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [types.ts:308](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **queue**: [`QueuePort`](QueuePort.md)\<`unknown`\>
 
-Defined in: [types.ts:307](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L307)
+Defined in: [types.ts:307](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L307)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [types.ts:307](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **timeouts**: `number` \| `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:295](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L295)
+Defined in: [types.ts:295](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L295)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [types.ts:295](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **tracer**: `object`
 
-Defined in: [types.ts:302](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L302)
+Defined in: [types.ts:302](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L302)
 
 #### onLayers()?
 

@@ -4,7 +4,7 @@
 
 # Interface: Registration\<T\>
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L250)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **provider**: [`Provider`](../type-aliases/Provider.md)\<`T`\>
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L250)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `optional` **resolved**: [`ResolvedProvider`](ResolvedProvider.md)\<`T`\>
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L250)
 
 ***
 
@@ -34,4 +34,4 @@ Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **token**: [`Token`](../type-aliases/Token.md)\<`T`\>
 
-Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L250)
+Defined in: [types.ts:250](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L250)

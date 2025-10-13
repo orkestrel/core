@@ -6,11 +6,11 @@
 
 > **ContainerGetter** = [`Container`](../classes/Container.md)
 
-Defined in: [types.ts:252](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L252)
+Defined in: [types.ts:252](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L252)
 
 > **ContainerGetter**(`name?`): [`Container`](../classes/Container.md)
 
-Defined in: [types.ts:253](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L253)
+Defined in: [types.ts:253](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L253)
 
 ## Parameters
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:253](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **clear**(`name`, `force?`): `boolean`
 
-Defined in: [types.ts:255](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L255)
+Defined in: [types.ts:255](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L255)
 
 #### Parameters
 
@@ -52,7 +52,7 @@ Defined in: [types.ts:255](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **get**\<`T`\>(`token`, `name?`): `undefined` \| `T`
 
-Defined in: [types.ts:261](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L261)
+Defined in: [types.ts:261](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L261)
 
 ##### Type Parameters
 
@@ -78,7 +78,7 @@ Defined in: [types.ts:261](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **get**\<`TMap`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: TMap\[K\] extends Token\<U\> ? undefined \| U : never \}
 
-Defined in: [types.ts:262](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L262)
+Defined in: [types.ts:262](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L262)
 
 ##### Type Parameters
 
@@ -104,7 +104,7 @@ Defined in: [types.ts:262](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **get**\<`O`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| O\[K\] \}
 
-Defined in: [types.ts:263](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L263)
+Defined in: [types.ts:263](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L263)
 
 ##### Type Parameters
 
@@ -130,7 +130,7 @@ Defined in: [types.ts:263](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **get**\<`A`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: undefined \| A\[K\<K\>\] \}
 
-Defined in: [types.ts:264](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L264)
+Defined in: [types.ts:264](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L264)
 
 ##### Type Parameters
 
@@ -158,7 +158,7 @@ Defined in: [types.ts:264](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **list**(): (`string` \| `symbol`)[]
 
-Defined in: [types.ts:256](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L256)
+Defined in: [types.ts:256](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L256)
 
 #### Returns
 
@@ -172,7 +172,7 @@ Defined in: [types.ts:256](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **resolve**\<`T`\>(`token`, `name?`): `T`
 
-Defined in: [types.ts:257](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L257)
+Defined in: [types.ts:257](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L257)
 
 ##### Type Parameters
 
@@ -198,7 +198,7 @@ Defined in: [types.ts:257](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **resolve**\<`TMap`\>(`tokens`, `name?`): \{ \[K in string \| number \| symbol\]: TMap\[K\] extends Token\<U\> ? U : never \}
 
-Defined in: [types.ts:258](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L258)
+Defined in: [types.ts:258](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L258)
 
 ##### Type Parameters
 
@@ -224,7 +224,7 @@ Defined in: [types.ts:258](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **resolve**\<`O`\>(`tokens`, `name?`): `O`
 
-Defined in: [types.ts:259](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L259)
+Defined in: [types.ts:259](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L259)
 
 ##### Type Parameters
 
@@ -250,7 +250,7 @@ Defined in: [types.ts:259](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **resolve**\<`A`\>(`tokens`, `name?`): `A`
 
-Defined in: [types.ts:260](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L260)
+Defined in: [types.ts:260](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L260)
 
 ##### Type Parameters
 
@@ -278,7 +278,7 @@ Defined in: [types.ts:260](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **set**(`name`, `c`, `lock?`): `void`
 
-Defined in: [types.ts:254](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L254)
+Defined in: [types.ts:254](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L254)
 
 #### Parameters
 
@@ -306,7 +306,7 @@ Defined in: [types.ts:254](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **using**(`fn`, `name?`): `Promise`\<`void`\>
 
-Defined in: [types.ts:265](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L265)
+Defined in: [types.ts:265](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L265)
 
 ##### Parameters
 
@@ -326,7 +326,7 @@ Defined in: [types.ts:265](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **using**\<`T`\>(`fn`, `name?`): `Promise`\<`T`\>
 
-Defined in: [types.ts:266](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L266)
+Defined in: [types.ts:266](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L266)
 
 ##### Type Parameters
 
@@ -352,7 +352,7 @@ Defined in: [types.ts:266](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **using**\<`T`\>(`apply`, `fn`, `name?`): `Promise`\<`T`\>
 
-Defined in: [types.ts:267](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L267)
+Defined in: [types.ts:267](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L267)
 
 ##### Type Parameters
 

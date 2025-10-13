@@ -4,7 +4,7 @@
 
 # Interface: LoggerPort
 
-Defined in: [types.ts:105](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L105)
+Defined in: [types.ts:105](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L105)
 
 ## Methods
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:105](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **debug**(`message`, ...`args`): `void`
 
-Defined in: [types.ts:106](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L106)
+Defined in: [types.ts:106](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L106)
 
 #### Parameters
 
@@ -34,7 +34,7 @@ Defined in: [types.ts:106](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **error**(`message`, ...`args`): `void`
 
-Defined in: [types.ts:109](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L109)
+Defined in: [types.ts:109](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L109)
 
 #### Parameters
 
@@ -56,7 +56,7 @@ Defined in: [types.ts:109](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **info**(`message`, ...`args`): `void`
 
-Defined in: [types.ts:107](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L107)
+Defined in: [types.ts:107](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L107)
 
 #### Parameters
 
@@ -78,7 +78,7 @@ Defined in: [types.ts:107](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **log**(`level`, `message`, `fields?`): `void`
 
-Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L110)
+Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L110)
 
 #### Parameters
 
@@ -104,7 +104,7 @@ Defined in: [types.ts:110](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **warn**(`message`, ...`args`): `void`
 
-Defined in: [types.ts:108](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L108)
+Defined in: [types.ts:108](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L108)
 
 #### Parameters
 

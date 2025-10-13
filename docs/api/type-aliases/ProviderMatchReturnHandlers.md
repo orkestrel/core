@@ -6,7 +6,7 @@
 
 > **ProviderMatchReturnHandlers**\<`T`, `R`\> = `object`
 
-Defined in: [types.ts:68](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L68)
+Defined in: [types.ts:68](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L68)
 
 ## Type Parameters
 
@@ -24,7 +24,7 @@ Defined in: [types.ts:68](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **classContainer**: (`p`) => `R`
 
-Defined in: [types.ts:77](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L77)
+Defined in: [types.ts:77](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L77)
 
 #### Parameters
 
@@ -42,7 +42,7 @@ Defined in: [types.ts:77](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **classNoDeps**: (`p`) => `R`
 
-Defined in: [types.ts:78](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L78)
+Defined in: [types.ts:78](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L78)
 
 #### Parameters
 
@@ -60,7 +60,7 @@ Defined in: [types.ts:78](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **classObject**: \<`O`\>(`p`) => `R`
 
-Defined in: [types.ts:76](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L76)
+Defined in: [types.ts:76](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L76)
 
 #### Type Parameters
 
@@ -84,7 +84,7 @@ Defined in: [types.ts:76](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **classTuple**: \<`A`\>(`p`) => `R`
 
-Defined in: [types.ts:75](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L75)
+Defined in: [types.ts:75](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L75)
 
 #### Type Parameters
 
@@ -108,7 +108,7 @@ Defined in: [types.ts:75](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **factoryContainer**: (`p`) => `R`
 
-Defined in: [types.ts:73](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L73)
+Defined in: [types.ts:73](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L73)
 
 #### Parameters
 
@@ -126,7 +126,7 @@ Defined in: [types.ts:73](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **factoryNoDeps**: (`p`) => `R`
 
-Defined in: [types.ts:74](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L74)
+Defined in: [types.ts:74](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L74)
 
 #### Parameters
 
@@ -144,7 +144,7 @@ Defined in: [types.ts:74](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **factoryObject**: \<`O`\>(`p`) => `R`
 
-Defined in: [types.ts:72](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L72)
+Defined in: [types.ts:72](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L72)
 
 #### Type Parameters
 
@@ -168,7 +168,7 @@ Defined in: [types.ts:72](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **factoryTuple**: \<`A`\>(`p`) => `R`
 
-Defined in: [types.ts:71](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L71)
+Defined in: [types.ts:71](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L71)
 
 #### Type Parameters
 
@@ -192,7 +192,7 @@ Defined in: [types.ts:71](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **raw**: (`value`) => `R`
 
-Defined in: [types.ts:69](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L69)
+Defined in: [types.ts:69](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L69)
 
 #### Parameters
 
@@ -210,7 +210,7 @@ Defined in: [types.ts:69](https://github.com/orkestrel/core/blob/ccb170966790f42
 
 > **value**: (`p`) => `R`
 
-Defined in: [types.ts:70](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L70)
+Defined in: [types.ts:70](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L70)
 
 #### Parameters
 

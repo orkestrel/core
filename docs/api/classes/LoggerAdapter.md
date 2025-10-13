@@ -4,7 +4,7 @@
 
 # Class: LoggerAdapter
 
-Defined in: [adapters/logger.ts:19](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L19)
+Defined in: [adapters/logger.ts:19](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L19)
 
 Console-like logger adapter.
 
@@ -42,7 +42,7 @@ lg.info('started', { env: 'dev' })
 
 > **debug**(`message`, ...`args`): `void`
 
-Defined in: [adapters/logger.ts:33](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L33)
+Defined in: [adapters/logger.ts:33](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L33)
 
 Debug-level log.
 
@@ -84,7 +84,7 @@ logger.debug('initialized', { port: 3000 })
 
 > **error**(`message`, ...`args`): `void`
 
-Defined in: [adapters/logger.ts:85](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L85)
+Defined in: [adapters/logger.ts:85](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L85)
 
 Error-level log.
 
@@ -124,7 +124,7 @@ logger.error('failed', { err })
 
 > **info**(`message`, ...`args`): `void`
 
-Defined in: [adapters/logger.ts:51](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L51)
+Defined in: [adapters/logger.ts:51](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L51)
 
 Info-level log.
 
@@ -166,7 +166,7 @@ logger.info('listening', { host: '0.0.0.0' })
 
 > **log**(`level`, `message`, `fields`): `void`
 
-Defined in: [adapters/logger.ts:103](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L103)
+Defined in: [adapters/logger.ts:103](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L103)
 
 Generic log method for compatibility with LoggerPort interface. The
 optional fields parameter is supported for existing callers.
@@ -213,7 +213,7 @@ logger.log('info', 'app.started', { version: '1.0' })
 
 > **warn**(`message`, ...`args`): `void`
 
-Defined in: [adapters/logger.ts:69](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/logger.ts#L69)
+Defined in: [adapters/logger.ts:69](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/logger.ts#L69)
 
 Warn-level log.
 

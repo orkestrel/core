@@ -4,7 +4,7 @@
 
 # Interface: ResolvedProvider\<T\>
 
-Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L249)
+Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L249)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **disposable**: `boolean`
 
-Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L249)
+Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L249)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `optional` **lifecycle**: [`Lifecycle`](../classes/Lifecycle.md)
 
-Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L249)
+Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L249)
 
 ***
 
@@ -34,4 +34,4 @@ Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **value**: `T`
 
-Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L249)
+Defined in: [types.ts:249](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L249)

@@ -4,7 +4,7 @@
 
 # Interface: EventPort\<EMap\>
 
-Defined in: [types.ts:174](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L174)
+Defined in: [types.ts:174](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L174)
 
 ## Type Parameters
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:174](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **publish**\<`E`\>(`topic`, `payload`): `Promise`\<`void`\>
 
-Defined in: [types.ts:175](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L175)
+Defined in: [types.ts:175](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L175)
 
 #### Type Parameters
 
@@ -46,7 +46,7 @@ Defined in: [types.ts:175](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **subscribe**\<`E`\>(`topic`, `handler`): `Promise`\<() => `void` \| `Promise`\<`void`\>\>
 
-Defined in: [types.ts:176](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L176)
+Defined in: [types.ts:176](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L176)
 
 #### Type Parameters
 
@@ -74,7 +74,7 @@ Defined in: [types.ts:176](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > **topics**(): readonly `string`[]
 
-Defined in: [types.ts:177](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L177)
+Defined in: [types.ts:177](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L177)
 
 #### Returns
 

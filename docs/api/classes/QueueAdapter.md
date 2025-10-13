@@ -4,7 +4,7 @@
 
 # Class: QueueAdapter\<T\>
 
-Defined in: [adapters/queue.ts:26](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L26)
+Defined in: [adapters/queue.ts:26](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L26)
 
 In-memory task queue with concurrency control, timeouts, and shared deadlines.
 
@@ -41,7 +41,7 @@ console.log(results) // => [1, 2, 3] (order preserved)
 
 > **new QueueAdapter**\<`T`\>(`options`): `QueueAdapter`\<`T`\>
 
-Defined in: [adapters/queue.ts:46](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L46)
+Defined in: [adapters/queue.ts:46](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L46)
 
 Construct a QueueAdapter with optional configuration defaults.
 
@@ -72,7 +72,7 @@ Configuration options for queue behavior:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/queue.ts:70](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L70)
+Defined in: [adapters/queue.ts:70](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L70)
 
 Access the diagnostic port used by this queue adapter for telemetry and error signaling.
 
@@ -90,7 +90,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/queue.ts:63](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L63)
+Defined in: [adapters/queue.ts:63](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L63)
 
 Access the logger port used by this queue adapter.
 
@@ -106,7 +106,7 @@ The configured LoggerPort instance
 
 > **dequeue**(): `Promise`\<`undefined` \| `T`\>
 
-Defined in: [adapters/queue.ts:102](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L102)
+Defined in: [adapters/queue.ts:102](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L102)
 
 Dequeue and return the next item from the queue.
 
@@ -133,7 +133,7 @@ if (item) console.log('Processing:', item)
 
 > **enqueue**(`item`): `Promise`\<`void`\>
 
-Defined in: [adapters/queue.ts:84](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L84)
+Defined in: [adapters/queue.ts:84](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L84)
 
 Enqueue a single item to the in-memory FIFO queue.
 
@@ -171,7 +171,7 @@ await queue.enqueue({ id: 1, data: 'task payload' })
 
 > **run**\<`R`\>(`tasks`, `options`): `Promise`\<readonly `R`[]\>
 
-Defined in: [adapters/queue.ts:146](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L146)
+Defined in: [adapters/queue.ts:146](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L146)
 
 Run a set of tasks with optional concurrency control, timeouts, and a shared deadline.
 
@@ -238,7 +238,7 @@ console.log('Fetched users:', results)
 
 > **size**(): `Promise`\<`number`\>
 
-Defined in: [adapters/queue.ts:115](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/queue.ts#L115)
+Defined in: [adapters/queue.ts:115](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/queue.ts#L115)
 
 Return the current number of items in the queue.
 

@@ -4,7 +4,7 @@
 
 # Interface: NodeEntry
 
-Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L324)
+Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L324)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` **dependencies**: readonly [`Token`](../type-aliases/Token.md)\<`unknown`\>[]
 
-Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L324)
+Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L324)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` `optional` **timeouts**: `number` \| `Readonly`\<\{ `onDestroy?`: `number`; `onStart?`: `number`; `onStop?`: `number`; \}\>
 
-Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L324)
+Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L324)
 
 ***
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/ccb170966790f4
 
 > `readonly` **token**: [`Token`](../type-aliases/Token.md)\<`unknown`\>
 
-Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/types.ts#L324)
+Defined in: [types.ts:324](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/types.ts#L324)

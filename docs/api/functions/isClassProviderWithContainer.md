@@ -6,7 +6,7 @@
 
 > **isClassProviderWithContainer**\<`T`\>(`p`): `p is ClassProviderWithContainer<T>`
 
-Defined in: [helpers.ts:402](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/helpers.ts#L402)
+Defined in: [helpers.ts:402](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/helpers.ts#L402)
 
 Check if class provider receives Container as constructor argument.
 

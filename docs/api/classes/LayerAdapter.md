@@ -4,7 +4,7 @@
 
 # Class: LayerAdapter
 
-Defined in: [adapters/layer.ts:30](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/layer.ts#L30)
+Defined in: [adapters/layer.ts:30](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/layer.ts#L30)
 
 Topological layering adapter using Kahn's algorithm for dependency ordering.
 
@@ -39,7 +39,7 @@ const layers = layer.compute(nodes)
 
 > **new LayerAdapter**(`options`): `LayerAdapter`
 
-Defined in: [adapters/layer.ts:42](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/layer.ts#L42)
+Defined in: [adapters/layer.ts:42](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/layer.ts#L42)
 
 Construct a LayerAdapter with optional logger and diagnostic ports.
 
@@ -66,7 +66,7 @@ Configuration options:
 
 > **get** **diagnostic**(): [`DiagnosticPort`](../interfaces/DiagnosticPort.md)
 
-Defined in: [adapters/layer.ts:59](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/layer.ts#L59)
+Defined in: [adapters/layer.ts:59](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/layer.ts#L59)
 
 Access the diagnostic port used by this layer adapter for validation errors and tracing.
 
@@ -84,7 +84,7 @@ The configured DiagnosticPort instance
 
 > **get** **logger**(): [`LoggerPort`](../interfaces/LoggerPort.md)
 
-Defined in: [adapters/layer.ts:52](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/layer.ts#L52)
+Defined in: [adapters/layer.ts:52](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/layer.ts#L52)
 
 Access the logger port used by this layer adapter.
 
@@ -100,7 +100,7 @@ The configured LoggerPort instance
 
 > **compute**\<`T`\>(`nodes`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [adapters/layer.ts:84](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/layer.ts#L84)
+Defined in: [adapters/layer.ts:84](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/layer.ts#L84)
 
 Compute topological layers for the given dependency graph using Kahn's algorithm.
 
@@ -159,7 +159,7 @@ const layers = layer.compute([
 
 > **group**\<`T`\>(`tokens`, `layers`): [`Token`](../type-aliases/Token.md)\<`T`\>[][]
 
-Defined in: [adapters/layer.ts:160](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/adapters/layer.ts#L160)
+Defined in: [adapters/layer.ts:160](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/adapters/layer.ts#L160)
 
 Group tokens by their layer index in reverse order (highest layer first).
 

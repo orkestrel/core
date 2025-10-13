@@ -6,7 +6,7 @@
 
 > `const` **HELP**: `object`
 
-Defined in: [constants.ts:90](https://github.com/orkestrel/core/blob/ccb170966790f428093f11a71a5646a6e842dbf9/src/constants.ts#L90)
+Defined in: [constants.ts:90](https://github.com/orkestrel/core/blob/240d6e1612057b96fd3fc03e1415fe3917a0f212/src/constants.ts#L90)
 
 Links to documentation sections used in error messages for help.
 Consumers may display these URLs when rendering errors.

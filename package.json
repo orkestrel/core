@@ -51,10 +51,7 @@
     "test": "vitest run",
     "check": "tsc -p tsconfig.json",
     "format": "eslint . --fix",
-    "docs": "typedoc && npm run docs:llm",
-    "docs:api": "typedoc",
-    "docs:llm": "tsx scripts\\generate-llms.ts --base-url https://github.com/orkestrel/core/blob/main/docs --docs docs --out docs --keep-extensions",
-    "prepublishOnly": "npm run check && npm run format && npm run test && npm run docs && npm run build"
+    "prepublishOnly": "npm run check && npm run format && npm run test && npm run build"
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^1.9.0",
@@ -63,10 +60,6 @@
     "eslint-plugin-jsdoc": "^61.1.2",
     "eslint-plugin-tsdoc": "^0.4.0",
     "tsx": "^4.20.6",
-    "typedoc": "^0.28.14",
-    "typedoc-plugin-extras": "^4.0.1",
-    "typedoc-plugin-frontmatter": "^1.3.0",
-    "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vitest": "^3.2.4"

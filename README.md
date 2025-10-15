@@ -12,18 +12,15 @@ npm install @orkestrel/core
 ```
 
 ## Documentation
-- Overview: https://github.com/orkestrel/core/blob/main/docs/guide/overview.md
-- Start: https://github.com/orkestrel/core/blob/main/docs/guide/start.md
-- Concepts: https://github.com/orkestrel/core/blob/main/docs/guide/concepts.md
-- Core: https://github.com/orkestrel/core/blob/main/docs/guide/core.md
-- Examples: https://github.com/orkestrel/core/blob/main/docs/guide/examples.md
-- Tips: https://github.com/orkestrel/core/blob/main/docs/guide/tips.md
-- Tests: https://github.com/orkestrel/core/blob/main/docs/guide/tests.md
-- Contribute: https://github.com/orkestrel/core/blob/main/docs/guide/contribute.md
-- FAQ: https://github.com/orkestrel/core/blob/main/docs/guide/faq.md
-- API: https://github.com/orkestrel/core/blob/main/docs/api/index.md
-- LLM: https://github.com/orkestrel/core/blob/main/docs/llms.txt
-- LLM Full: https://github.com/orkestrel/core/blob/main/docs/llms-full.txt
+- Overview: https://github.com/orkestrel/core/blob/main/guides/overview.md
+- Start: https://github.com/orkestrel/core/blob/main/guides/start.md
+- Concepts: https://github.com/orkestrel/core/blob/main/guides/concepts.md
+- Core: https://github.com/orkestrel/core/blob/main/guides/core.md
+- Examples: https://github.com/orkestrel/core/blob/main/guides/examples.md
+- Tips: https://github.com/orkestrel/core/blob/main/guides/tips.md
+- Tests: https://github.com/orkestrel/core/blob/main/guides/tests.md
+- Contribute: https://github.com/orkestrel/core/blob/main/guides/contribute.md
+- FAQ: https://github.com/orkestrel/core/blob/main/guides/faq.md
 
 Notes
 - Providers are synchronous (no async factories or Promise values). Do async work in Lifecycle hooks.

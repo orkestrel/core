@@ -1046,4 +1046,146 @@ describe('Orchestrator suite', () => {
 		assert.equal(inst.got, 42)
 		await app.destroy()
 	})
+
+	test('register with dependency graph object', async () => {
+		TestComponent.counter = 0
+		const A = createToken<TestComponent>('A')
+		const B = createToken<TestComponent>('B')
+		const C = createToken<TestComponent>('C')
+		const orch = new Orchestrator(new Container({ logger }), { logger })
+
+		orch.register({
+			[A]: { useFactory: () => new TestComponent('A') },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
+		})
+
+		await orch.start()
+		const a = orch.container.get(A) as TestComponent
+		const b = orch.container.get(B) as TestComponent
+		const c = orch.container.get(C) as TestComponent
+
+		assert.ok(a && b && c)
+		assert.equal(a.startedAt, 0)
+		assert.equal(b.startedAt, 1)
+		assert.equal(c.startedAt, 2)
+
+		await orch.stop()
+		assert.ok((c.stoppedAt as number) < (b.stoppedAt as number))
+		assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
+		await orch.destroy()
+	})
+
+	test('start with dependency graph object', async () => {
+		TestComponent.counter = 0
+		const A = createToken<TestComponent>('A')
+		const B = createToken<TestComponent>('B')
+		const C = createToken<TestComponent>('C')
+		const orch = new Orchestrator(new Container({ logger }), { logger })
+
+		await orch.start({
+			[A]: { useFactory: () => new TestComponent('A') },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
+		})
+
+		const a = orch.container.get(A) as TestComponent
+		const b = orch.container.get(B) as TestComponent
+		const c = orch.container.get(C) as TestComponent
+
+		assert.ok(a && b && c)
+		assert.equal(a.startedAt, 0)
+		assert.equal(b.startedAt, 1)
+		assert.equal(c.startedAt, 2)
+
+		await orch.stop()
+		assert.ok((c.stoppedAt as number) < (b.stoppedAt as number))
+		assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
+		await orch.destroy()
+	})
+
+	test('dependency graph with timeouts', async () => {
+		const A = createToken<SlowStart>('A')
+		const B = createToken<SlowStart>('B')
+		const orch = new Orchestrator(new Container({ logger }), { logger })
+
+		orch.register({
+			[A]: { useFactory: () => new SlowStart(50), timeouts: { onStart: 1000 } },
+			[B]: { useFactory: () => new SlowStart(50), dependencies: [A], timeouts: { onStart: 1000 } },
+		})
+
+		await orch.start()
+		const a = orch.container.get(A) as SlowStart
+		const b = orch.container.get(B) as SlowStart
+
+		assert.ok(a && b)
+		assert.equal(a.state, 'started')
+		assert.equal(b.state, 'started')
+		await orch.destroy()
+	})
+
+	test('dependency graph detects cycles', async () => {
+		const A = createToken<TestComponent>('A')
+		const B = createToken<TestComponent>('B')
+		const orch = new Orchestrator(new Container({ logger }), { logger })
+
+		orch.register({
+			[A]: { useFactory: () => new TestComponent('A'), dependencies: [B] },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+		})
+
+		await assert.rejects(() => orch.start(), (err: unknown) => {
+			assert.match((err as Error).message, /Cycle detected/)
+			type WithDiag = Error & { code?: string }
+			assert.equal((err as WithDiag).code, 'ORK1009')
+			return true
+		})
+		await orch.destroy().catch(() => {})
+	})
+
+	test('dependency graph with mixed value and factory providers', async () => {
+		TestComponent.counter = 0
+		const A = createToken<number>('A')
+		const B = createToken<TestComponent>('B')
+		const C = createToken<TestComponent>('C')
+		const orch = new Orchestrator(new Container({ logger }), { logger })
+
+		await orch.start({
+			[A]: { useValue: 42 },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
+		})
+
+		const a = orch.container.get(A)
+		const b = orch.container.get(B) as TestComponent
+		const c = orch.container.get(C) as TestComponent
+
+		assert.equal(a, 42)
+		assert.ok(b && c)
+		assert.equal(b.startedAt, 0)
+		assert.equal(c.startedAt, 1)
+		await orch.destroy()
+	})
+
+	test('dependency graph errors aggregate on start failure', async () => {
+		TestComponent.counter = 0
+		const GOOD = createToken<TestComponent>('GOOD')
+		const BAD = createToken<FailingStartComponent>('BAD')
+		const orch = new Orchestrator(new Container({ logger }), { logger })
+
+		await assert.rejects(async () => orch.start({
+			[GOOD]: { useFactory: () => new TestComponent('GOOD') },
+			[BAD]: { useFactory: () => new FailingStartComponent({ logger }), dependencies: [GOOD] },
+		}), (err: unknown) => {
+			if (isAggregateLifecycleError(err)) {
+				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')
+				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated start error details')
+			}
+			return true
+		})
+
+		const good = orch.container.get(GOOD) as TestComponent
+		assert.notEqual(good?.startedAt, null)
+		await orch.destroy().catch(() => {})
+	})
 })

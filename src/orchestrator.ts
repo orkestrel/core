@@ -23,6 +23,7 @@ import type {
 	QueuePort,
 	DiagnosticPort,
 	LoggerPort,
+	DependencyGraph,
 } from './types.js'
 import { isPromiseLike, isAsyncFunction, hasSchema, arrayOf, isFunction } from '@orkestrel/validator'
 import {
@@ -174,7 +175,47 @@ export class Orchestrator {
 	 * app.register(TOKEN, { useFactory: () => new MyAdapter() }, [DEP1, DEP2], { onStart: 1000 })
 	 * ```
 	 */
-	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
+	register<T>(token: Token<T>, provider: Provider<T>, dependencies?: readonly Token<unknown>[], timeouts?: number | PhaseTimeouts): void
+	/**
+	 * Register multiple components via a dependency graph object.
+	 * Keys are tokens, values are providers with inline dependencies and timeouts.
+	 *
+	 * @param graph - Dependency graph where keys are tokens and values are providers with optional dependencies/timeouts
+	 * @returns Nothing. Registers all providers into the underlying container.
+	 *
+	 * @example
+	 * ```ts
+	 * const TA = createToken<A>('A')
+	 * const TB = createToken<B>('B')
+	 * app.register({
+	 *   [TA]: { useFactory: () => new A() },
+	 *   [TB]: { useFactory: () => new B(), dependencies: [TA] },
+	 * })
+	 * ```
+	 */
+	register(graph: DependencyGraph): void
+	register<T>(tokenOrGraph: Token<T> | DependencyGraph, provider?: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: number | PhaseTimeouts): void {
+		// Handle dependency graph overload
+		if (typeof tokenOrGraph === 'object' && tokenOrGraph !== null && !(typeof tokenOrGraph === 'symbol')) {
+			const graph = tokenOrGraph as DependencyGraph
+			for (const sym of Object.getOwnPropertySymbols(graph)) {
+				const token = sym as Token<unknown>
+				const providerWithDeps = graph[token]
+				this.#registerSingle(token, providerWithDeps, providerWithDeps.dependencies, providerWithDeps.timeouts)
+			}
+			return
+		}
+
+		// Handle single token overload
+		const token = tokenOrGraph as Token<T>
+		if (provider === undefined) {
+			this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: register called without provider' })
+		}
+		this.#registerSingle(token, provider, dependencies, timeouts)
+	}
+
+	// Internal method to register a single token
+	#registerSingle<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: number | PhaseTimeouts): void {
 		if (this.#nodes.has(token)) {
 			this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
 		}
@@ -208,21 +249,60 @@ export class Orchestrator {
 	 * ])
 	 * ```
 	 */
-	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
-		// Register any provided components first
-		for (const e of regs) {
-			// Infer dependencies when not provided
-			const inferred = inferDependencies(e.provider)
-			const baseDeps = (e.dependencies && e.dependencies.length) ? [...e.dependencies] : inferred
-			const deps = normalizeDependencies(baseDeps).filter(d => d !== e.token)
-			if (this.#nodes.has(e.token)) {
-				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(e.token)}`, helpUrl: HELP.orchestrator })
+	async start(regs?: ReadonlyArray<OrchestratorRegistration<unknown>>): Promise<void>
+	/**
+	 * Start all components in dependency order, registering via a dependency graph.
+	 *
+	 * @param graph - Dependency graph where keys are tokens and values are providers with optional dependencies/timeouts
+	 * @returns A promise that resolves when all start jobs complete or rejects with an aggregated error.
+	 *
+	 * @example
+	 * ```ts
+	 * const TA = createToken<A>('A')
+	 * const TB = createToken<B>('B')
+	 * await app.start({
+	 *   [TA]: { useFactory: () => new A() },
+	 *   [TB]: { useFactory: () => new B(), dependencies: [TA] },
+	 * })
+	 * ```
+	 */
+	async start(graph: DependencyGraph): Promise<void>
+	async start(regsOrGraph?: ReadonlyArray<OrchestratorRegistration<unknown>> | DependencyGraph): Promise<void> {
+		// Handle dependency graph overload
+		if (regsOrGraph && !Array.isArray(regsOrGraph)) {
+			const graph = regsOrGraph as DependencyGraph
+			for (const sym of Object.getOwnPropertySymbols(graph)) {
+				const token = sym as Token<unknown>
+				const providerWithDeps = graph[token]
+				const inferred = inferDependencies(providerWithDeps)
+				const baseDeps = (providerWithDeps.dependencies && providerWithDeps.dependencies.length) ? [...providerWithDeps.dependencies] : inferred
+				const deps = normalizeDependencies(baseDeps).filter(d => d !== token)
+				if (this.#nodes.has(token)) {
+					this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
+				}
+				this.#nodes.set(token, { token, dependencies: deps, timeouts: providerWithDeps.timeouts })
+				const guarded = this.#guardProvider(token, providerWithDeps)
+				this.container.register(token, guarded)
 			}
-			this.#nodes.set(e.token, { token: e.token, dependencies: deps, timeouts: e.timeouts })
-			const guarded = this.#guardProvider(e.token, e.provider)
-			this.container.register(e.token, guarded)
+			this.#layers = null
 		}
-		this.#layers = null
+		// Handle array of registrations overload
+		else if (regsOrGraph && Array.isArray(regsOrGraph)) {
+			const regs = regsOrGraph
+			for (const e of regs) {
+				// Infer dependencies when not provided
+				const inferred = inferDependencies(e.provider)
+				const baseDeps = (e.dependencies && e.dependencies.length) ? [...e.dependencies] : inferred
+				const deps = normalizeDependencies(baseDeps).filter(d => d !== e.token)
+				if (this.#nodes.has(e.token)) {
+					this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(e.token)}`, helpUrl: HELP.orchestrator })
+				}
+				this.#nodes.set(e.token, { token: e.token, dependencies: deps, timeouts: e.timeouts })
+				const guarded = this.#guardProvider(e.token, e.provider)
+				this.container.register(e.token, guarded)
+			}
+			this.#layers = null
+		}
 		// Start all components in dependency order (previously startAll)
 		const layers = this.#topoLayers()
 		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []

@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach } from 'vitest'
 import assert from 'node:assert/strict'
-import type { Provider } from '@orkestrel/core'
+import type { Token } from '@orkestrel/core'
 import { NoopLogger,
 	Orchestrator, orchestrator, createToken, Container, Adapter, tokenDescription, QueueAdapter,
 	isAggregateLifecycleError, isLifecycleErrorDetail,
@@ -394,7 +394,7 @@ describe('Orchestrator suite', () => {
 	test('async provider guard: useFactory Promise throws at registration', () => {
 		const T = createToken<number>('AsyncFactory')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
-		const prov = { useFactory: async () => 1 } as unknown as Provider<number>
+		const prov = { useFactory: async () => 1 } as unknown as { useFactory: () => number }
 		assert.throws(() => orch.register({
 			[T]: prov,
 		}), (err: unknown) => {
@@ -808,11 +808,13 @@ describe('Orchestrator suite', () => {
 		}
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start([
-			register(TLOG, { useClass: L }),
-			register(TCFG, { useValue: { n: 1 } }),
-			register(createToken<WithDeps>('Reg:WITH'), { useClass: WithDeps, inject: [TLOG, TCFG] }, { dependencies: [TLOG, TCFG] }),
-		])
+		const WITH_TOKEN = createToken<WithDeps>('Reg:WITH')
+		await app.start({
+			[TLOG]: { useClass: L },
+			[TCFG]: { useValue: { n: 1 } },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
+		})
 		await app.destroy()
 	})
 
@@ -830,11 +832,13 @@ describe('Orchestrator suite', () => {
 		}
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start([
-			{ token: TLOG, provider: { useClass: L } },
-			{ token: TCFG, provider: { useValue: { n: 2 } } },
-			{ token: createToken<WithDeps>('Start:WITH'), provider: { useClass: WithDeps, inject: [TLOG, TCFG] }, dependencies: [TLOG, TCFG] },
-		])
+		const WITH_TOKEN = createToken<WithDeps>('Start:WITH')
+		await app.start({
+			[TLOG]: { useClass: L },
+			[TCFG]: { useValue: { n: 2 } },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
+		})
 		await app.destroy()
 	})
 
@@ -856,12 +860,13 @@ describe('Orchestrator suite', () => {
 		const TC = createToken<WithDeps>('Infer:TC')
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start([
-			register(TA, { useFactory: () => new Rec({ logger }) }),
-			register(TB, { useFactory: () => new Rec({ logger }) }),
+		await app.start({
+			[TA]: { useFactory: () => new Rec({ logger }) },
+			[TB]: { useFactory: () => new Rec({ logger }) },
 			// dependencies omitted; should be inferred from inject tuple
-			register(TC, { useClass: WithDeps, inject: [TA, TB] }),
-		])
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			[TC]: { useClass: WithDeps, inject: [TA, TB] } as any,
+		})
 		const a = c.get(TA) as Rec
 		const b = c.get(TB) as Rec
 		const withDeps = c.get(TC) as WithDeps
@@ -894,12 +899,13 @@ describe('Orchestrator suite', () => {
 		const TD = createToken<UsesDeps>('InferF:TD')
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start([
-			register(TA, { useFactory: () => new Rec({ logger }) }),
-			register(TB, { useFactory: () => new Rec({ logger }) }),
+		await app.start({
+			[TA]: { useFactory: () => new Rec({ logger }) },
+			[TB]: { useFactory: () => new Rec({ logger }) },
 			// dependencies omitted; should be inferred from inject tuple
-			register(TD, { useFactory: (a, b) => new UsesDeps(a, b), inject: [TA, TB] }),
-		])
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			[TD]: { useFactory: (a: Rec, b: Rec) => new UsesDeps(a, b), inject: [TA, TB] } as any,
+		})
 		const a = c.get(TA) as Rec
 		const b = c.get(TB) as Rec
 		const dep = c.get(TD) as UsesDeps
@@ -924,10 +930,10 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(new Container({ logger }), { logger, tracer: { onLayers: () => {}, onPhase: p => phases.push(p) } })
 		let err: unknown
 		try {
-			await app.start([
-				register(TG, { useFactory: () => new Good({ logger }) }),
-				register(TB, { useFactory: () => new Bad({ logger }) }, { dependencies: [TG] }),
-			])
+			await app.start({
+				[TG]: { useFactory: () => new Good({ logger }) },
+				[TB]: { useFactory: () => new Bad({ logger }), dependencies: [TG] },
+			})
 		}
 		catch (e) {
 			err = e
@@ -970,10 +976,10 @@ describe('Orchestrator suite', () => {
 				},
 			},
 		})
-		await app.start([
-			register(TOK, { useFactory: () => new Ok({ logger }) }),
-			register(TBAD, { useFactory: () => new BadStop({ logger }) }),
-		])
+		await app.start({
+			[TOK]: { useFactory: () => new Ok({ logger }) },
+			[TBAD]: { useFactory: () => new BadStop({ logger }) },
+		})
 		let stopErr: unknown
 		try {
 			await app.stop()
@@ -990,8 +996,8 @@ describe('Orchestrator suite', () => {
 		class C extends Adapter {}
 		const T = createToken<C>('dup')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
-		orch.register(T, { useFactory: () => new C({ logger }) })
-		assert.throws(() => orch.register(T, { useFactory: () => new C({ logger }) }), (err: unknown) => {
+		orch.register({ [T]: { useFactory: () => new C({ logger }) } })
+		assert.throws(() => orch.register({ [T]: { useFactory: () => new C({ logger }) } }), (err: unknown) => {
 			assert.match((err as Error).message, /Duplicate registration/)
 			// removed formatted prefix assertion
 			return (err as Error & { code?: string }).code === 'ORK1007'
@@ -1008,7 +1014,9 @@ describe('Orchestrator suite', () => {
 		}
 		const T = createToken<SlowBoth>('NumDef:SlowBoth')
 		const app = new Orchestrator(new Container({ logger }), { logger, timeouts: 10 })
-		await app.start([register(T, { useFactory: () => new SlowBoth({ logger }) })])
+		await app.start({
+			[T]: { useFactory: () => new SlowBoth({ logger }) },
+		})
 		let stopErr: unknown
 		try {
 			await app.stop()
@@ -1071,7 +1079,9 @@ describe('Orchestrator suite', () => {
 		const T = createToken<NeedsC>('ClassWithContainer:COMP')
 		const app = new Orchestrator(new Container({ logger }), { logger })
 		app.container.set(DEP, 42)
-		await app.start([register(T, { useClass: NeedsC })])
+		await app.start({
+			[T]: { useClass: NeedsC },
+		})
 		const inst = app.container.get(T) as NeedsC
 		assert.ok(inst)
 		assert.equal(inst.got, 42)

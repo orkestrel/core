@@ -157,7 +157,7 @@ export class Orchestrator {
 	 * Register components via a dependency graph object.
 	 * Keys are tokens, values are providers with inline dependencies and timeouts.
 	 *
-	 * @param graph - Optional dependency graph where keys are tokens and values are providers with optional dependencies/timeouts
+	 * @param graph - Dependency graph where keys are tokens and values are providers with optional dependencies/timeouts
 	 * @returns Nothing. Registers all providers into the underlying container.
 	 *
 	 * @example
@@ -170,10 +170,8 @@ export class Orchestrator {
 	 * })
 	 * ```
 	 */
-	register(graph?: DependencyGraph): void {
-		if (graph) {
-			this.#registerFromGraph(graph)
-		}
+	register(graph: DependencyGraph): void {
+		this.#registerFromGraph(graph)
 	}
 
 	// Process a dependency graph and register all tokens

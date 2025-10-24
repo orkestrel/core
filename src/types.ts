@@ -321,10 +321,10 @@ export interface RegisterOptions {
 	timeouts?: number | PhaseTimeouts
 }
 
-export type ProviderWithDependencies<T = unknown> =
-	| (ValueProvider<T> & Partial<Readonly<{ dependencies: readonly Token<unknown>[], timeouts: number | PhaseTimeouts }>>)
-	| (FactoryProvider<T> & Partial<Readonly<{ dependencies: readonly Token<unknown>[], timeouts: number | PhaseTimeouts }>>)
-	| (ClassProvider<T> & Partial<Readonly<{ dependencies: readonly Token<unknown>[], timeouts: number | PhaseTimeouts }>>)
+export type ProviderWithDependencies<T = unknown>
+	= | (ValueProvider<T> & Partial<Readonly<{ dependencies: readonly Token<unknown>[], timeouts: number | PhaseTimeouts }>>)
+		| (FactoryProvider<T> & Partial<Readonly<{ dependencies: readonly Token<unknown>[], timeouts: number | PhaseTimeouts }>>)
+		| (ClassProvider<T> & Partial<Readonly<{ dependencies: readonly Token<unknown>[], timeouts: number | PhaseTimeouts }>>)
 
 export type DependencyGraph = Readonly<Record<symbol, ProviderWithDependencies>>
 

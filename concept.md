@@ -51,7 +51,7 @@ static #state: typeof lifecycle[number]
 ```
 
 
-Description: Implementation of an Orchestrator that manages the lifecycle of Adapters within a Container, that registers a dependency graph instead of using a register function. This would mean the container needs to be updated and revised to accept and handle a dependency graph.
+✅ IMPLEMENTED: Orchestrator now supports dependency graph registration where tokens are keys and providers with inline dependencies are values.
 
 ```ts
 import { Orchestrator, Container, Adapter, createToken } from '@orkestrel/core'
@@ -64,13 +64,32 @@ const TB = createToken<B>('B')
 const c = new Container()
 const app = new Orchestrator(c)
 
+// Register and start with dependency graph
 await app.start({
-    TA: { useFactory: () => new A() },
+    [TA]: { useFactory: () => new A() },
+    [TB]: { useFactory: () => new B(), dependencies: [TA] }
 })
 
-await app.register({
-    TB: { useFactory: () => new B() , dependencies: [TA]}
+// Or register first, then start later
+const app2 = new Orchestrator(new Container())
+app2.register({
+    [TA]: { useFactory: () => new A() },
+    [TB]: { useFactory: () => new B(), dependencies: [TA] }
+})
+await app2.start()
+
+// With timeouts
+await app.start({
+    [TA]: { useFactory: () => new A(), timeouts: { onStart: 5000 } },
+    [TB]: { useFactory: () => new B(), dependencies: [TA], timeouts: 10000 }
 })
 
 await app.destroy()
 ```
+
+Benefits of the dependency graph API:
+- More concise: providers and dependencies together
+- Better readability: clear visual structure
+- Type-safe: tokens as symbol keys provide type safety
+- Backwards compatible: original `register(token, provider, deps, timeouts)` still works
+

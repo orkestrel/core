@@ -198,11 +198,7 @@ export class Orchestrator {
 		// Handle dependency graph overload
 		if (typeof tokenOrGraph === 'object' && tokenOrGraph !== null && !(typeof tokenOrGraph === 'symbol')) {
 			const graph = tokenOrGraph as DependencyGraph
-			for (const sym of Object.getOwnPropertySymbols(graph)) {
-				const token = sym as Token<unknown>
-				const providerWithDeps = graph[token]
-				this.#registerSingle(token, providerWithDeps, providerWithDeps.dependencies, providerWithDeps.timeouts)
-			}
+			this.#registerFromGraph(graph)
 			return
 		}
 
@@ -212,6 +208,42 @@ export class Orchestrator {
 			this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: register called without provider' })
 		}
 		this.#registerSingle(token, provider, dependencies, timeouts)
+	}
+
+	// Process a dependency graph and register all tokens
+	#registerFromGraph(graph: DependencyGraph): void {
+		for (const sym of Object.getOwnPropertySymbols(graph)) {
+			const token = sym as Token<unknown>
+			const providerWithDeps = graph[token]
+			// Extract the pure provider by removing the dependencies and timeouts fields
+			const pureProvider = this.#extractProvider(providerWithDeps)
+			this.#registerSingle(token, pureProvider, providerWithDeps.dependencies, providerWithDeps.timeouts)
+		}
+	}
+
+	// Extract pure provider from ProviderWithDependencies (remove dependencies/timeouts fields)
+	#extractProvider<T>(providerWithDeps: unknown): Provider<T> {
+		// The provider shape is one of: raw value, { useValue }, { useFactory }, { useClass }
+		// We need to strip dependencies and timeouts if present
+		if (hasSchema(providerWithDeps, { useValue: (v: unknown): v is unknown => true })) {
+			return { useValue: providerWithDeps.useValue } as Provider<T>
+		}
+		if (hasSchema(providerWithDeps, { useFactory: isFunction })) {
+			const p = providerWithDeps as { useFactory: (...args: never[]) => unknown, inject?: unknown }
+			if (hasSchema(p, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
+				return p as Provider<T>
+			}
+			return { useFactory: p.useFactory } as Provider<T>
+		}
+		if (hasSchema(providerWithDeps, { useClass: isFunction })) {
+			const p = providerWithDeps as { useClass: (...args: never[]) => unknown, inject?: unknown }
+			if (hasSchema(p, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
+				return p as Provider<T>
+			}
+			return { useClass: p.useClass } as Provider<T>
+		}
+		// Should not reach here if types are correct, but return as-is for safety
+		return providerWithDeps as Provider<T>
 	}
 
 	// Internal method to register a single token
@@ -271,20 +303,7 @@ export class Orchestrator {
 		// Handle dependency graph overload
 		if (regsOrGraph && !Array.isArray(regsOrGraph)) {
 			const graph = regsOrGraph as DependencyGraph
-			for (const sym of Object.getOwnPropertySymbols(graph)) {
-				const token = sym as Token<unknown>
-				const providerWithDeps = graph[token]
-				const inferred = inferDependencies(providerWithDeps)
-				const baseDeps = (providerWithDeps.dependencies && providerWithDeps.dependencies.length) ? [...providerWithDeps.dependencies] : inferred
-				const deps = normalizeDependencies(baseDeps).filter(d => d !== token)
-				if (this.#nodes.has(token)) {
-					this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
-				}
-				this.#nodes.set(token, { token, dependencies: deps, timeouts: providerWithDeps.timeouts })
-				const guarded = this.#guardProvider(token, providerWithDeps)
-				this.container.register(token, guarded)
-			}
-			this.#layers = null
+			this.#registerFromGraph(graph)
 		}
 		// Handle array of registrations overload
 		else if (regsOrGraph && Array.isArray(regsOrGraph)) {

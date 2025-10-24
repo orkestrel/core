@@ -594,12 +594,12 @@ describe('Orchestrator suite', () => {
 		const T3 = createToken<ConcurrencyProbe>('CC3')
 		const T4 = createToken<ConcurrencyProbe>('CC4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
-		await app.start([
-			register(T1, { useFactory: () => new ConcurrencyProbe(20) }),
-			register(T2, { useFactory: () => new ConcurrencyProbe(20) }),
-			register(T3, { useFactory: () => new ConcurrencyProbe(20) }),
-			register(T4, { useFactory: () => new ConcurrencyProbe(20) }),
-		])
+		await app.start({
+			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
+		})
 		assert.ok(ConcurrencyProbe.peakStart <= 2)
 		await app.destroy()
 	})
@@ -639,12 +639,12 @@ describe('Orchestrator suite', () => {
 		const T3 = createToken<ConcurrencyProbe>('CD3')
 		const T4 = createToken<ConcurrencyProbe>('CD4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
-		await app.start([
-			register(T1, { useFactory: () => new ConcurrencyProbe(20) }),
-			register(T2, { useFactory: () => new ConcurrencyProbe(20) }),
-			register(T3, { useFactory: () => new ConcurrencyProbe(20) }),
-			register(T4, { useFactory: () => new ConcurrencyProbe(20) }),
-		])
+		await app.start({
+			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
+		})
 		await app.stop().catch(() => {})
 		assert.ok(ConcurrencyProbe.peakStop <= 2)
 		await app.start().catch(() => {})
@@ -665,10 +665,10 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(new Container({ logger }), { logger, tracer: { onLayers: () => {}, onPhase: p => phases.push(p) } })
 		let err: unknown
 		try {
-			await app.start([
-				register(TG, { useFactory: () => new Good({ logger }) }),
-				register(TB, { useFactory: () => new Bad({ logger }) }, { dependencies: [TG] }),
-			])
+			await app.start({
+				[TG]: { useFactory: () => new Good({ logger }) },
+				[TB]: { useFactory: () => new Bad({ logger }), dependencies: [TG] },
+			})
 		}
 		catch (e) {
 			err = e
@@ -701,8 +701,10 @@ describe('Orchestrator suite', () => {
 				onPhase: (p: { phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: Array<{ token: string, ok: boolean, durationMs: number, timedOut?: boolean }> }) => phases.push(p),
 			},
 		})
-		app.register(A, { useValue: { a: true } })
-		app.register(B, { useFactory: () => new BImpl({ logger }) }, [A])
+		app.register({
+			[A]: { useValue: { a: true } },
+			[B]: { useFactory: () => new BImpl({ logger }), dependencies: [A] },
+		})
 		await app.start()
 		try {
 			const startPhases = phases.filter(p => p.phase === 'start')
@@ -738,10 +740,10 @@ describe('Orchestrator suite', () => {
 		const B = createToken<T>('T:B')
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start([
-			register(A, { useFactory: () => new T({ logger }) }),
-			register(B, { useFactory: () => new T({ logger }) }, { dependencies: [A] }),
-		])
+		await app.start({
+			[A]: { useFactory: () => new T({ logger }) },
+			[B]: { useFactory: () => new T({ logger }), dependencies: [A] },
+		})
 		const a = c.get(A) as T
 		const b = c.get(B) as T
 		assert.ok(a && b)
@@ -774,7 +776,12 @@ describe('Orchestrator suite', () => {
 			const c = new Container({ logger })
 			const app = new Orchestrator(c, { logger })
 			const depsFor = (idx: number) => edgeList.filter(([_, dst]) => dst === idx).map(([src]) => tokens[src])
-			for (let i = 0; i < n; i++) app.register(tokens[i], { useValue: instances[i] }, depsFor(i))
+			const graph: Record<symbol, { useValue: Adapter, dependencies?: Token<unknown>[] }> = {}
+			for (let i = 0; i < n; i++) {
+				const deps = depsFor(i)
+				graph[tokens[i]] = deps.length > 0 ? { useValue: instances[i], dependencies: deps } : { useValue: instances[i] }
+			}
+			app.register(graph)
 			try {
 				await app.start()
 			}

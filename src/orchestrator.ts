@@ -174,7 +174,16 @@ export class Orchestrator {
 		this.#registerFromGraph(graph)
 	}
 
-	// Process a dependency graph and register all tokens
+	/**
+	 * Process a dependency graph and register all tokens with their providers, dependencies, and timeouts.
+	 *
+	 * Iterates over all symbol keys in the graph, extracts the pure provider (removing dependencies and timeouts),
+	 * and registers each token with its associated provider, dependencies, and timeouts.
+	 *
+	 * This is an internal helper used by {@link register} to orchestrate the registration process.
+	 *
+	 * @param graph - Dependency graph mapping tokens to providers with optional dependencies and timeouts.
+	 */
 	#registerFromGraph(graph: DependencyGraph): void {
 		for (const sym of Object.getOwnPropertySymbols(graph)) {
 			const token = sym as Token<unknown>

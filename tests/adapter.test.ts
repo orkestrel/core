@@ -16,13 +16,13 @@ describe('Adapter suite', () => {
 	test('static singleton methods manage lifecycle and invoke protected hooks', async () => {
 		// Use static methods for singleton pattern
 		await MyAdapter.create({ logger })
-		assert.equal(MyAdapter.getState(), 'created')
+		assert.equal(MyAdapter.state, 'created')
 		await MyAdapter.start()
-		assert.equal(MyAdapter.getState(), 'started')
+		assert.equal(MyAdapter.state, 'started')
 		await MyAdapter.stop()
-		assert.equal(MyAdapter.getState(), 'stopped')
+		assert.equal(MyAdapter.state, 'stopped')
 		await MyAdapter.destroy()
-		assert.equal(MyAdapter.getState(), 'created') // destroyed, no instance exists
+		assert.equal(MyAdapter.state, 'created') // destroyed, no instance exists
 		
 		// Verify hooks were called by checking the singleton instance
 		await MyAdapter.start({ logger })

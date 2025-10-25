@@ -42,29 +42,29 @@ describe('Lifecycle suite', () => {
 
 	test('happy path transitions', async () => {
 		const lc = new TestLifecycle({ timeouts: 100, logger })
-		await lc._create()
-		assert.equal(lc._getState(), 'created')
-		await lc._start()
-		assert.equal(lc._getState(), 'started')
-		await lc._stop()
-		assert.equal(lc._getState(), 'stopped')
-		await lc._start()
-		assert.equal(lc._getState(), 'started')
-		await lc._destroy()
-		assert.equal(lc._getState(), 'destroyed')
+		await lc.create()
+		assert.equal(lc.state, 'created')
+		await lc.start()
+		assert.equal(lc.state, 'started')
+		await lc.stop()
+		assert.equal(lc.state, 'stopped')
+		await lc.start()
+		assert.equal(lc.state, 'started')
+		await lc.destroy()
+		assert.equal(lc.state, 'destroyed')
 		assert.deepEqual(lc.log, ['create', 'start', 'stop', 'start', 'destroy'])
 	})
 
 	test('failing start wraps error', async () => {
 		const lc = new FailingStart({ timeouts: 50, logger })
-		await assert.rejects(() => lc._start(), /Hook 'start' failed/)
-		assert.equal(lc._getState(), 'created')
+		await assert.rejects(() => lc.start(), /Hook 'start' failed/)
+		assert.equal(lc.state, 'created')
 	})
 
 	// New test: ensure non-timeout hook failures expose ORK1022 code
 	test('failing start sets ORK1022 code', async () => {
 		const lc = new FailingStart({ timeouts: 50, logger })
-		await assert.rejects(() => lc._start(), (err: unknown) => {
+		await assert.rejects(() => lc.start(), (err: unknown) => {
 			// Narrow incrementally and check for a code property safely
 			if (typeof err === 'object' && err !== null && 'code' in err) {
 				const code = (err as { code?: unknown }).code
@@ -77,32 +77,32 @@ describe('Lifecycle suite', () => {
 
 	test('hook timeout triggers TimeoutError', async () => {
 		const lc = new HangingStart({ timeouts: 10, logger })
-		await assert.rejects(() => lc._start(), /timed out/)
-		assert.equal(lc._getState(), 'created')
+		await assert.rejects(() => lc.start(), /timed out/)
+		assert.equal(lc.state, 'created')
 	})
 
 	// New test: ensure timeout failures expose ORK1021 code
 	test('hook timeout sets ORK1021 code', async () => {
 		const lc = new HangingStart({ timeouts: 10, logger })
-		await assert.rejects(() => lc._start(), (err: unknown) => {
+		await assert.rejects(() => lc.start(), (err: unknown) => {
 			if (typeof err === 'object' && err !== null && 'code' in err) {
 				const code = (err as { code?: unknown }).code
 				if (typeof code === 'string') assert.equal(code, 'ORK1021')
 			}
 			return true
 		})
-		assert.equal(lc._getState(), 'created')
+		assert.equal(lc.state, 'created')
 	})
 
 	test('invalid transition throws', async () => {
 		const lc = new TestLifecycle({ logger })
-		await lc._start()
-		await assert.rejects(async () => lc._create(), (err: unknown) => {
+		await lc.start()
+		await assert.rejects(async () => lc.create(), (err: unknown) => {
 			assert.match((err as Error).message, /Invalid lifecycle transition/)
 			return true
 		})
-		await lc._destroy()
-		await assert.rejects(() => lc._start(), /Invalid lifecycle transition/)
+		await lc.destroy()
+		await assert.rejects(() => lc.start(), /Invalid lifecycle transition/)
 	})
 
 	test('onTransition runs between hook and state change (filterable in override)', async () => {
@@ -123,10 +123,10 @@ describe('Lifecycle suite', () => {
 		}
 
 		const lc = new Transitions({ timeouts: 50, logger })
-		await lc._start()
-		assert.equal(lc._getState(), 'started')
-		await lc._stop()
-		assert.equal(lc._getState(), 'stopped')
+		await lc.start()
+		assert.equal(lc.state, 'started')
+		await lc.stop()
+		assert.equal(lc.state, 'stopped')
 		assert.deepEqual(lc.transitions, ['created->started:start'])
 	})
 
@@ -141,8 +141,8 @@ describe('Lifecycle suite', () => {
 			}
 		}
 		const lc = new SlowTransition({ timeouts: 10, logger })
-		await assert.rejects(() => lc._start(), /timed out/)
-		assert.equal(lc._getState(), 'created')
+		await assert.rejects(() => lc.start(), /timed out/)
+		assert.equal(lc.state, 'created')
 	})
 
 	test('transition not emitted twice for created->created on create()', async () => {
@@ -153,11 +153,11 @@ describe('Lifecycle suite', () => {
 			}
 		}
 		const lc = new L({ timeouts: 20, logger })
-		lc._on('transition', s => events.push(s))
+		lc.on('transition', s => events.push(s))
 		// allow initial microtask to flush
 		await new Promise(r => setTimeout(r, 0))
 		assert.deepEqual(events, ['created'])
-		await lc._create()
+		await lc.create()
 		// no new event for created->created
 		await new Promise(r => setTimeout(r, 0))
 		assert.deepEqual(events, ['created'])
@@ -171,11 +171,11 @@ describe('Lifecycle suite', () => {
 			}
 		}
 		const lc = new L({ timeouts: 20, emitInitial: false, logger })
-		lc._on('transition', s => events.push(s))
+		lc.on('transition', s => events.push(s))
 		// initial should not fire
 		await new Promise(r => setTimeout(r, 0))
 		assert.deepEqual(events, [])
-		await lc._start()
+		await lc.start()
 		await new Promise(r => setTimeout(r, 0))
 		assert.deepEqual(events, ['started'])
 	})
@@ -203,8 +203,8 @@ describe('Lifecycle suite', () => {
 		const timeouts = 25
 		const q = new FakeQueue()
 		const lc = new QLife({ timeouts, queue: q, logger })
-		await lc._start()
-		assert.equal(lc._getState(), 'started')
+		await lc.start()
+		assert.equal(lc.state, 'started')
 		assert.equal((lc as QLife).ok, true)
 		assert.equal(cap.calls, 1)
 		assert.equal(cap.lastOptions?.concurrency, 1)

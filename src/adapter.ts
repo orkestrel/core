@@ -55,8 +55,11 @@ import { safeInvoke } from './helpers.js'
  * The singleton instance is stored per subclass, not shared across all Adapter subclasses.
  */
 export abstract class Adapter {
-// Singleton instance storage per subclass
-private static instances = new WeakMap<AdapterSubclass<Adapter>, Adapter>()
+/**
+ * Singleton instance storage. Each subclass stores its own instance.
+ * @internal
+ */
+protected static instance?: Adapter
 
 #state: LifecycleState = 'created'
 #emitInitial: boolean = true
@@ -88,21 +91,18 @@ this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1, logger: this.#log
 /**
  * Get the singleton instance for this subclass. Creates it if it doesn't exist.
  */
-static getInstance<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): I {
-let instance = Adapter.instances.get(this) as I | undefined
-if (!instance) {
-instance = new this(opts)
-Adapter.instances.set(this, instance)
+static getInstance<T extends typeof Adapter>(this: T, opts?: LifecycleOptions): InstanceType<T> {
+if (!this.instance) {
+this.instance = new this(opts) as InstanceType<T>
 }
-return instance
+return this.instance as InstanceType<T>
 }
 
 /**
- * Get the current state of the singleton instance.
+ * Get the current lifecycle state of the singleton.
  */
-static getState<I extends Adapter>(this: AdapterSubclass<I>): LifecycleState {
-const instance = Adapter.instances.get(this) as I | undefined
-return instance?._getState() ?? 'created'
+static get state(): LifecycleState {
+return this.instance?.state ?? 'created'
 }
 
 /**
@@ -110,7 +110,7 @@ return instance?._getState() ?? 'created'
  */
 static async create<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): Promise<void> {
 const instance = this.getInstance(opts)
-await instance._create()
+await instance.create()
 }
 
 /**
@@ -118,31 +118,31 @@ await instance._create()
  */
 static async start<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): Promise<void> {
 const instance = this.getInstance(opts)
-await instance._start()
+await instance.start()
 }
 
 /**
  * Transition the singleton instance to 'stopped' state.
  */
 static async stop<I extends Adapter>(this: AdapterSubclass<I>): Promise<void> {
-const instance = Adapter.instances.get(this) as I | undefined
+const instance = this.instance as I | undefined
 if (!instance) {
 throw new Error('Cannot stop: no instance exists. Call start() first.')
 }
-await instance._stop()
+await instance.stop()
 }
 
 /**
  * Transition the singleton instance to 'destroyed' state and clear it.
  */
 static async destroy<I extends Adapter>(this: AdapterSubclass<I>): Promise<void> {
-const instance = Adapter.instances.get(this) as I | undefined
+const instance = this.instance as I | undefined
 if (!instance) {
 // Already destroyed or never created
 return
 }
-await instance._destroy()
-Adapter.instances.delete(this)
+await instance.destroy()
+this.instance = undefined
 }
 
 /**
@@ -154,7 +154,7 @@ evt: T,
 fn: (...args: LifecycleEventMap[T]) => void,
 ): AdapterSubclass<I> {
 const instance = this.getInstance()
-instance._on(evt, fn)
+instance.on(evt, fn)
 return this
 }
 
@@ -166,9 +166,9 @@ this: AdapterSubclass<I>,
 evt: T,
 fn: (...args: LifecycleEventMap[T]) => void,
 ): AdapterSubclass<I> {
-const instance = Adapter.instances.get(this) as I | undefined
+const instance = this.instance as I | undefined
 if (instance) {
-instance._off(evt, fn)
+instance.off(evt, fn)
 }
 return this
 }
@@ -179,7 +179,7 @@ return this
  * @internal
  * Get the current lifecycle state.
  */
-_getState(): LifecycleState { 
+getState(): LifecycleState { 
 return this.#state 
 }
 
@@ -187,7 +187,7 @@ return this.#state
  * @internal
  * Access the emitter port.
  */
-get _emitter(): EmitterPort<LifecycleEventMap> { 
+get emitter(): EmitterPort<LifecycleEventMap> { 
 return this.#emitter 
 }
 
@@ -195,7 +195,7 @@ return this.#emitter
  * @internal
  * Access the queue port.
  */
-get _queue(): QueuePort { 
+get queue(): QueuePort { 
 return this.#queue 
 }
 
@@ -203,7 +203,7 @@ return this.#queue
  * @internal
  * Access the logger port.
  */
-get _logger(): LoggerPort { 
+get logger(): LoggerPort { 
 return this.#logger 
 }
 
@@ -211,7 +211,7 @@ return this.#logger
  * @internal
  * Access the diagnostic port.
  */
-get _diagnostics(): DiagnosticPort { 
+get diagnostics(): DiagnosticPort { 
 return this.#diagnostic 
 }
 
@@ -219,7 +219,7 @@ return this.#diagnostic
  * @internal
  * Subscribe to a lifecycle event.
  */
-_on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
+on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
 if (evt === 'transition' && this.#emitInitial) {
 this.#emitInitial = false
 setTimeout(() => this.#emitter.emit('transition', this.#state), 0)
@@ -231,7 +231,7 @@ this.#emitter.on(evt, fn)
  * @internal
  * Unsubscribe from a lifecycle event.
  */
-_off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
+off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
 this.#emitter.off(evt, fn)
 }
 
@@ -272,7 +272,7 @@ return Promise.reject(wrapped)
  * @internal
  * Create the lifecycle (idempotent no-op by default).
  */
-async _create(): Promise<void> {
+async create(): Promise<void> {
 if (this.#state !== 'created') this.#diagnostic.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: 'Invalid lifecycle transition from ' + this.#state + ' to created', helpUrl: HELP.lifecycle })
 await this.#runHook('create', () => this.onCreate(), this.#state, 'created')
 }
@@ -281,7 +281,7 @@ await this.#runHook('create', () => this.onCreate(), this.#state, 'created')
  * @internal
  * Transition from 'created' or 'stopped' to 'started'.
  */
-async _start(): Promise<void> {
+async start(): Promise<void> {
 this.#validateTransition('started')
 await this.#runHook('start', () => this.onStart(), this.#state, 'started')
 }
@@ -290,7 +290,7 @@ await this.#runHook('start', () => this.onStart(), this.#state, 'started')
  * @internal
  * Transition from 'started' to 'stopped'.
  */
-async _stop(): Promise<void> {
+async stop(): Promise<void> {
 this.#validateTransition('stopped')
 await this.#runHook('stop', () => this.onStop(), this.#state, 'stopped')
 }
@@ -299,7 +299,7 @@ await this.#runHook('stop', () => this.onStop(), this.#state, 'stopped')
  * @internal
  * Transition to 'destroyed' and remove all listeners.
  */
-async _destroy(): Promise<void> {
+async destroy(): Promise<void> {
 this.#validateTransition('destroyed')
 await this.#runHook('destroy', () => this.onDestroy(), this.#state, 'destroyed')
 this.#emitter.removeAllListeners()

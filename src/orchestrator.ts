@@ -265,11 +265,11 @@ export class Orchestrator {
 			const jobs: Array<Task<OrchestratorStartResult>> = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
-				if (inst instanceof Adapter && inst._getState() === 'created') {
+				if (inst instanceof Adapter && inst.state === 'created') {
 					const timeoutMs = this.#getTimeout(tk, 'start')
 					jobs.push(async () => ({ token: tk, lc: inst, result: await this.#runPhase(inst, 'start', timeoutMs) }))
 				}
-				else if (inst instanceof Adapter && inst._getState() === 'started') {
+				else if (inst instanceof Adapter && inst.state === 'started') {
 					startedOrder.push({ token: tk, lc: inst })
 				}
 			}
@@ -298,7 +298,7 @@ export class Orchestrator {
 					const stopJobs: Array<Task<{ outcome: Outcome, error?: LifecycleErrorDetail }>> = []
 					for (const tk of batch) {
 						const lc2 = this.container.get(tk)
-						if (lc2 instanceof Adapter && lc2._getState() === 'started') {
+						if (lc2 instanceof Adapter && lc2.state === 'started') {
 							const timeoutMs = this.#getTimeout(tk, 'stop')
 							stopJobs.push(async () => this.#stopToken(tk, lc2, timeoutMs, 'rollback'))
 						}
@@ -334,7 +334,7 @@ export class Orchestrator {
 			const jobs: Array<Task<{ outcome: Outcome, error?: LifecycleErrorDetail }>> = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
-				if (inst instanceof Adapter && inst._getState() === 'started') {
+				if (inst instanceof Adapter && inst.state === 'started') {
 					const timeoutMs = this.#getTimeout(tk, 'stop')
 					jobs.push(async () => this.#stopToken(tk, inst, timeoutMs, 'normal'))
 				}
@@ -370,7 +370,7 @@ export class Orchestrator {
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
 				if (!(inst instanceof Adapter)) continue
-				if (inst._getState() === 'destroyed') continue
+				if (inst.state === 'destroyed') continue
 				const stopTimeout = this.#getTimeout(tk, 'stop')
 				const destroyTimeout = this.#getTimeout(tk, 'destroy')
 				jobs.push(async () => this.#destroyToken(tk, inst, stopTimeout, destroyTimeout))
@@ -494,7 +494,7 @@ export class Orchestrator {
 		const t0 = this.#now()
 		let timedOut = false
 		try {
-			const p = phase === 'start' ? lc._start() : phase === 'stop' ? lc._stop() : lc._destroy()
+			const p = phase === 'start' ? lc.start() : phase === 'stop' ? lc.stop() : lc.destroy()
 			if (typeof timeoutMs === 'number' && timeoutMs > 0) {
 				const timeoutPromise = new Promise<never>((_, reject) => {
 					const id = setTimeout(() => {
@@ -554,12 +554,12 @@ export class Orchestrator {
 	async #destroyToken(tk: Token<unknown>, inst: Adapter, stopTimeout: number | undefined, destroyTimeout: number | undefined): Promise<DestroyJobResult> {
 		const out: { stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] } = {}
 		const localErrors: LifecycleErrorDetail[] = []
-		if (inst._getState() === 'started') {
+		if (inst.state === 'started') {
 			const stopped = await this.#stopToken(tk, inst, stopTimeout, 'normal')
 			out.stopOutcome = stopped.outcome
 			if (stopped.error) localErrors.push(stopped.error)
 		}
-		if (inst._getState() !== 'destroyed') {
+		if (inst.state !== 'destroyed') {
 			const r2 = await this.#runPhase(inst, 'destroy', destroyTimeout)
 			if (r2.ok) {
 				safeInvoke(this.#events?.onComponentDestroy, { token: tk, durationMs: r2.durationMs })

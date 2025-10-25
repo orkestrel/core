@@ -752,8 +752,8 @@ describe('Orchestrator suite', () => {
 		await app.destroy()
 		assert.equal(a.stopped, true)
 		assert.equal(b.stopped, true)
-		assert.equal(a._getState(), 'destroyed')
-		assert.equal(b._getState(), 'destroyed')
+		assert.equal(a.state, 'destroyed')
+		assert.equal(b.state, 'destroyed')
 	})
 
 	test('rollback stops all previously started components on failure', async () => {
@@ -1160,8 +1160,8 @@ describe('Orchestrator suite', () => {
 		const b = orch.container.get(B) as SlowStart
 
 		assert.ok(a && b)
-		assert.equal(a._getState(), 'started')
-		assert.equal(b._getState(), 'started')
+		assert.equal(a.state, 'started')
+		assert.equal(b.state, 'started')
 		await orch.destroy()
 	})
 

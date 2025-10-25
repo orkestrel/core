@@ -231,7 +231,24 @@ export class Orchestrator {
 		return providerWithDeps as Provider<T>
 	}
 
-	// Internal method to register a single token
+	/**
+	 * Registers a single token and its provider in the orchestrator.
+	 *
+	 * Performs a duplicate registration check and throws a diagnostic error if the token
+	 * is already registered. Infers dependencies from the provider shape if not explicitly
+	 * provided, normalizes dependencies, and ensures the token does not depend on itself.
+	 * Guards the provider to ensure it meets orchestrator requirements, then registers it
+	 * in the underlying container. Resets the cached layers to force recomputation.
+	 *
+	 * @param token - The token to register.
+	 * @param provider - The provider for the token (value, factory, or class).
+	 * @param dependencies - Optional explicit dependencies for the token.
+	 * @param timeouts - Optional per-phase timeouts for the token.
+	 * @remarks
+	 * Throws a diagnostic error if the token is already registered.
+	 * Infers dependencies from tuple/object inject fields if not provided.
+	 * Guards the provider for synchronous creation and validity.
+	 */
 	#registerSingle<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: number | PhaseTimeouts): void {
 		if (this.#nodes.has(token)) {
 			this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })

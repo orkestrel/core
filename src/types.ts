@@ -239,7 +239,7 @@ export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
  * Type helper for Adapter subclass constructors.
  * @typeParam I - The Adapter subclass instance type
  */
-export type AdapterSubclass<I> = {
+export interface AdapterSubclass<I extends Adapter> {
 	new (opts?: LifecycleOptions): I
 	instance?: I
 	getInstance(opts?: LifecycleOptions): I
@@ -248,10 +248,8 @@ export type AdapterSubclass<I> = {
 	start(opts?: LifecycleOptions): Promise<void>
 	stop(): Promise<void>
 	destroy(): Promise<void>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): any
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): any
+	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): unknown
+	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): unknown
 }
 
 export type LifecycleEventMap = {

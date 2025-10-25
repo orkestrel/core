@@ -4,6 +4,7 @@ import { CONTAINER_MESSAGES, HELP } from './constants.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
 	AdapterProvider,
+	AdapterSubclass,
 	DiagnosticPort,
 	LoggerPort,
 	Registration,
@@ -271,8 +272,7 @@ export class Container {
 		const instance = provider.adapter.getInstance() as T
 		const resolved: ResolvedProvider<T> = {
 			value: instance,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			lifecycle: provider.adapter as any,
+			lifecycle: provider.adapter as T extends Adapter ? AdapterSubclass<T> : never,
 			disposable: true,
 		}
 		reg.resolved = resolved

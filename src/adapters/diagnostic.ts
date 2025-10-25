@@ -52,7 +52,8 @@ class AggregateDiagnosticError extends Error {
  * try {
  *   diag.fail('ORK1007', { scope: 'orchestrator', message: 'Duplicate registration' })
  * } catch (e) {
- *   console.error('Caught:', (e as any).code, (e as Error).message)
+ *   const error = e as Error & { code?: string }
+ *   console.error('Caught:', error.code, error.message)
  * }
  *
  * // Aggregate multiple errors

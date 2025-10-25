@@ -100,8 +100,10 @@ export abstract class Adapter {
 	 */
 	static getInstance<T extends typeof Adapter>(this: T, opts?: LifecycleOptions): InstanceType<T> {
 		if (!this.instance) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			this.instance = new (this as any)(opts) as InstanceType<T>
+			// TypeScript doesn't allow `new this()` on abstract classes, but at runtime
+			// this method is only called on concrete subclasses, so we use a type assertion
+			const ConcreteClass = this as unknown as new (opts?: LifecycleOptions) => InstanceType<T>
+			this.instance = new ConcreteClass(opts)
 		}
 		return this.instance as InstanceType<T>
 	}
@@ -195,10 +197,11 @@ export abstract class Adapter {
 	 * HttpServer.on('transition', (state) => console.log('New state:', state))
 	 * ```
 	 */
-	static on<T extends keyof LifecycleEventMap & string>(
+	static on<T extends keyof LifecycleEventMap & string, This extends typeof Adapter>(
+		this: This,
 		evt: T,
 		fn: (...args: LifecycleEventMap[T]) => void,
-	): typeof Adapter {
+	): This {
 		const instance = this.getInstance()
 		instance.#on(evt, fn)
 		return this
@@ -217,10 +220,11 @@ export abstract class Adapter {
 	 * HttpServer.off('transition', handler)
 	 * ```
 	 */
-	static off<T extends keyof LifecycleEventMap & string>(
+	static off<T extends keyof LifecycleEventMap & string, This extends typeof Adapter>(
+		this: This,
 		evt: T,
 		fn: (...args: LifecycleEventMap[T]) => void,
-	): typeof Adapter {
+	): This {
 		if (this.instance) {
 			this.instance.#off(evt, fn)
 		}

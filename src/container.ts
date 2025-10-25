@@ -349,4 +349,4 @@ export const container = Object.assign(
 		get: containerGet,
 		using: containerUsing,
 	},
-) satisfies ContainerGetter
+)

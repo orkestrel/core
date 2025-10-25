@@ -248,8 +248,8 @@ export type AdapterSubclass<I> = {
 	start(opts?: LifecycleOptions): Promise<void>
 	stop(): Promise<void>
 	destroy(): Promise<void>
-	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
-	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
+	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): any
+	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): any
 }
 
 export type LifecycleEventMap = {

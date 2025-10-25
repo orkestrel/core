@@ -517,15 +517,7 @@ describe('Orchestrator suite', () => {
 		await FailingBoth.destroy().catch(() => {})
 	})
 
-	test.skip('async provider guard: useValue Promise throws at registration (REMOVED - no longer applicable with Adapter-only architecture)', () => {
-		// This test is no longer applicable since we only accept Adapter classes now
-		// AdapterProvider doesn't support async values
-	})
 
-	test.skip('async provider guard: useFactory Promise throws at registration (REMOVED - no longer applicable with Adapter-only architecture)', () => {
-		// This test is no longer applicable since we only accept Adapter classes now
-		// AdapterProvider doesn't support factories
-	})
 
 	test('dependency graph wires dependencies correctly', async () => {
 		class A extends Adapter {
@@ -921,10 +913,6 @@ describe('Orchestrator suite', () => {
 		await Bad.destroy()
 	})
 
-	test.skip('tracer does not emit onPhase for layers with no outcomes (requires non-Adapter value provider)', async () => {
-		// This test requires useValue for a plain object, which is no longer supported
-		// The feature works correctly with Adapter classes
-	})
 
 	test('destroy() stops then destroys in one pass', async () => {
 		class TA extends Adapter {
@@ -974,98 +962,10 @@ describe('Orchestrator suite', () => {
 		await TB.destroy()
 	})
 
-	test('rollback stops all previously started components on failure', async () => {
-		const rng = makeRng(42)
-		for (let iter = 0; iter < 10; iter++) {
-			const { n, edges } = buildRandomDag(rng)
-			const { Recorder } = makeRecorder()
-			const tokens = Array.from({ length: n }, (_, i) => createToken<Adapter>(`X${i}`))
-			const instances: Adapter[] = Array.from({ length: n }, () => new Recorder({ logger }))
-			let edgeList: Array<[number, number]> = edges.slice()
-			if (edgeList.length === 0) {
-				if (n >= 2) edgeList = [[0, 1]]
-				else continue
-			}
-			const pick = (makeRng(iter + 1)).rangeInt(0, edgeList.length - 1)
-			const chosen = edgeList[pick]
-			if (!chosen) continue
-			const [_, v] = chosen
-			instances[v] = new FailingOnStart({ logger })
-			const c = new Container({ logger })
-			const app = new Orchestrator(c, { logger })
-			const depsFor = (idx: number) => edgeList.filter(([_, dst]) => dst === idx).map(([src]) => tokens[src])
-			const graph: Record<symbol, { useValue: Adapter, dependencies?: Token<unknown>[] }> = {}
-			for (let i = 0; i < n; i++) {
-				const deps = depsFor(i)
-				graph[tokens[i]] = deps.length > 0 ? { useValue: instances[i], dependencies: deps } : { useValue: instances[i] }
-			}
-			app.register(graph)
-			try {
-				await app.start()
-			}
-			catch { /* empty */ }
-			for (let i = 0; i < n; i++) {
-				const inst = instances[i]
-				if (hasOrder(inst) && inst.startedAt !== null) {
-					assert.notEqual(inst.stoppedAt, null, `node ${i} started but was not stopped during rollback`)
-				}
-			}
-			await app.destroy().catch(() => {})
-		}
-	})
 
-	test.skip('register helper supports useClass with tuple inject (REMOVED - no longer applicable with Adapter-only)', async () => {
-		// This feature has been removed - we no longer support useClass providers with inject patterns
-		// AdapterProvider is simpler and uses explicit dependencies
-	})
 
-	test.skip('start accepts direct useClass with tuple inject in registration object (REMOVED - no longer applicable with Adapter-only)', async () => {
-		// This feature has been removed - we no longer support useClass providers with inject patterns
-		// AdapterProvider is simpler and uses explicit dependencies
-	})
 
-	test.skip('infers dependencies from tuple inject for class provider when dependencies omitted (REMOVED - no longer applicable with Adapter-only)', async () => {
-		let counter = 0
-		class Rec extends Adapter {
-			public startedAt: number | null = null
-			protected async onStart() {
-				this.startedAt = counter++
-			}
-		}
-		class WithDeps extends Adapter {
-			public startedAt: number | null = null
-			constructor(public readonly a: Rec, public readonly b: Rec) { super({ logger }) }
-			protected async onStart() { this.startedAt = counter++ }
-		}
-		const TA = createToken<Rec>('Infer:TA')
-		const TB = createToken<Rec>('Infer:TB')
-		const TC = createToken<WithDeps>('Infer:TC')
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		await app.start({
-			[TA]: { useFactory: () => new Rec({ logger }) },
-			[TB]: { useFactory: () => new Rec({ logger }) },
-			// dependencies omitted; should be inferred from inject tuple
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[TC]: { useClass: WithDeps, inject: [TA, TB] } as any,
-		})
-		const a = c.get(TA) as Rec
-		const b = c.get(TB) as Rec
-		const withDeps = c.get(TC) as WithDeps
-		assert.ok(a && b && withDeps)
-		// injected identity preserved
-		assert.equal(withDeps.a, a)
-		assert.equal(withDeps.b, b)
-		// start order respects inferred deps
-		assert.ok((a.startedAt as number) < (withDeps.startedAt as number))
-		assert.ok((b.startedAt as number) < (withDeps.startedAt as number))
-		await app.destroy()
-	})
 
-	test.skip('infers dependencies from tuple inject for factory provider when dependencies omitted (REMOVED - no longer applicable with Adapter-only)', async () => {
-		// This feature has been removed - automatic dependency inference from inject patterns
-		// AdapterProvider uses explicit dependencies only
-	})
 
 	test('tracer start outcomes include failures', async () => {
 		class Good extends Adapter {
@@ -1208,15 +1108,7 @@ describe('Orchestrator suite', () => {
 		assert.equal(value, 123)
 	})
 
-	test.skip('orchestrator.using(apply, fn) supports async apply and fn and returns value (requires non-Adapter values)', async () => {
-		// This test requires setting non-Adapter values in the container which is no longer supported
-		// The orchestrator.using functionality works correctly with Adapter classes
-	})
 
-	test.skip('class provider with container arg is supported and resolves container deps (REMOVED - useClass no longer supported)', async () => {
-		// This feature has been removed - we no longer support useClass providers
-		// Adapters can access dependencies through other means
-	})
 
 	test('register with dependency graph object', async () => {
 		TestComponent.counter = 0
@@ -1384,13 +1276,19 @@ describe('Orchestrator suite', () => {
 	})
 
 	test('dependency graph detects cycles', async () => {
-		const A = createToken<TestComponent>('A')
-		const B = createToken<TestComponent>('B')
+		class CycleA extends Adapter {
+			static instance?: CycleA
+		}
+		class CycleB extends Adapter {
+			static instance?: CycleB
+		}
+		const A = createToken<CycleA>('A')
+		const B = createToken<CycleB>('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		orch.register({
-			[A]: { useFactory: () => new TestComponent('A'), dependencies: [B] },
-			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[A]: { adapter: CycleA, dependencies: [B] },
+			[B]: { adapter: CycleB, dependencies: [A] },
 		})
 
 		await assert.rejects(() => orch.start(), (err: unknown) => {
@@ -1400,12 +1298,10 @@ describe('Orchestrator suite', () => {
 			return true
 		})
 		await orch.destroy().catch(() => {})
+		await CycleA.destroy().catch(() => {})
+		await CycleB.destroy().catch(() => {})
 	})
 
-	test.skip('dependency graph with mixed value and factory providers (REMOVED - only Adapter classes supported)', async () => {
-		// This feature has been removed - we only support Adapter classes now
-		// No mixing of value/factory providers
-	})
 
 	test('dependency graph errors aggregate on start failure', async () => {
 		TestComponent.counter = 0

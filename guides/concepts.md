@@ -1,55 +1,57 @@
 # Concepts
 
-This section explains the core ideas you’ll use day to day: tokens, providers, the container, lifecycle, and the orchestrator.
+This section explains the core ideas you'll use day to day: tokens, adapters, the container, lifecycle, and the orchestrator.
 
 Tokens and ports
 - Tokens are symbols that carry a type parameter. Create them via `createToken('desc')`.
 - Ports are named groups of tokens. Create many with `createPortTokens({ ... })` or one with `createPortToken('name')`.
 - Use tokens as keys to register and resolve implementations while keeping strong typing and loose coupling.
 
-Providers and injection
-- A provider can be one of:
-  - Value: `{ useValue }`
-  - Factory: `{ useFactory }` with optional inject
-  - Class: `{ useClass }` with optional inject
-- Injection styles:
-  - Tuple: `inject: [A, B]` calls `useFactory(a, b)` or `new useClass(a, b)`
-  - Object: `inject: { a: A, b: B }` calls `useFactory({ a, b })` or `new useClass({ a, b })`
-  - Container: omit inject and accept the `Container` as first arg
-  - No deps: omit inject and use a zero-arg factory/constructor
-- Important: Providers are synchronous. Avoid async functions and promises in providers. Do async work inside lifecycle hooks.
+Adapters and the Singleton Pattern
+- All components must extend the `Adapter` base class
+- Each Adapter subclass maintains its own singleton instance via `static instance?: AdapterClass`
+- Lifecycle management is done through static methods:
+  - `MyAdapter.getInstance()` - Get or create the singleton
+  - `MyAdapter.start()` - Start the singleton
+  - `MyAdapter.stop()` - Stop the singleton
+  - `MyAdapter.destroy()` - Destroy and clear the singleton
+  - `MyAdapter.getState()` - Get current lifecycle state
+- Override protected hooks in your subclass: `onCreate`, `onStart`, `onStop`, `onDestroy`
+- The Container stores Adapter classes, not instances. When you resolve a token, the Container returns the singleton instance from the Adapter class.
 
 Container
-- Register then resolve:
-  - `register(token, provider, lock?)` — set a provider for a token; optionally lock it against changes
-  - `set(token, value, lock?)` — shorthand for value providers
-  - `resolve(token | { map } | [tuple])` — strict; throws when a token is missing
-  - `get(token | { map } | [tuple])` — optional; returns undefined for missing entries
+- Register Adapter classes:
+  - `register(token, { adapter: AdapterClass })` - Register an Adapter class for a token
+  - `resolve(token)` - Get the singleton instance from the registered Adapter class; throws if missing
+  - `get(token)` - Optional resolution; returns undefined for missing entries
+- Dependencies:
+  - Specify explicitly when registering: `{ adapter: MyClass, dependencies: [TokenA, TokenB] }`
+  - Dependencies ensure proper ordering in the Orchestrator
 - Scoping:
-  - `createChild()` — inherit providers, override locally
-  - `using(fn)` — run in a child scope, automatically destroyed afterwards
-  - `using(apply, fn)` — configure the child scope via apply, then run fn
+  - `createChild()` - Inherit registrations, override locally
+  - `using(fn)` - Run in a child scope, automatically destroyed afterwards
+  - `using(apply, fn)` - Configure the child scope via apply, then run fn
 - Cleanup:
-  - `destroy()` — stop/destroy owned lifecycle instances deterministically; aggregates errors if any
+  - `destroy()` - Call destroy() on all registered Adapter classes deterministically; aggregates errors if any
 
 Lifecycle and Adapter
-- `Lifecycle` is an abstract state machine with states: created → started → stopped → destroyed.
+- `Adapter` provides a deterministic state machine with states: created → started → stopped → destroyed.
+- Each Adapter subclass has its own singleton instance accessed via static methods
 - Override hooks: `onCreate`, `onStart`, `onStop`, `onDestroy`, and the optional `onTransition(from, to, hook)`.
 - Timeouts cap each hook; default is 5000ms. Set via constructor options.
-- Events: `on('transition'|'create'|'start'|'stop'|'destroy'|'error', fn)`.
-- `Adapter` extends `Lifecycle` and is a convenient base for components you register in the container.
+- Events: `MyAdapter.on('transition'|'create'|'start'|'stop'|'destroy'|'error', fn)` for singleton events.
+- Static methods manage the singleton lifecycle while instance hooks define the behavior
 
 Orchestrator
-- Purpose: start, stop, destroy many components in a dependency-safe order.
-- Register components via:
-  - `orchestrator.register(token, provider, deps?, timeouts?)` for ad-hoc registration
-  - `register(token, provider, options?)` to build typed entries for `orchestrator.start([...])`
+- Purpose: start, stop, destroy many Adapter singletons in a dependency-safe order.
+- Register Adapter classes in the Container:
+  - `container.register(token, { adapter: AdapterClass, dependencies: [A, B] })`
+  - The Orchestrator resolves dependencies and manages start/stop/destroy order
 - Dependencies:
-  - Provide explicitly as `[A, B]` or `{ a: A, b: B }` on options
-  - Or omit and let the orchestrator infer from tuple/object inject shapes
-  - Cycles are detected and rejected
+  - Provide explicitly as `dependencies: [A, B]` when registering
+  - Cycles are detected and rejected (ORK1009)
 - Phases:
-  - `start()` runs per-layer, topological order; rolls back by stopping already-started components on failure
+  - `start()` runs per-layer, topological order; rolls back by stopping already-started singletons on failure
   - `stop()` runs in reverse order; aggregates errors (ORK1014)
   - `destroy()` stops (if needed) then destroys; aggregates errors (ORK1017) and includes container cleanup
 - Timeouts:
@@ -61,7 +63,7 @@ Orchestrator
   - Diagnostics emit event/trace/metric hooks and stable error codes
 
 Global helpers
-- `container()` returns the default container (or named ones via `container('name')`). It also exposes `set/clear/list/resolve/get/using` to work with the active container without threading it through your code.
+- `container()` returns the default container (or named ones via `container('name')`). It also exposes `resolve/get/using` to work with the active container without threading it through your code.
 - `orchestrator()` returns the default orchestrator (or named). Use `orchestrator.using(...)` to run work within its container scope.
 
 Error codes at a glance
@@ -69,7 +71,6 @@ Error codes at a glance
 - ORK1007: orchestrator duplicate registration
 - ORK1008: orchestrator unknown dependency
 - ORK1009: orchestrator cycle detected
-- ORK1010/1011/1012: async provider inputs (value, async function, returned Promise)
 - ORK1013/1014/1017: aggregated phase errors (start/stop/destroy)
 - ORK1020/1021/1022: invalid lifecycle transition / hook timed out / hook failed
 
@@ -77,7 +78,7 @@ See also
 - Start: a 5‑minute tour and installation
 - Core: built-in adapters and runtime pieces
 - Examples: copy‑pasteable snippets for common patterns
-- Tips: provider patterns, composition, and troubleshooting
+- Tips: adapter patterns, composition, and troubleshooting
 - Tests: setting up fast, deterministic tests
 - FAQ: quick answers from simple to advanced scenarios
 

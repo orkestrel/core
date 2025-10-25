@@ -1,4 +1,4 @@
-import { arrayOf, isBoolean, isError, isNumber, isObject, isString, literalOf } from '@orkestrel/validator'
+import { arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf } from '@orkestrel/validator'
 import type {
 	Token,
 	AdapterProvider,
@@ -85,9 +85,9 @@ export function isTokenArray(x: unknown): x is ReadonlyArray<Token<unknown>> {
  * ```
  */
 export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
-	if (!isObject(x) || Array.isArray(x)) return false
+	if (!isRecord(x)) return false
 	for (const key of Object.keys(x)) {
-		const v = (x as Record<string, unknown>)[key]
+		const v = x[key]
 		if (!isToken(v)) return false
 	}
 	return true
@@ -105,7 +105,7 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
  * ```
  */
 export function isAdapterProvider<T extends Adapter>(p: unknown): p is AdapterProvider<T> {
-	return isObject(p) && Object.hasOwn(p, 'adapter')
+	return isRecord(p) && Object.hasOwn(p, 'adapter')
 }
 
 /**
@@ -170,15 +170,14 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 	durationMs: number
 	error: Error
 } {
-	if (!isObject(x)) return false
-	const obj = x as Record<string, unknown>
+	if (!isRecord(x)) return false
 	return (
-		isString(obj.tokenDescription)
-		&& literalOf('start', 'stop', 'destroy')(obj.phase)
-		&& literalOf('normal', 'rollback', 'container')(obj.context)
-		&& isBoolean(obj.timedOut)
-		&& isNumber(obj.durationMs)
-		&& isError(obj.error)
+		isString(x.tokenDescription)
+		&& literalOf('start', 'stop', 'destroy')(x.phase)
+		&& literalOf('normal', 'rollback', 'container')(x.context)
+		&& isBoolean(x.timedOut)
+		&& isNumber(x.durationMs)
+		&& isError(x.error)
 	)
 }
 
@@ -194,10 +193,9 @@ export function isLifecycleErrorDetail(x: unknown): x is {
  * ```
  */
 export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
-	if (!isObject(x)) return false
-	const obj = x as Record<string, unknown>
+	if (!isRecord(x)) return false
 	return (
-		arrayOf(isLifecycleErrorDetail)(obj.details)
-		&& arrayOf((e: unknown): e is Error => isError(e))(obj.errors)
+		arrayOf(isLifecycleErrorDetail)(x.details)
+		&& arrayOf((e: unknown): e is Error => isError(e))(x.errors)
 	)
 }

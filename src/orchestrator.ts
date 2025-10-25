@@ -18,11 +18,11 @@ import type {
 	LoggerPort,
 	OrchestratorGraph,
 } from './types.js'
-import { hasSchema, arrayOf, isFunction } from '@orkestrel/validator'
+import { isFunction, isNumber, isRecord } from '@orkestrel/validator'
 import {
 	tokenDescription,
 	safeInvoke,
-	isLifecycleErrorDetail,
+	isAggregateLifecycleError,
 } from './helpers.js'
 import { Container, container } from './container.js'
 import { Adapter } from './adapter.js'
@@ -352,7 +352,7 @@ export class Orchestrator {
 			await this.container.destroy()
 		}
 		catch (e) {
-			if (hasSchema(e, { details: arrayOf(isLifecycleErrorDetail) })) {
+			if (isAggregateLifecycleError(e)) {
 				errors.push(...e.details)
 			}
 			else if (e instanceof Error) {
@@ -416,8 +416,9 @@ export class Orchestrator {
 	// Monotonic-ish clock helper (prefers performance.now when available).
 	#now(): number {
 		const g: unknown = globalThis
-		if (hasSchema(g, { performance: { now: (v: unknown): v is () => number => isFunction(v) } })) {
-			return g.performance.now()
+		if (isRecord(g) && 'performance' in g && isRecord(g.performance) && 'now' in g.performance && isFunction(g.performance.now)) {
+			const result = g.performance.now()
+			return isNumber(result) ? result : Date.now()
 		}
 		return Date.now()
 	}

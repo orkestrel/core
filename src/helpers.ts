@@ -1,9 +1,8 @@
-import { arrayOf, hasSchema, isBoolean, isError, isNumber, isObject, isString, literalOf, hasOwn } from '@orkestrel/validator'
+import { andOf, arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf, recordOf } from '@orkestrel/validator'
 import type {
 	Token,
 	AdapterProvider,
 	AggregateLifecycleError,
-	SchemaSpec,
 } from './types.js'
 import type { Adapter } from './adapter.js'
 
@@ -86,12 +85,7 @@ export function isTokenArray(x: unknown): x is ReadonlyArray<Token<unknown>> {
  * ```
  */
 export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
-	if (!isObject(x) || Array.isArray(x)) return false
-	for (const key of Object.keys(x)) {
-		const v = (x as Record<string, unknown>)[key]
-		if (!isToken(v)) return false
-	}
-	return true
+	return recordOf(isToken)(x)
 }
 
 /**
@@ -106,7 +100,7 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
  * ```
  */
 export function isAdapterProvider<T extends Adapter>(p: unknown): p is AdapterProvider<T> {
-	return isObject(p) && hasOwn(p, 'adapter')
+	return isRecord(p) && Object.hasOwn(p, 'adapter')
 }
 
 /**
@@ -171,15 +165,37 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 	durationMs: number
 	error: Error
 } {
-	const schema = {
-		tokenDescription: isString,
-		phase: literalOf('start', 'stop', 'destroy'),
-		context: literalOf('normal', 'rollback', 'container'),
-		timedOut: isBoolean,
-		durationMs: isNumber,
-		error: (e: unknown): e is Error => isError(e),
-	} satisfies SchemaSpec
-	return hasSchema(x, schema)
+	return andOf<Record<string, unknown>, {
+		tokenDescription: string
+		phase: 'start' | 'stop' | 'destroy'
+		context: 'normal' | 'rollback' | 'container'
+		timedOut: boolean
+		durationMs: number
+		error: Error
+	}>(
+		isRecord,
+		(obj: Record<string, unknown>): obj is {
+			tokenDescription: string
+			phase: 'start' | 'stop' | 'destroy'
+			context: 'normal' | 'rollback' | 'container'
+			timedOut: boolean
+			durationMs: number
+			error: Error
+		} => (
+			'tokenDescription' in obj
+			&& isString(obj.tokenDescription)
+			&& 'phase' in obj
+			&& literalOf('start', 'stop', 'destroy')(obj.phase)
+			&& 'context' in obj
+			&& literalOf('normal', 'rollback', 'container')(obj.context)
+			&& 'timedOut' in obj
+			&& isBoolean(obj.timedOut)
+			&& 'durationMs' in obj
+			&& isNumber(obj.durationMs)
+			&& 'error' in obj
+			&& isError(obj.error)
+		),
+	)(x)
 }
 
 /**
@@ -194,9 +210,11 @@ export function isLifecycleErrorDetail(x: unknown): x is {
  * ```
  */
 export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
-	const schema = {
-		details: arrayOf(isLifecycleErrorDetail),
-		errors: arrayOf((e: unknown): e is Error => isError(e)),
-	} satisfies SchemaSpec
-	return hasSchema(x, schema)
+	if (!isRecord(x)) return false
+	return (
+		'details' in x
+		&& arrayOf(isLifecycleErrorDetail)(x.details)
+		&& 'errors' in x
+		&& arrayOf(isError)(x.errors)
+	)
 }

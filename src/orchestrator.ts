@@ -1,8 +1,4 @@
 import type {
-	ClassProviderWithTuple,
-	ClassProviderWithObject,
-	FactoryProviderWithObject,
-	FactoryProviderWithTuple,
 	Provider,
 	Token,
 	PhaseTimeouts,
@@ -10,10 +6,8 @@ import type {
 	PhaseResult,
 	Outcome,
 	DestroyJobResult,
-	OrchestratorRegistration,
 	OrchestratorOptions,
 	NodeEntry,
-	RegisterOptions,
 	OrchestratorGetter,
 	LifecycleErrorDetail,
 	LifecyclePhase,
@@ -23,6 +17,8 @@ import type {
 	QueuePort,
 	DiagnosticPort,
 	LoggerPort,
+	OrchestratorGraph,
+	OrchestratorGraphEntry,
 } from './types.js'
 import { isPromiseLike, isAsyncFunction, hasSchema, arrayOf, isFunction } from '@orkestrel/validator'
 import {
@@ -159,70 +155,108 @@ export class Orchestrator {
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
-	 * Register a component provider with optional explicit dependencies/timeouts.
-	 * Throws on duplicate registrations or async provider shapes.
+	 * Register components via an orchestrator graph object.
+	 * Keys are tokens, values are provider configurations with optional dependencies and timeouts.
 	 *
-	 * @typeParam T - Token value type.
-	 * @param token - Component token to register.
-	 * @param provider - Provider implementation (value/factory/class).
-	 * @param dependencies - Tokens this component depends on (topological order).
-	 * @param timeouts - Per-component timeouts (number for all phases, or per-phase object).
-	 * @returns Nothing. Registers the provider into the underlying container.
+	 * @param graph - Orchestrator graph where keys are tokens and values are provider configurations with optional dependencies/timeouts/inject
+	 * @returns Nothing. Registers all providers into the underlying container.
 	 *
 	 * @example
 	 * ```ts
-	 * app.register(TOKEN, { useFactory: () => new MyAdapter() }, [DEP1, DEP2], { onStart: 1000 })
+	 * const TA = createToken<A>('A')
+	 * const TB = createToken<B>('B')
+	 * app.register({
+	 *   [TA]: { useFactory: () => new A() },
+	 *   [TB]: { useFactory: () => new B(), dependencies: [TA], timeouts: 5000 },
+	 * })
 	 * ```
 	 */
-	register<T>(token: Token<T>, provider: Provider<T>, dependencies: readonly Token<unknown>[] = [], timeouts?: PhaseTimeouts): void {
-		if (this.#nodes.has(token)) {
-			this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
+	register(graph: OrchestratorGraph): void {
+		for (const sym of Object.getOwnPropertySymbols(graph)) {
+			const token = sym as Token<unknown>
+			const entry = graph[token]
+
+			// Check for duplicate registration
+			if (this.#nodes.has(token)) {
+				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
+			}
+
+			// Extract provider by removing dependencies and timeouts from entry
+			const provider = this.#extractProvider(entry)
+
+			// Infer dependencies from provider shape (tuple/object inject) when not provided or empty
+			const inferred = inferDependencies(provider)
+			const baseDeps = (entry.dependencies && entry.dependencies.length) ? [...entry.dependencies] : inferred
+			const normalized = normalizeDependencies(baseDeps).filter(d => d !== token)
+
+			// Store node metadata
+			this.#nodes.set(token, { token, dependencies: normalized, timeouts: entry.timeouts })
+
+			// Guard and register the provider
+			const guarded = this.#guardProvider(token, provider)
+			this.container.register(token, guarded)
+
+			// Reset cached layers
+			this.#layers = null
 		}
-		// Infer dependencies from provider shape (tuple/object inject) when not provided or empty
-		const inferred = inferDependencies(provider)
-		const baseDeps = (dependencies && dependencies.length) ? [...dependencies] : inferred
-		const normalized = normalizeDependencies(baseDeps).filter(d => d !== token)
-		this.#nodes.set(token, { token, dependencies: normalized, timeouts })
-		const guarded = this.#guardProvider(token, provider)
-		this.container.register(token, guarded)
-		this.#layers = null
+	}
+
+	// Extract pure provider from entry by removing dependencies and timeouts
+	#extractProvider<T>(entry: OrchestratorGraphEntry<T>): Provider<T> {
+		// Entry is a union of provider types with added dependencies/timeouts
+		// We need to strip dependencies and timeouts to get the pure provider
+		if (hasSchema(entry, { useValue: (v: unknown): v is unknown => true })) {
+			const e = entry as { useValue: T }
+			return { useValue: e.useValue } as Provider<T>
+		}
+		if (hasSchema(entry, { useFactory: isFunction })) {
+			const e = entry as { useFactory: (...args: never[]) => T, inject?: unknown }
+			// Preserve inject if present
+			if (hasSchema(e, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
+				return { useFactory: e.useFactory, inject: e.inject } as Provider<T>
+			}
+			return { useFactory: e.useFactory } as Provider<T>
+		}
+		if (hasSchema(entry, { useClass: isFunction })) {
+			const e = entry as { useClass: new (...args: never[]) => T, inject?: unknown }
+			// Preserve inject if present
+			if (hasSchema(e, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
+				return { useClass: e.useClass, inject: e.inject } as Provider<T>
+			}
+			return { useClass: e.useClass } as Provider<T>
+		}
+		// Fallback - should not reach here with correct types
+		return entry as Provider<T>
 	}
 
 	/**
 	 * Start all components in dependency order.
 	 *
-	 * - Optionally provides additional registration entries to register and start in one call.
+	 * - Optionally registers components via an orchestrator graph before starting.
 	 * - On failure, previously started components are rolled back (stopped) in reverse order.
 	 * - Aggregates errors with code ORK1013.
 	 *
-	 * @param regs - Optional registration entries to register before starting.
+	 * @param graph - Optional orchestrator graph where keys are tokens and values are provider configurations with optional dependencies/timeouts/inject
 	 * @returns A promise that resolves when all start jobs complete or rejects with an aggregated error.
 	 *
 	 * @example
 	 * ```ts
-	 * const app = new Orchestrator(new Container())
+	 * const TA = createToken<A>('A')
+	 * const TB = createToken<B>('B')
+	 * // Register and start together
+	 * await app.start({
+	 *   [TA]: { useFactory: () => new A() },
+	 *   [TB]: { useFactory: () => new B(), dependencies: [TA] },
+	 * })
+	 * // Or register first, then start
+	 * app.register({ [TA]: { useFactory: () => new A() } })
 	 * await app.start()
-	 * // or start with registrations
-	 * await app.start([
-	 *   register(TOKEN, { useClass: Impl }),
-	 * ])
 	 * ```
 	 */
-	async start(regs: ReadonlyArray<OrchestratorRegistration<unknown>> = []): Promise<void> {
-		// Register any provided components first
-		for (const e of regs) {
-			// Infer dependencies when not provided
-			const inferred = inferDependencies(e.provider)
-			const baseDeps = (e.dependencies && e.dependencies.length) ? [...e.dependencies] : inferred
-			const deps = normalizeDependencies(baseDeps).filter(d => d !== e.token)
-			if (this.#nodes.has(e.token)) {
-				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(e.token)}`, helpUrl: HELP.orchestrator })
-			}
-			this.#nodes.set(e.token, { token: e.token, dependencies: deps, timeouts: e.timeouts })
-			const guarded = this.#guardProvider(e.token, e.provider)
-			this.container.register(e.token, guarded)
+	async start(graph?: OrchestratorGraph): Promise<void> {
+		if (graph) {
+			this.register(graph)
 		}
-		this.#layers = null
 		// Start all components in dependency order (previously startAll)
 		const layers = this.#topoLayers()
 		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
@@ -619,35 +653,6 @@ function inferDependencies<T>(provider: Provider<T>): Token<unknown>[] {
 		if (isClassProviderWithObject(provider)) return Object.values(provider.inject)
 	}
 	return []
-}
-
-// Overloads to preserve inject inference for tuple/object providers.
-export function register<T, A extends readonly unknown[]>(token: Token<T>, provider: ClassProviderWithTuple<T, A> | FactoryProviderWithTuple<T, A>, options?: RegisterOptions): OrchestratorRegistration<T>
-export function register<T, O extends Record<string, unknown>>(token: Token<T>, provider: ClassProviderWithObject<T, O> | FactoryProviderWithObject<T, O>, options?: RegisterOptions): OrchestratorRegistration<T>
-export function register<T>(token: Token<T>, provider: Provider<T>, options?: RegisterOptions): OrchestratorRegistration<T>
-/**
- * Helper to construct a registration entry with typed inject preservation.
- * - Accepts tuple or object inject providers, or value/no-deps providers.
- * - options.dependencies: array or record of tokens; self-dependencies are ignored and duplicates are deduped.
- * - options.timeouts: per-node timeouts (number or per-phase object).
- *
- * @typeParam T - Token value type.
- * @param token - The component token.
- * @param provider - Provider implementation (value/factory/class).
- * @param options - Optional dependencies and timeouts.
- * @returns A registration entry suitable for Orchestrator.start([...]).
- *
- * @example
- * ```ts
- * const entry = register(TOKEN, { useClass: Impl, inject: [DEP_A, DEP_B] }, { dependencies: [DEP_A, DEP_B] })
- * await app.start([entry])
- * ```
- */
-export function register<T>(token: Token<T>, provider: Provider<T>, options: RegisterOptions = {}): OrchestratorRegistration<T> {
-	const provided = normalizeDependencies(options.dependencies)
-	const inferred = inferDependencies(provider)
-	const dependencies = (provided.length ? provided : inferred).filter(d => d !== token)
-	return { token, provider, dependencies, timeouts: options.timeouts }
 }
 
 function wrapFactory<R>(diag: DiagnosticPort, fn: () => R, tokenDesc: string): () => R

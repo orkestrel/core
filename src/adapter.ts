@@ -55,14 +55,13 @@ import { safeInvoke } from './helpers.js'
  * The singleton instance is stored per subclass, not shared across all Adapter subclasses.
  */
 export abstract class Adapter {
-/**
- * Singleton instance storage. Each subclass stores its own instance.
- * @internal
- */
-protected static instance?: Adapter
+	/**
+	 * Singleton instance storage. Each subclass stores its own instance.
+	 */
+	static instance?: Adapter
 
-#state: LifecycleState = 'created'
-#emitInitial: boolean = true
+	#state: LifecycleState = 'created'
+	#emitInitial: boolean = true
 
 readonly #timeouts: number
 readonly #emitter: EmitterPort<LifecycleEventMap>
@@ -88,27 +87,28 @@ this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1, logger: this.#log
 
 /* Static Singleton Lifecycle Methods */
 
-/**
- * Get the singleton instance for this subclass. Creates it if it doesn't exist.
- */
-static getInstance<T extends typeof Adapter>(this: T, opts?: LifecycleOptions): InstanceType<T> {
-if (!this.instance) {
-this.instance = new this(opts) as InstanceType<T>
-}
-return this.instance as InstanceType<T>
-}
+	/**
+	 * Get the singleton instance for this subclass. Creates it if it doesn't exist.
+	 */
+	static getInstance<T extends typeof Adapter>(this: T, opts?: LifecycleOptions): InstanceType<T> {
+		if (!this.instance) {
+			// Use 'as any' to bypass abstract class instantiation restriction
+			this.instance = new (this as any)(opts) as InstanceType<T>
+		}
+		return this.instance as InstanceType<T>
+	}
 
-/**
- * Get the current lifecycle state of the singleton.
- */
-static get state(): LifecycleState {
-return this.instance?.state ?? 'created'
-}
+	/**
+	 * Get the current lifecycle state of the singleton.
+	 */
+	static getState(): LifecycleState {
+		return this.instance?.state ?? 'created'
+	}
 
 /**
  * Transition the singleton instance to 'created' state (idempotent).
  */
-static async create<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): Promise<void> {
+static async create(opts?: LifecycleOptions): Promise<void> {
 const instance = this.getInstance(opts)
 await instance.create()
 }
@@ -116,7 +116,7 @@ await instance.create()
 /**
  * Transition the singleton instance to 'started' state.
  */
-static async start<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): Promise<void> {
+static async start(opts?: LifecycleOptions): Promise<void> {
 const instance = this.getInstance(opts)
 await instance.start()
 }
@@ -173,67 +173,62 @@ instance.off(evt, fn)
 return this
 }
 
-/* Protected/Internal Methods - Used by static methods and accessible to Container/Orchestrator */
+/* Instance Properties and Methods */
 
-/**
- * @internal
- * Get the current lifecycle state.
- */
-getState(): LifecycleState { 
-return this.#state 
-}
+	/**
+	 * Get the current lifecycle state.
+	 */
+	get state(): LifecycleState { 
+		return this.#state 
+	}
 
-/**
- * @internal
- * Access the emitter port.
- */
-get emitter(): EmitterPort<LifecycleEventMap> { 
-return this.#emitter 
-}
+	/**
+	 * Access the emitter port.
+	 */
+	get emitter(): EmitterPort<LifecycleEventMap> { 
+		return this.#emitter 
+	}
 
-/**
- * @internal
- * Access the queue port.
- */
-get queue(): QueuePort { 
-return this.#queue 
-}
+	/**
+	 * Access the queue port.
+	 */
+	get queue(): QueuePort { 
+		return this.#queue 
+	}
 
-/**
- * @internal
- * Access the logger port.
- */
-get logger(): LoggerPort { 
-return this.#logger 
-}
+	/**
+	 * Access the logger port.
+	 */
+	get logger(): LoggerPort { 
+		return this.#logger 
+	}
 
-/**
- * @internal
- * Access the diagnostic port.
- */
-get diagnostics(): DiagnosticPort { 
-return this.#diagnostic 
-}
+	/**
+	 * Access the diagnostic port.
+	 */
+	get diagnostics(): DiagnosticPort { 
+		return this.#diagnostic 
+	}
 
-/**
- * @internal
- * Subscribe to a lifecycle event.
- */
-on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
-if (evt === 'transition' && this.#emitInitial) {
-this.#emitInitial = false
-setTimeout(() => this.#emitter.emit('transition', this.#state), 0)
-}
-this.#emitter.on(evt, fn)
-}
+	/**
+	 * Subscribe to a lifecycle event.
+	 */
+	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
+		if (evt === 'transition' && this.#emitInitial) {
+			this.#emitInitial = false
+			setTimeout(() => this.#emitter.emit('transition', this.#state), 0)
+		}
+		this.#emitter.on(evt, fn)
+		return this
+	}
 
-/**
- * @internal
- * Unsubscribe from a lifecycle event.
- */
-off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
-this.#emitter.off(evt, fn)
-}
+	/**
+	 * Unsubscribe from a lifecycle event.
+	 */
+	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
+		this.#emitter.off(evt, fn)
+		return this
+	}
 
 // Internal: set state and emit transition events.
 #setState(next: LifecycleState): void {
@@ -269,7 +264,6 @@ return Promise.reject(wrapped)
 }
 
 /**
- * @internal
  * Create the lifecycle (idempotent no-op by default).
  */
 async create(): Promise<void> {
@@ -278,7 +272,6 @@ await this.#runHook('create', () => this.onCreate(), this.#state, 'created')
 }
 
 /**
- * @internal
  * Transition from 'created' or 'stopped' to 'started'.
  */
 async start(): Promise<void> {
@@ -287,7 +280,6 @@ await this.#runHook('start', () => this.onStart(), this.#state, 'started')
 }
 
 /**
- * @internal
  * Transition from 'started' to 'stopped'.
  */
 async stop(): Promise<void> {
@@ -296,7 +288,6 @@ await this.#runHook('stop', () => this.onStop(), this.#state, 'stopped')
 }
 
 /**
- * @internal
  * Transition to 'destroyed' and remove all listeners.
  */
 async destroy(): Promise<void> {

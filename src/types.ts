@@ -224,17 +224,20 @@ export interface LayerAdapterOptions { readonly logger?: LoggerPort, readonly di
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
 
 /**
- * Type helper for Adapter subclass constructors, used in static lifecycle methods.
+ * Type helper for Adapter subclass constructors.
  * @typeParam I - The Adapter subclass instance type
  */
 export type AdapterSubclass<I> = {
 	new (opts?: LifecycleOptions): I
+	instance?: I
 	getInstance(opts?: LifecycleOptions): I
 	getState(): LifecycleState
 	create(opts?: LifecycleOptions): Promise<void>
 	start(opts?: LifecycleOptions): Promise<void>
 	stop(): Promise<void>
 	destroy(): Promise<void>
+	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
+	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
 }
 
 export type LifecycleEventMap = {

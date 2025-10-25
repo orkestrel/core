@@ -118,7 +118,7 @@ describe('Container suite', () => {
 		const inst = child.resolve(TOK)
 		// no autostart; instance should not be started yet
 		assert.strictEqual(inst.started, 0)
-		await inst._start()
+		await inst.start()
 		assert.strictEqual(inst.started, 1)
 		await child.destroy()
 		await c.destroy()
@@ -131,8 +131,8 @@ describe('Container suite', () => {
 		const c = new Container({ logger })
 		c.register(BAD, { useFactory: () => new FailingOnDestroy({ logger }) })
 		const inst = c.resolve(BAD)
-		await inst._start()
-		await inst._stop()
+		await inst.start()
+		await inst.stop()
 		await assert.rejects(() => c.destroy(), (err: unknown) => {
 			assert.ok(isAggregateLifecycleError(err))
 			// container aggregate code

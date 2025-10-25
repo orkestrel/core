@@ -165,7 +165,7 @@ export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
  * isAdapterProvider({ adapter: MyAdapter }) // true
  * ```
  */
-export function isAdapterProvider(p: Provider<unknown>): p is AdapterProvider<typeof Adapter> {
+export function isAdapterProvider<T extends Adapter>(p: Provider<T>): p is AdapterProvider<T> {
 	return isObject(p) && hasOwn(p, 'adapter')
 }
 
@@ -461,7 +461,7 @@ export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandl
 	if (isValueProvider(provider)) return h.value(provider)
 
 	// Adapter provider
-	if (isAdapterProvider(provider)) return h.adapter(provider as AdapterProvider<typeof Adapter>) as any
+	if (isAdapterProvider(provider)) return h.adapter(provider as any) as any
 
 	// Factory providers
 	if (isFactoryProvider(provider)) {

@@ -276,7 +276,8 @@ export class Container {
 		const instance = provider.adapter.getInstance() as T
 		const resolved: ResolvedProvider<T> = { 
 			value: instance, 
-			lifecycle: provider.adapter as AdapterSubclass<Adapter>
+			lifecycle: provider.adapter as any,
+			disposable: true
 		}
 		reg.resolved = resolved
 		return resolved

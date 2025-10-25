@@ -174,9 +174,9 @@ describe('Orchestrator suite', () => {
 		const c = new TestComponent('C')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[A]: { provider: { useValue: a } },
-			[B]: { provider: { useValue: b }, dependencies: [A] },
-			[C]: { provider: { useValue: c }, dependencies: [B] },
+			[A]: { useValue: a },
+			[B]: { useValue: b, dependencies: [A] },
+			[C]: { useValue: c, dependencies: [B] },
 		})
 		await orch.start()
 		assert.equal(a.startedAt, 0)
@@ -195,8 +195,8 @@ describe('Orchestrator suite', () => {
 		const b = new TestComponent('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[A]: { provider: { useValue: a }, dependencies: [B] },
-			[B]: { provider: { useValue: b }, dependencies: [A] },
+			[A]: { useValue: a, dependencies: [B] },
+			[B]: { useValue: b, dependencies: [A] },
 		})
 		await assert.rejects(() => orch.start(), (err: unknown) => {
 			assert.match((err as Error).message, /Cycle detected/)
@@ -218,8 +218,8 @@ describe('Orchestrator suite', () => {
 		const bad = new FailingStartComponent({ logger })
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[GOOD]: { provider: { useValue: good } },
-			[BAD]: { provider: { useValue: bad }, dependencies: [GOOD] },
+			[GOOD]: { useValue: good },
+			[BAD]: { useValue: bad, dependencies: [GOOD] },
 		})
 		await assert.rejects(async () => orch.start(), (err: unknown) => {
 			if (isAggregateLifecycleError(err)) {
@@ -238,7 +238,7 @@ describe('Orchestrator suite', () => {
 		const a = new TestComponent('A')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[A]: { provider: { useValue: a }, dependencies: [B] },
+			[A]: { useValue: a, dependencies: [B] },
 		})
 		await assert.rejects(() => orch.start(), (err: unknown) => {
 			assert.match((err as Error).message, /Unknown dependency B required by A/)
@@ -254,8 +254,8 @@ describe('Orchestrator suite', () => {
 		const GOOD = createToken<TestComponent>('GOOD')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[GOOD]: { provider: { useValue: good } },
-			[BAD]: { provider: { useValue: new FailingDestroyComponent({ logger }) } },
+			[GOOD]: { useValue: good },
+			[BAD]: { useValue: new FailingDestroyComponent({ logger }) },
 		})
 		await orch.start()
 		await orch.stop()
@@ -294,9 +294,9 @@ describe('Orchestrator suite', () => {
 		const a = new Track({ logger })
 		const b = new Track({ logger })
 		orch.register({
-			[A]: { provider: { useValue: a } },
-			[B]: { provider: { useValue: b }, dependencies: [A] },
-			[X]: { provider: { useValue: new FailingStartComponent({ logger }) }, dependencies: [A] },
+			[A]: { useValue: a },
+			[B]: { useValue: b, dependencies: [A] },
+			[X]: { useValue: new FailingStartComponent({ logger }), dependencies: [A] },
 		})
 		let err: unknown
 		try {
@@ -317,7 +317,7 @@ describe('Orchestrator suite', () => {
 		let err: unknown
 		try {
 			await orch.start({
-				[SLOW]: { provider: { useFactory: () => new SlowStart(30) }, timeouts: { onStart: 10 } },
+				[SLOW]: { useFactory: () => new SlowStart(30), timeouts: { onStart: 10 } },
 			})
 		}
 		catch (e) {
@@ -337,7 +337,7 @@ describe('Orchestrator suite', () => {
 		const SLOW_STOP = createToken<SlowStop>('SLOW_STOP')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		await orch.start({
-			[SLOW_STOP]: { provider: { useFactory: () => new SlowStop(30) }, timeouts: { onStop: 10 } },
+			[SLOW_STOP]: { useFactory: () => new SlowStop(30), timeouts: { onStop: 10 } },
 		})
 		let err: unknown
 		try {
@@ -360,7 +360,7 @@ describe('Orchestrator suite', () => {
 		const FB = createToken<FailingStopDestroyComponent>('FB')
 		const app = new Orchestrator(new Container({ logger }), { logger })
 		await app.start({
-			[FB]: { provider: { useFactory: () => new FailingStopDestroyComponent({ logger }) } },
+			[FB]: { useFactory: () => new FailingStopDestroyComponent({ logger }) },
 		})
 		await assert.rejects(() => app.destroy(), (err: unknown) => {
 			assert.match((err as Error).message, /Errors during destroy/)
@@ -381,7 +381,7 @@ describe('Orchestrator suite', () => {
 		const T = createToken<Promise<number>>('AsyncVal')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		assert.throws(() => orch.register({
-			[T]: { provider: { useValue: Promise.resolve(1) } },
+			[T]: { useValue: Promise.resolve(1) },
 		}), (err: unknown) => {
 			assert.match((err as Error).message, /Async providers are not supported/)
 			// removed formatted prefix assertion
@@ -394,7 +394,7 @@ describe('Orchestrator suite', () => {
 	test('async provider guard: useFactory Promise throws at registration', () => {
 		const T = createToken<number>('AsyncFactory')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
-		const prov = { provider: { useFactory: async () => 1 } } as unknown as { provider: { useFactory: () => number } }
+		const prov = { useFactory: async () => 1 } as unknown as { useFactory: () => number }
 		assert.throws(() => orch.register({
 			[T]: prov,
 		}), (err: unknown) => {
@@ -414,8 +414,8 @@ describe('Orchestrator suite', () => {
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
 		await app.start({
-			[TA]: { provider: { useFactory: () => new A({ logger }) } },
-			[TB]: { provider: { useFactory: () => new B({ logger }) }, dependencies: [TA] },
+			[TA]: { useFactory: () => new A({ logger }) },
+			[TB]: { useFactory: () => new B({ logger }), dependencies: [TA] },
 		})
 		assert.ok(c.get(TA) instanceof A)
 		assert.ok(c.get(TB) instanceof B)
@@ -433,7 +433,7 @@ describe('Orchestrator suite', () => {
 		const T = createToken<SlowS>('SlowS')
 		const app = new Orchestrator(new Container({ logger }), { logger, timeouts: { onStop: 10 } })
 		await app.start({
-			[T]: { provider: { useFactory: () => new SlowS({ logger }) } },
+			[T]: { useFactory: () => new SlowS({ logger }) },
 		})
 		let err: unknown
 		try {
@@ -472,8 +472,8 @@ describe('Orchestrator suite', () => {
 			},
 		})
 		await app.start({
-			[TOK]: { provider: { useFactory: () => new Ok({ logger }) } },
-			[BAD]: { provider: { useFactory: () => new BadStop({ logger }) } },
+			[TOK]: { useFactory: () => new Ok({ logger }) },
+			[BAD]: { useFactory: () => new BadStop({ logger }) },
 		})
 		assert.deepStrictEqual(
 			{ hasOK: events.starts.includes('OK'), hasBAD: events.starts.includes('BAD') },
@@ -508,8 +508,8 @@ describe('Orchestrator suite', () => {
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
 		await app.start({
-			[A]: { provider: { useFactory: () => new Cmp({ logger }) } },
-			[B]: { provider: { useFactory: () => new Cmp({ logger }) }, dependencies: [A] },
+			[A]: { useFactory: () => new Cmp({ logger }) },
+			[B]: { useFactory: () => new Cmp({ logger }), dependencies: [A] },
 		})
 		const a = c.get(A) as Cmp
 		const b = c.get(B) as Cmp
@@ -524,7 +524,7 @@ describe('Orchestrator suite', () => {
 		let err: unknown
 		try {
 			await orch.start({
-				[SLOW]: { provider: { useFactory: () => new SlowStart(100) }, timeouts: { onStart: 10 } },
+				[SLOW]: { useFactory: () => new SlowStart(100), timeouts: { onStart: 10 } },
 			})
 		}
 		catch (e) { err = e }
@@ -548,8 +548,8 @@ describe('Orchestrator suite', () => {
 			},
 		})
 		await app.start({
-			[TA]: { provider: { useFactory: () => new A({ logger }) } },
-			[TB]: { provider: { useFactory: () => new B({ logger }) }, dependencies: [TA] },
+			[TA]: { useFactory: () => new A({ logger }) },
+			[TB]: { useFactory: () => new B({ logger }), dependencies: [TA] },
 		})
 		const first = layersSeen[0] ?? []
 		const startLayers = phases.filter(p => p.phase === 'start').map(p => p.layer)
@@ -595,10 +595,10 @@ describe('Orchestrator suite', () => {
 		const T4 = createToken<ConcurrencyProbe>('CC4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
 		await app.start({
-			[T1]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
-			[T2]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
-			[T3]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
-			[T4]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
+			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
 		})
 		assert.ok(ConcurrencyProbe.peakStart <= 2)
 		await app.destroy()
@@ -640,10 +640,10 @@ describe('Orchestrator suite', () => {
 		const T4 = createToken<ConcurrencyProbe>('CD4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
 		await app.start({
-			[T1]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
-			[T2]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
-			[T3]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
-			[T4]: { provider: { useFactory: () => new ConcurrencyProbe(20) } },
+			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
+			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
 		})
 		await app.stop().catch(() => {})
 		assert.ok(ConcurrencyProbe.peakStop <= 2)
@@ -666,8 +666,8 @@ describe('Orchestrator suite', () => {
 		let err: unknown
 		try {
 			await app.start({
-				[TG]: { provider: { useFactory: () => new Good({ logger }) } },
-				[TB]: { provider: { useFactory: () => new Bad({ logger }) }, dependencies: [TG] },
+				[TG]: { useFactory: () => new Good({ logger }) },
+				[TB]: { useFactory: () => new Bad({ logger }), dependencies: [TG] },
 			})
 		}
 		catch (e) {
@@ -702,8 +702,8 @@ describe('Orchestrator suite', () => {
 			},
 		})
 		app.register({
-			[A]: { provider: { useValue: { a: true } } },
-			[B]: { provider: { useFactory: () => new BImpl({ logger }) }, dependencies: [A] },
+			[A]: { useValue: { a: true } },
+			[B]: { useFactory: () => new BImpl({ logger }), dependencies: [A] },
 		})
 		await app.start()
 		try {
@@ -741,8 +741,8 @@ describe('Orchestrator suite', () => {
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
 		await app.start({
-			[A]: { provider: { useFactory: () => new T({ logger }) } },
-			[B]: { provider: { useFactory: () => new T({ logger }) }, dependencies: [A] },
+			[A]: { useFactory: () => new T({ logger }) },
+			[B]: { useFactory: () => new T({ logger }), dependencies: [A] },
 		})
 		const a = c.get(A) as T
 		const b = c.get(B) as T
@@ -776,10 +776,10 @@ describe('Orchestrator suite', () => {
 			const c = new Container({ logger })
 			const app = new Orchestrator(c, { logger })
 			const depsFor = (idx: number) => edgeList.filter(([_, dst]) => dst === idx).map(([src]) => tokens[src])
-			const graph: Record<symbol, { provider: { useValue: Adapter }, dependencies?: Token<unknown>[] }> = {}
+			const graph: Record<symbol, { useValue: Adapter, dependencies?: Token<unknown>[] }> = {}
 			for (let i = 0; i < n; i++) {
 				const deps = depsFor(i)
-				graph[tokens[i]] = deps.length > 0 ? { provider: { useValue: instances[i] }, dependencies: deps } : { provider: { useValue: instances[i] } }
+				graph[tokens[i]] = deps.length > 0 ? { useValue: instances[i], dependencies: deps } : { useValue: instances[i] }
 			}
 			app.register(graph)
 			try {
@@ -810,10 +810,10 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(c, { logger })
 		const WITH_TOKEN = createToken<WithDeps>('Reg:WITH')
 		await app.start({
-			[TLOG]: { provider: { useClass: L } },
-			[TCFG]: { provider: { useValue: { n: 1 } } },
+			[TLOG]: { useClass: L },
+			[TCFG]: { useValue: { n: 1 } },
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[WITH_TOKEN]: { provider: { useClass: WithDeps, inject: [TLOG, TCFG] }, dependencies: [TLOG, TCFG] } as any,
+			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
 		})
 		await app.destroy()
 	})
@@ -834,10 +834,10 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(c, { logger })
 		const WITH_TOKEN = createToken<WithDeps>('Start:WITH')
 		await app.start({
-			[TLOG]: { provider: { useClass: L } },
-			[TCFG]: { provider: { useValue: { n: 2 } } },
+			[TLOG]: { useClass: L },
+			[TCFG]: { useValue: { n: 2 } },
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[WITH_TOKEN]: { provider: { useClass: WithDeps, inject: [TLOG, TCFG] }, dependencies: [TLOG, TCFG] } as any,
+			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
 		})
 		await app.destroy()
 	})
@@ -861,11 +861,11 @@ describe('Orchestrator suite', () => {
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
 		await app.start({
-			[TA]: { provider: { useFactory: () => new Rec({ logger }) } },
-			[TB]: { provider: { useFactory: () => new Rec({ logger }) } },
+			[TA]: { useFactory: () => new Rec({ logger }) },
+			[TB]: { useFactory: () => new Rec({ logger }) },
 			// dependencies omitted; should be inferred from inject tuple
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[TC]: { provider: { useClass: WithDeps, inject: [TA, TB] } } as any,
+			[TC]: { useClass: WithDeps, inject: [TA, TB] } as any,
 		})
 		const a = c.get(TA) as Rec
 		const b = c.get(TB) as Rec
@@ -900,11 +900,11 @@ describe('Orchestrator suite', () => {
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
 		await app.start({
-			[TA]: { provider: { useFactory: () => new Rec({ logger }) } },
-			[TB]: { provider: { useFactory: () => new Rec({ logger }) } },
+			[TA]: { useFactory: () => new Rec({ logger }) },
+			[TB]: { useFactory: () => new Rec({ logger }) },
 			// dependencies omitted; should be inferred from inject tuple
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[TD]: { provider: { useFactory: (a: Rec, b: Rec) => new UsesDeps(a, b), inject: [TA, TB] } } as any,
+			[TD]: { useFactory: (a: Rec, b: Rec) => new UsesDeps(a, b), inject: [TA, TB] } as any,
 		})
 		const a = c.get(TA) as Rec
 		const b = c.get(TB) as Rec
@@ -931,8 +931,8 @@ describe('Orchestrator suite', () => {
 		let err: unknown
 		try {
 			await app.start({
-				[TG]: { provider: { useFactory: () => new Good({ logger }) } },
-				[TB]: { provider: { useFactory: () => new Bad({ logger }) }, dependencies: [TG] },
+				[TG]: { useFactory: () => new Good({ logger }) },
+				[TB]: { useFactory: () => new Bad({ logger }), dependencies: [TG] },
 			})
 		}
 		catch (e) {
@@ -977,8 +977,8 @@ describe('Orchestrator suite', () => {
 			},
 		})
 		await app.start({
-			[TOK]: { provider: { useFactory: () => new Ok({ logger }) } },
-			[TBAD]: { provider: { useFactory: () => new BadStop({ logger }) } },
+			[TOK]: { useFactory: () => new Ok({ logger }) },
+			[TBAD]: { useFactory: () => new BadStop({ logger }) },
 		})
 		let stopErr: unknown
 		try {
@@ -996,8 +996,8 @@ describe('Orchestrator suite', () => {
 		class C extends Adapter {}
 		const T = createToken<C>('dup')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
-		orch.register({ [T]: { provider: { useFactory: () => new C({ logger }) } } })
-		assert.throws(() => orch.register({ [T]: { provider: { useFactory: () => new C({ logger }) } } }), (err: unknown) => {
+		orch.register({ [T]: { useFactory: () => new C({ logger }) } })
+		assert.throws(() => orch.register({ [T]: { useFactory: () => new C({ logger }) } }), (err: unknown) => {
 			assert.match((err as Error).message, /Duplicate registration/)
 			// removed formatted prefix assertion
 			return (err as Error & { code?: string }).code === 'ORK1007'
@@ -1015,7 +1015,7 @@ describe('Orchestrator suite', () => {
 		const T = createToken<SlowBoth>('NumDef:SlowBoth')
 		const app = new Orchestrator(new Container({ logger }), { logger, timeouts: 10 })
 		await app.start({
-			[T]: { provider: { useFactory: () => new SlowBoth({ logger }) } },
+			[T]: { useFactory: () => new SlowBoth({ logger }) },
 		})
 		let stopErr: unknown
 		try {
@@ -1080,7 +1080,7 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(new Container({ logger }), { logger })
 		app.container.set(DEP, 42)
 		await app.start({
-			[T]: { provider: { useClass: NeedsC } },
+			[T]: { useClass: NeedsC },
 		})
 		const inst = app.container.get(T) as NeedsC
 		assert.ok(inst)
@@ -1096,9 +1096,9 @@ describe('Orchestrator suite', () => {
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		orch.register({
-			[A]: { provider: { useFactory: () => new TestComponent('A') } },
-			[B]: { provider: { useFactory: () => new TestComponent('B') }, dependencies: [A] },
-			[C]: { provider: { useFactory: () => new TestComponent('C') }, dependencies: [B] },
+			[A]: { useFactory: () => new TestComponent('A') },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
 		})
 
 		await orch.start()
@@ -1125,9 +1125,9 @@ describe('Orchestrator suite', () => {
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		await orch.start({
-			[A]: { provider: { useFactory: () => new TestComponent('A') } },
-			[B]: { provider: { useFactory: () => new TestComponent('B') }, dependencies: [A] },
-			[C]: { provider: { useFactory: () => new TestComponent('C') }, dependencies: [B] },
+			[A]: { useFactory: () => new TestComponent('A') },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
 		})
 
 		const a = orch.container.get(A) as TestComponent
@@ -1151,8 +1151,8 @@ describe('Orchestrator suite', () => {
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		orch.register({
-			[A]: { provider: { useFactory: () => new SlowStart(50) }, timeouts: { onStart: 1000 } },
-			[B]: { provider: { useFactory: () => new SlowStart(50) }, dependencies: [A], timeouts: { onStart: 1000 } },
+			[A]: { useFactory: () => new SlowStart(50), timeouts: { onStart: 1000 } },
+			[B]: { useFactory: () => new SlowStart(50), dependencies: [A], timeouts: { onStart: 1000 } },
 		})
 
 		await orch.start()
@@ -1171,8 +1171,8 @@ describe('Orchestrator suite', () => {
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		orch.register({
-			[A]: { provider: { useFactory: () => new TestComponent('A') }, dependencies: [B] },
-			[B]: { provider: { useFactory: () => new TestComponent('B') }, dependencies: [A] },
+			[A]: { useFactory: () => new TestComponent('A'), dependencies: [B] },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
 		})
 
 		await assert.rejects(() => orch.start(), (err: unknown) => {
@@ -1192,9 +1192,9 @@ describe('Orchestrator suite', () => {
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		await orch.start({
-			[A]: { provider: { useValue: 42 } },
-			[B]: { provider: { useFactory: () => new TestComponent('B') }, dependencies: [A] },
-			[C]: { provider: { useFactory: () => new TestComponent('C') }, dependencies: [B] },
+			[A]: { useValue: 42 },
+			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
 		})
 
 		const a = orch.container.get(A)
@@ -1215,8 +1215,8 @@ describe('Orchestrator suite', () => {
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		await assert.rejects(async () => orch.start({
-			[GOOD]: { provider: { useFactory: () => new TestComponent('GOOD') } },
-			[BAD]: { provider: { useFactory: () => new FailingStartComponent({ logger }) }, dependencies: [GOOD] },
+			[GOOD]: { useFactory: () => new TestComponent('GOOD') },
+			[BAD]: { useFactory: () => new FailingStartComponent({ logger }), dependencies: [GOOD] },
 		}), (err: unknown) => {
 			if (isAggregateLifecycleError(err)) {
 				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')

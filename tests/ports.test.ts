@@ -17,7 +17,7 @@ describe('Ports suite', () => {
 		assert.ok(Extended.featureFlag)
 		const orch = new Orchestrator({ logger })
 		await orch.start({
-			[Base.email]: { provider: { useFactory: () => new InMemoryEmailAdapter() } },
+			[Base.email]: { useFactory: () => new InMemoryEmailAdapter() },
 		})
 		const email = orch.container.resolve(Base.email)
 		assert.equal(typeof email.send, 'function')

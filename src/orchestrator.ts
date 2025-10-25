@@ -18,6 +18,7 @@ import type {
 	DiagnosticPort,
 	LoggerPort,
 	OrchestratorGraph,
+	OrchestratorGraphEntry,
 } from './types.js'
 import { isPromiseLike, isAsyncFunction, hasSchema, arrayOf, isFunction } from '@orkestrel/validator'
 import {
@@ -155,9 +156,9 @@ export class Orchestrator {
 
 	/**
 	 * Register components via an orchestrator graph object.
-	 * Keys are tokens, values are objects containing provider, dependencies, and timeouts.
+	 * Keys are tokens, values are provider configurations with optional dependencies and timeouts.
 	 *
-	 * @param graph - Orchestrator graph where keys are tokens and values are graph entries with provider and optional dependencies/timeouts
+	 * @param graph - Orchestrator graph where keys are tokens and values are provider configurations with optional dependencies/timeouts/inject
 	 * @returns Nothing. Registers all providers into the underlying container.
 	 *
 	 * @example
@@ -165,8 +166,8 @@ export class Orchestrator {
 	 * const TA = createToken<A>('A')
 	 * const TB = createToken<B>('B')
 	 * app.register({
-	 *   [TA]: { provider: { useFactory: () => new A() } },
-	 *   [TB]: { provider: { useFactory: () => new B() }, dependencies: [TA] },
+	 *   [TA]: { useFactory: () => new A() },
+	 *   [TB]: { useFactory: () => new B(), dependencies: [TA], timeouts: 5000 },
 	 * })
 	 * ```
 	 */
@@ -180,8 +181,11 @@ export class Orchestrator {
 				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
 			}
 
+			// Extract provider by removing dependencies and timeouts from entry
+			const provider = this.#extractProvider(entry)
+
 			// Infer dependencies from provider shape (tuple/object inject) when not provided or empty
-			const inferred = inferDependencies(entry.provider)
+			const inferred = inferDependencies(provider)
 			const baseDeps = (entry.dependencies && entry.dependencies.length) ? [...entry.dependencies] : inferred
 			const normalized = normalizeDependencies(baseDeps).filter(d => d !== token)
 
@@ -189,12 +193,40 @@ export class Orchestrator {
 			this.#nodes.set(token, { token, dependencies: normalized, timeouts: entry.timeouts })
 
 			// Guard and register the provider
-			const guarded = this.#guardProvider(token, entry.provider)
+			const guarded = this.#guardProvider(token, provider)
 			this.container.register(token, guarded)
 
 			// Reset cached layers
 			this.#layers = null
 		}
+	}
+
+	// Extract pure provider from entry by removing dependencies and timeouts
+	#extractProvider<T>(entry: OrchestratorGraphEntry<T>): Provider<T> {
+		// Entry is a union of provider types with added dependencies/timeouts
+		// We need to strip dependencies and timeouts to get the pure provider
+		if (hasSchema(entry, { useValue: (v: unknown): v is unknown => true })) {
+			const e = entry as { useValue: T }
+			return { useValue: e.useValue } as Provider<T>
+		}
+		if (hasSchema(entry, { useFactory: isFunction })) {
+			const e = entry as { useFactory: (...args: never[]) => T, inject?: unknown }
+			// Preserve inject if present
+			if (hasSchema(e, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
+				return { useFactory: e.useFactory, inject: e.inject } as Provider<T>
+			}
+			return { useFactory: e.useFactory } as Provider<T>
+		}
+		if (hasSchema(entry, { useClass: isFunction })) {
+			const e = entry as { useClass: new (...args: never[]) => T, inject?: unknown }
+			// Preserve inject if present
+			if (hasSchema(e, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
+				return { useClass: e.useClass, inject: e.inject } as Provider<T>
+			}
+			return { useClass: e.useClass } as Provider<T>
+		}
+		// Fallback - should not reach here with correct types
+		return entry as Provider<T>
 	}
 
 	/**
@@ -204,7 +236,7 @@ export class Orchestrator {
 	 * - On failure, previously started components are rolled back (stopped) in reverse order.
 	 * - Aggregates errors with code ORK1013.
 	 *
-	 * @param graph - Optional orchestrator graph where keys are tokens and values are graph entries with provider and optional dependencies/timeouts
+	 * @param graph - Optional orchestrator graph where keys are tokens and values are provider configurations with optional dependencies/timeouts/inject
 	 * @returns A promise that resolves when all start jobs complete or rejects with an aggregated error.
 	 *
 	 * @example
@@ -213,11 +245,11 @@ export class Orchestrator {
 	 * const TB = createToken<B>('B')
 	 * // Register and start together
 	 * await app.start({
-	 *   [TA]: { provider: { useFactory: () => new A() } },
-	 *   [TB]: { provider: { useFactory: () => new B() }, dependencies: [TA] },
+	 *   [TA]: { useFactory: () => new A() },
+	 *   [TB]: { useFactory: () => new B(), dependencies: [TA] },
 	 * })
 	 * // Or register first, then start
-	 * app.register({ [TA]: { provider: { useFactory: () => new A() } } })
+	 * app.register({ [TA]: { useFactory: () => new A() } })
 	 * await app.start()
 	 * ```
 	 */

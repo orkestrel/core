@@ -321,11 +321,10 @@ export interface RegisterOptions {
 	timeouts?: number | PhaseTimeouts
 }
 
-export interface OrchestratorGraphEntry<T = unknown> {
-	readonly provider: Provider<T>
-	readonly dependencies?: readonly Token<unknown>[]
-	readonly timeouts?: number | PhaseTimeouts
-}
+export type OrchestratorGraphEntry<T = unknown>
+	= | (ValueProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
+		| (FactoryProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
+		| (ClassProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
 
 export type OrchestratorGraph = Readonly<Record<symbol, OrchestratorGraphEntry>>
 

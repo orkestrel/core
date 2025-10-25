@@ -18,7 +18,7 @@ import type {
 	LoggerPort,
 	OrchestratorGraph,
 } from './types.js'
-import { isFunction, isRecord } from '@orkestrel/validator'
+import { isFunction, isNumber, isRecord } from '@orkestrel/validator'
 import {
 	tokenDescription,
 	safeInvoke,
@@ -416,12 +416,9 @@ export class Orchestrator {
 	// Monotonic-ish clock helper (prefers performance.now when available).
 	#now(): number {
 		const g: unknown = globalThis
-		if (isRecord(g)) {
-			if (isRecord(g.performance)) {
-				if (isFunction(g.performance.now)) {
-					return (g.performance.now as () => number)()
-				}
-			}
+		if (isRecord(g) && 'performance' in g && isRecord(g.performance) && 'now' in g.performance && isFunction(g.performance.now)) {
+			const result = g.performance.now()
+			return isNumber(result) ? result : Date.now()
 		}
 		return Date.now()
 	}

@@ -1,4 +1,4 @@
-import { arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf } from '@orkestrel/validator'
+import { andOf, arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf } from '@orkestrel/validator'
 import type {
 	Token,
 	AdapterProvider,
@@ -170,15 +170,37 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 	durationMs: number
 	error: Error
 } {
-	if (!isRecord(x)) return false
-	return (
-		isString(x.tokenDescription)
-		&& literalOf('start', 'stop', 'destroy')(x.phase)
-		&& literalOf('normal', 'rollback', 'container')(x.context)
-		&& isBoolean(x.timedOut)
-		&& isNumber(x.durationMs)
-		&& isError(x.error)
-	)
+	return andOf<Record<string, unknown>, {
+		tokenDescription: string
+		phase: 'start' | 'stop' | 'destroy'
+		context: 'normal' | 'rollback' | 'container'
+		timedOut: boolean
+		durationMs: number
+		error: Error
+	}>(
+		isRecord,
+		(obj: Record<string, unknown>): obj is {
+			tokenDescription: string
+			phase: 'start' | 'stop' | 'destroy'
+			context: 'normal' | 'rollback' | 'container'
+			timedOut: boolean
+			durationMs: number
+			error: Error
+		} => (
+			'tokenDescription' in obj
+			&& isString(obj.tokenDescription)
+			&& 'phase' in obj
+			&& literalOf('start', 'stop', 'destroy')(obj.phase)
+			&& 'context' in obj
+			&& literalOf('normal', 'rollback', 'container')(obj.context)
+			&& 'timedOut' in obj
+			&& isBoolean(obj.timedOut)
+			&& 'durationMs' in obj
+			&& isNumber(obj.durationMs)
+			&& 'error' in obj
+			&& isError(obj.error)
+		),
+	)(x)
 }
 
 /**
@@ -195,7 +217,9 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
 	if (!isRecord(x)) return false
 	return (
-		arrayOf(isLifecycleErrorDetail)(x.details)
-		&& arrayOf((e: unknown): e is Error => isError(e))(x.errors)
+		'details' in x
+		&& arrayOf(isLifecycleErrorDetail)(x.details)
+		&& 'errors' in x
+		&& arrayOf(isError)(x.errors)
 	)
 }

@@ -109,69 +109,61 @@ this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1, logger: this.#log
  * Transition the singleton instance to 'created' state (idempotent).
  */
 static async create(opts?: LifecycleOptions): Promise<void> {
-const instance = this.getInstance(opts)
-await instance.create()
-}
+		const instance = this.getInstance(opts)
+		await instance.#create()
+	}
 
 /**
  * Transition the singleton instance to 'started' state.
  */
 static async start(opts?: LifecycleOptions): Promise<void> {
-const instance = this.getInstance(opts)
-await instance.start()
-}
+		const instance = this.getInstance(opts)
+		await instance.#start()
+	}
 
 /**
  * Transition the singleton instance to 'stopped' state.
  */
-static async stop<I extends Adapter>(this: AdapterSubclass<I>): Promise<void> {
-const instance = this.instance as I | undefined
-if (!instance) {
-throw new Error('Cannot stop: no instance exists. Call start() first.')
-}
-await instance.stop()
-}
+static async stop(): Promise<void> {
+		if (!this.instance) {
+			throw new Error('Cannot stop: no instance exists')
+		}
+		await this.instance.#stop()
+	}
 
 /**
  * Transition the singleton instance to 'destroyed' state and clear it.
  */
-static async destroy<I extends Adapter>(this: AdapterSubclass<I>): Promise<void> {
-const instance = this.instance as I | undefined
-if (!instance) {
-// Already destroyed or never created
-return
-}
-await instance.destroy()
-this.instance = undefined
-}
+static async destroy(): Promise<void> {
+		if (!this.instance) return
+		await this.instance.#destroy()
+		this.instance = undefined
+	}
 
 /**
  * Subscribe to a lifecycle event on the singleton instance.
  */
-static on<I extends Adapter, T extends keyof LifecycleEventMap & string>(
-this: AdapterSubclass<I>,
-evt: T,
-fn: (...args: LifecycleEventMap[T]) => void,
-): AdapterSubclass<I> {
-const instance = this.getInstance()
-instance.on(evt, fn)
-return this
-}
+static on<T extends keyof LifecycleEventMap & string>(
+		evt: T,
+		fn: (...args: LifecycleEventMap[T]) => void,
+	): typeof Adapter {
+		const instance = this.getInstance()
+		instance.#on(evt, fn)
+		return this
+	}
 
 /**
  * Unsubscribe from a lifecycle event on the singleton instance.
  */
-static off<I extends Adapter, T extends keyof LifecycleEventMap & string>(
-this: AdapterSubclass<I>,
-evt: T,
-fn: (...args: LifecycleEventMap[T]) => void,
-): AdapterSubclass<I> {
-const instance = this.instance as I | undefined
-if (instance) {
-instance.off(evt, fn)
-}
-return this
-}
+static off<T extends keyof LifecycleEventMap & string>(
+		evt: T,
+		fn: (...args: LifecycleEventMap[T]) => void,
+	): typeof Adapter {
+		if (this.instance) {
+			this.instance.#off(evt, fn)
+		}
+		return this
+	}
 
 /* Instance Properties and Methods */
 
@@ -210,25 +202,9 @@ return this
 		return this.#diagnostic 
 	}
 
-	/**
-	 * Subscribe to a lifecycle event.
-	 */
-	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
-		if (evt === 'transition' && this.#emitInitial) {
-			this.#emitInitial = false
-			setTimeout(() => this.#emitter.emit('transition', this.#state), 0)
-		}
-		this.#emitter.on(evt, fn)
-		return this
-	}
 
-	/**
-	 * Unsubscribe from a lifecycle event.
-	 */
-	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
-		this.#emitter.off(evt, fn)
-		return this
-	}
+
+/* Private Instance Methods - Used by static methods */
 
 // Internal: set state and emit transition events.
 #setState(next: LifecycleState): void {
@@ -263,39 +239,6 @@ return Promise.reject(wrapped)
 }
 }
 
-/**
- * Create the lifecycle (idempotent no-op by default).
- */
-async create(): Promise<void> {
-if (this.#state !== 'created') this.#diagnostic.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: 'Invalid lifecycle transition from ' + this.#state + ' to created', helpUrl: HELP.lifecycle })
-await this.#runHook('create', () => this.onCreate(), this.#state, 'created')
-}
-
-/**
- * Transition from 'created' or 'stopped' to 'started'.
- */
-async start(): Promise<void> {
-this.#validateTransition('started')
-await this.#runHook('start', () => this.onStart(), this.#state, 'started')
-}
-
-/**
- * Transition from 'started' to 'stopped'.
- */
-async stop(): Promise<void> {
-this.#validateTransition('stopped')
-await this.#runHook('stop', () => this.onStop(), this.#state, 'stopped')
-}
-
-/**
- * Transition to 'destroyed' and remove all listeners.
- */
-async destroy(): Promise<void> {
-this.#validateTransition('destroyed')
-await this.#runHook('destroy', () => this.onDestroy(), this.#state, 'destroyed')
-this.#emitter.removeAllListeners()
-}
-
 // Internal: validate state-machine transitions and throw ORK1020 on invalid edges.
 #validateTransition(target: LifecycleState): void {
 const from = this.#state
@@ -304,6 +247,45 @@ if (from === 'destroyed') fail(target)
 if (from === 'created' && target !== 'started' && target !== 'destroyed') fail(target)
 if (from === 'started' && !(target === 'stopped' || target === 'destroyed')) fail(target)
 if (from === 'stopped' && !(target === 'started' || target === 'destroyed')) fail(target)
+}
+
+// Internal: create lifecycle (idempotent).
+async #create(): Promise<void> {
+if (this.#state !== 'created') this.#diagnostic.fail('ORK1020', { scope: 'lifecycle', name: 'InvalidTransitionError', message: 'Invalid lifecycle transition from ' + this.#state + ' to created', helpUrl: HELP.lifecycle })
+await this.#runHook('create', () => this.onCreate(), this.#state, 'created')
+}
+
+// Internal: transition to 'started'.
+async #start(): Promise<void> {
+this.#validateTransition('started')
+await this.#runHook('start', () => this.onStart(), this.#state, 'started')
+}
+
+// Internal: transition to 'stopped'.
+async #stop(): Promise<void> {
+this.#validateTransition('stopped')
+await this.#runHook('stop', () => this.onStop(), this.#state, 'stopped')
+}
+
+// Internal: transition to 'destroyed'.
+async #destroy(): Promise<void> {
+this.#validateTransition('destroyed')
+await this.#runHook('destroy', () => this.onDestroy(), this.#state, 'destroyed')
+this.#emitter.removeAllListeners()
+}
+
+// Internal: subscribe to lifecycle event.
+#on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
+if (evt === 'transition' && this.#emitInitial) {
+this.#emitInitial = false
+setTimeout(() => this.#emitter.emit('transition', this.#state), 0)
+}
+this.#emitter.on(evt, fn)
+}
+
+// Internal: unsubscribe from lifecycle event.
+#off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
+this.#emitter.off(evt, fn)
 }
 
 /* Protected Hook Methods - Override in subclasses */

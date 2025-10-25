@@ -327,8 +327,8 @@ export class Container {
 			if (resolved?.lifecycle && resolved.disposable) {
 				const lc = resolved.lifecycle
 				try {
-					if (lc.state === 'started') await lc.stop()
-					if (lc.state !== 'destroyed') await lc.destroy()
+					if (lc._getState() === 'started') await lc._stop()
+					if (lc._getState() !== 'destroyed') await lc._destroy()
 				}
 				catch (e) { errors.push(e instanceof Error ? e : new Error(String(e))) }
 			}

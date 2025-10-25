@@ -26,7 +26,7 @@ describe('Adapter suite', () => {
 		
 		// Verify hooks were called by checking the singleton instance
 		await MyAdapter.start({ logger })
-		const instance = MyAdapter.getInstance()
+		const instance = MyAdapter.getInstance() as MyAdapter
 		assert.deepStrictEqual(instance.calls, ['start'])
 		await MyAdapter.stop()
 		await MyAdapter.destroy()

@@ -1,4 +1,4 @@
-import { Lifecycle } from './lifecycle.js'
+import { Adapter } from './adapter.js'
 import { RegistryAdapter } from './adapters/registry.js'
 import { CONTAINER_MESSAGES, HELP } from './constants.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
@@ -65,7 +65,7 @@ import { LoggerAdapter } from './adapters/logger'
  *   // scope destroyed automatically afterwards
  * })
  *
- * await c.destroy() // stops and destroys owned Lifecycle instances
+ * await c.destroy() // stops and destroys owned Adapter instances
  * ```
  */
 export class Container {
@@ -304,7 +304,7 @@ export class Container {
 	}
 
 	/**
-	 * Destroy owned Lifecycle instances (stop if needed, then destroy).
+	 * Destroy owned Adapter instances (stop if needed, then destroy).
 	 *
 	 * Idempotent - safe to call multiple times. Iterates through all registered instances,
 	 * stops any that are started, and destroys all that are disposable.
@@ -374,9 +374,9 @@ export class Container {
 		})
 	}
 
-	// Wrap a value with lifecycle metadata when it is a Lifecycle.
+	// Wrap a value with lifecycle metadata when it is an Adapter.
 	#wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
-		return value instanceof Lifecycle ? { value, lifecycle: value, disposable } : { value, disposable }
+		return value instanceof Adapter ? { value, lifecycle: value, disposable } : { value, disposable }
 	}
 
 	// Ensure the container hasn't been destroyed before mutating state.

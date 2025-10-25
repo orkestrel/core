@@ -9,7 +9,6 @@
 
 export * from './constants.js'
 export * from './helpers.js'
-export * from './lifecycle.js'
 export * from './adapter.js'
 export * from './container.js'
 export * from './orchestrator.js'

@@ -1,4 +1,9 @@
-import type { DiagnosticMessage } from './types.js'
+import type { DiagnosticMessage, LifecycleState } from './types.js'
+
+/**
+ * Lifecycle states in order.
+ */
+export const lifecycle: readonly LifecycleState[] = ['created', 'started', 'stopped', 'destroyed'] as const
 
 /**
  * Predefined diagnostic message maps used across the core package.

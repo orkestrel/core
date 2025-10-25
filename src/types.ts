@@ -1,5 +1,5 @@
 import type { Container } from './container.js'
-import type { Lifecycle } from './lifecycle.js'
+import type { Adapter } from './adapter.js'
 import type { Orchestrator } from './orchestrator.js'
 
 // -----------------------------------------------------------------------------
@@ -219,9 +219,18 @@ export interface LayerPort {
 export interface LayerAdapterOptions { readonly logger?: LoggerPort, readonly diagnostic?: DiagnosticPort }
 
 // -----------------------------------------------------------------------------
-// Lifecycle
+// Lifecycle and Adapter
 // -----------------------------------------------------------------------------
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
+
+/**
+ * Type helper for Adapter subclass constructors, used in static lifecycle methods.
+ * @typeParam I - The Adapter subclass instance type
+ */
+export type AdapterSubclass<I> = {
+	new (...args: never[]): I
+	transition<T extends I>(this: AdapterSubclass<T>, to: LifecycleState): Promise<T>
+}
 
 export type LifecycleEventMap = {
 	transition: [LifecycleState]
@@ -246,7 +255,7 @@ export interface LifecycleOptions {
 // -----------------------------------------------------------------------------
 export interface ContainerOptions { readonly parent?: Container, readonly diagnostic?: DiagnosticPort, readonly logger?: LoggerPort }
 
-export interface ResolvedProvider<T> { value: T, lifecycle?: Lifecycle, disposable: boolean }
+export interface ResolvedProvider<T> { value: T, lifecycle?: Adapter, disposable: boolean }
 export interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: ResolvedProvider<T> }
 
 export type ContainerGetter = {
@@ -282,7 +291,7 @@ export type Outcome = Readonly<{ token: string, ok: boolean, durationMs: number,
 
 export type DestroyJobResult = Readonly<{ stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] }>
 
-export type OrchestratorStartResult = Readonly<{ token: Token<unknown>, lc: Lifecycle, result: PhaseResult }>
+export type OrchestratorStartResult = Readonly<{ token: Token<unknown>, lc: Adapter, result: PhaseResult }>
 
 export interface OrchestratorRegistration<T> {
 	readonly token: Token<T>

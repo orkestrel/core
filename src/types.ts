@@ -12,6 +12,39 @@ export type ResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K]
 export type OptionalResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
 
 // -----------------------------------------------------------------------------
+// Lifecycle types
+// -----------------------------------------------------------------------------
+
+export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
+export type LifecyclePhase = 'start' | 'stop' | 'destroy'
+export type LifecycleHook = 'create' | 'start' | 'stop' | 'destroy'
+export type LifecycleContext = 'normal' | 'rollback' | 'container'
+
+export interface LifecycleErrorDetail {
+	readonly token: Token<unknown>
+	readonly phase: LifecyclePhase
+	readonly context: LifecycleContext
+	readonly error: Error
+}
+
+export type LifecycleEventMap = {
+	transition: (state: LifecycleState) => void
+	created: () => void
+	started: () => void
+	stopped: () => void
+	destroyed: () => void
+}
+
+export interface LifecycleOptions {
+	readonly timeouts?: number
+	readonly emitInitial?: boolean
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
+	readonly emitter?: EmitterPort<LifecycleEventMap>
+	readonly queue?: QueuePort
+}
+
+// -----------------------------------------------------------------------------
 // Adapter Provider (only provider type)
 // -----------------------------------------------------------------------------
 
@@ -111,11 +144,11 @@ export interface DiagnosticPort {
 	reportAll(errors: readonly unknown[]): void
 }
 
-export interface EmitterPort {
-	on(event: string, fn: (...args: readonly unknown[]) => void): this
-	off(event: string, fn: (...args: readonly unknown[]) => void): this
-	once(event: string, fn: (...args: readonly unknown[]) => void): this
-	emit(event: string, ...args: readonly unknown[]): boolean
+export interface EmitterPort<EMap = Record<string, (...args: readonly unknown[]) => void>> {
+	on<E extends keyof EMap>(event: E, fn: EMap[E]): this
+	off<E extends keyof EMap>(event: E, fn: EMap[E]): this
+	once<E extends keyof EMap>(event: E, fn: EMap[E]): this
+	emit<E extends keyof EMap>(event: E, ...args: Parameters<EMap[E]>): boolean
 }
 
 export interface QueuePort {

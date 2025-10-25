@@ -96,6 +96,26 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
 }
 
 /**
+ * Safely invoke a function, swallowing any errors that occur.
+ * 
+ * @typeParam TArgs - Argument types for the function
+ * @param fn - Optional function to invoke
+ * @param args - Arguments to pass to the function
+ * @example
+ * ```ts
+ * safeInvoke(callback, arg1, arg2) // Calls callback(arg1, arg2), ignoring errors
+ * ```
+ */
+export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unknown | Promise<unknown>) | undefined, ...args: TArgs): void {
+	try {
+		fn?.(...args)
+	}
+	catch {
+		/* swallow */
+	}
+}
+
+/**
  * Check if a provider is an AdapterProvider (`{ adapter }`).
  *
  * @param p - Provider input

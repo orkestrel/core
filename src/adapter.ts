@@ -71,7 +71,7 @@ import { safeInvoke } from './helpers.js'
  */
 export abstract class Adapter {
 #state: LifecycleState = 'created'
-#emitInitial: boolean
+#emitInitial: boolean = true
 
 readonly #timeouts: number
 readonly #emitter: EmitterPort<LifecycleEventMap>
@@ -161,6 +161,8 @@ const currentIdx = states.indexOf(instance.state)
 
 if (targetIdx < currentIdx) {
 throw new Error('Cannot transition backwards from ' + instance.state + ' to ' + to)
+// Programming error: attempting backwards transition. Using Error instead of diagnostics
+// since this is called from a static context before full instance setup.
 }
 
 // Transition through each intermediate state

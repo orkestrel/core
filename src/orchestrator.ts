@@ -495,7 +495,9 @@ export class Orchestrator {
 		const t0 = this.#now()
 		let timedOut = false
 		try {
-			const p = phase === 'start' ? lc.start() : phase === 'stop' ? lc.stop() : lc.destroy()
+			// Use static methods on the Adapter class
+			const AdapterClass = lc.constructor as typeof Adapter
+			const p = phase === 'start' ? AdapterClass.start() : phase === 'stop' ? AdapterClass.stop() : AdapterClass.destroy()
 			if (typeof timeoutMs === 'number' && timeoutMs > 0) {
 				const timeoutPromise = new Promise<never>((_, reject) => {
 					const id = setTimeout(() => {

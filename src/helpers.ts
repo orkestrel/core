@@ -461,7 +461,7 @@ export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandl
 	if (isValueProvider(provider)) return h.value(provider)
 
 	// Adapter provider
-	if (isAdapterProvider(provider)) return h.adapter(provider as AdapterProvider<typeof Adapter>)
+	if (isAdapterProvider(provider)) return h.adapter(provider as AdapterProvider<typeof Adapter>) as any
 
 	// Factory providers
 	if (isFactoryProvider(provider)) {

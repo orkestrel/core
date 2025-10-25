@@ -1,4 +1,4 @@
-import { andOf, arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf } from '@orkestrel/validator'
+import { andOf, arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf, recordOf } from '@orkestrel/validator'
 import type {
 	Token,
 	AdapterProvider,
@@ -85,12 +85,7 @@ export function isTokenArray(x: unknown): x is ReadonlyArray<Token<unknown>> {
  * ```
  */
 export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
-	if (!isRecord(x)) return false
-	for (const key of Object.keys(x)) {
-		const v = x[key]
-		if (!isToken(v)) return false
-	}
-	return true
+	return recordOf(isToken)(x)
 }
 
 /**

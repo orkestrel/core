@@ -321,14 +321,13 @@ export interface RegisterOptions {
 	timeouts?: number | PhaseTimeouts
 }
 
-export type ProviderMetadata = Partial<Readonly<{ dependencies: readonly Token<unknown>[], timeouts: number | PhaseTimeouts }>>
+export interface OrchestratorGraphEntry<T = unknown> {
+	readonly provider: Provider<T>
+	readonly dependencies?: readonly Token<unknown>[]
+	readonly timeouts?: number | PhaseTimeouts
+}
 
-export type ProviderWithDependencies<T = unknown>
-	= | (ValueProvider<T> & ProviderMetadata)
-		| (FactoryProvider<T> & ProviderMetadata)
-		| (ClassProvider<T> & ProviderMetadata)
-
-export type DependencyGraph = Readonly<Record<symbol, ProviderWithDependencies>>
+export type OrchestratorGraph = Readonly<Record<symbol, OrchestratorGraphEntry>>
 
 export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }
 

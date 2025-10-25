@@ -315,7 +315,7 @@ export type Outcome = Readonly<{ token: string, ok: boolean, durationMs: number,
 
 export type DestroyJobResult = Readonly<{ stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] }>
 
-export type OrchestratorStartResult = Readonly<{ token: Token<unknown>, lc: Adapter, result: PhaseResult }>
+export type OrchestratorStartResult = Readonly<{ token: Token<Adapter>, lc: Adapter, result: PhaseResult }>
 
 export interface OrchestratorRegistration<T> {
 	readonly token: Token<T>
@@ -350,18 +350,16 @@ export type OrchestratorGetter = {
 }
 
 export interface RegisterOptions {
-	dependencies?: Token<unknown>[] | Record<string, Token<unknown>>
+	dependencies?: Token<Adapter>[] | Record<string, Token<Adapter>>
 	timeouts?: number | PhaseTimeouts
 }
 
-export type OrchestratorGraphEntry<T = unknown>
-	= | (ValueProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
-		| (FactoryProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
-		| (ClassProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
+export type OrchestratorGraphEntry<T extends Adapter = Adapter>
+	= AdapterProvider<T> & { readonly dependencies?: readonly Token<Adapter>[], readonly timeouts?: number | PhaseTimeouts }
 
 export type OrchestratorGraph = Readonly<Record<symbol, OrchestratorGraphEntry>>
 
-export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }
+export interface NodeEntry { readonly token: Token<Adapter>, readonly dependencies: readonly Token<Adapter>[], readonly timeouts?: number | PhaseTimeouts }
 
 // -----------------------------------------------------------------------------
 // Registry (named singletons)

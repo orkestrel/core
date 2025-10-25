@@ -1,5 +1,4 @@
 import type {
-	Provider,
 	Token,
 	PhaseTimeouts,
 	Task,
@@ -18,22 +17,12 @@ import type {
 	DiagnosticPort,
 	LoggerPort,
 	OrchestratorGraph,
-	OrchestratorGraphEntry,
 } from './types.js'
-import { isPromiseLike, isAsyncFunction, hasSchema, arrayOf, isFunction } from '@orkestrel/validator'
+import { hasSchema, arrayOf, isFunction } from '@orkestrel/validator'
 import {
 	tokenDescription,
 	safeInvoke,
 	isLifecycleErrorDetail,
-	isRawProviderValue,
-	isFactoryProvider,
-	isFactoryProviderWithTuple,
-	isFactoryProviderWithObject,
-	isClassProvider,
-	isClassProviderWithTuple,
-	isClassProviderWithObject,
-	matchProvider,
-	isValueProvider,
 } from './helpers.js'
 import { Container, container } from './container.js'
 import { Adapter } from './adapter.js'
@@ -74,8 +63,8 @@ import { HELP, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES } fr
  */
 export class Orchestrator {
 	readonly #container: Container
-	readonly #nodes = new Map<Token<unknown>, NodeEntry>()
-	#layers: Token<unknown>[][] | null = null
+	readonly #nodes = new Map<Token<Adapter>, NodeEntry>()
+	#layers: Token<Adapter>[][] | null = null
 	readonly #timeouts: number | PhaseTimeouts
 	readonly #events?: OrchestratorOptions['events']
 	readonly #tracer?: OrchestratorOptions['tracer']
@@ -155,25 +144,27 @@ export class Orchestrator {
 	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
-	 * Register components via an orchestrator graph object.
-	 * Keys are tokens, values are provider configurations with optional dependencies and timeouts.
+	 * Register Adapter components via an orchestrator graph object.
+	 * Keys are tokens, values are AdapterProvider configurations with optional dependencies and timeouts.
 	 *
-	 * @param graph - Orchestrator graph where keys are tokens and values are provider configurations with optional dependencies/timeouts/inject
-	 * @returns Nothing. Registers all providers into the underlying container.
+	 * @param graph - Orchestrator graph where keys are tokens and values are AdapterProvider with optional dependencies/timeouts
+	 * @returns Nothing. Registers all Adapter classes into the underlying container.
 	 *
 	 * @example
 	 * ```ts
+	 * class A extends Adapter {}
+	 * class B extends Adapter {}
 	 * const TA = createToken<A>('A')
 	 * const TB = createToken<B>('B')
 	 * app.register({
-	 *   [TA]: { useFactory: () => new A() },
-	 *   [TB]: { useFactory: () => new B(), dependencies: [TA], timeouts: 5000 },
+	 *   [TA]: { adapter: A },
+	 *   [TB]: { adapter: B, dependencies: [TA], timeouts: 5000 },
 	 * })
 	 * ```
 	 */
 	register(graph: OrchestratorGraph): void {
 		for (const sym of Object.getOwnPropertySymbols(graph)) {
-			const token = sym as Token<unknown>
+			const token = sym as Token<Adapter>
 			const entry = graph[token]
 
 			// Check for duplicate registration
@@ -181,75 +172,44 @@ export class Orchestrator {
 				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
 			}
 
-			// Extract provider by removing dependencies and timeouts from entry
-			const provider = this.#extractProvider(entry)
-
-			// Infer dependencies from provider shape (tuple/object inject) when not provided or empty
-			const inferred = inferDependencies(provider)
-			const baseDeps = (entry.dependencies && entry.dependencies.length) ? [...entry.dependencies] : inferred
-			const normalized = normalizeDependencies(baseDeps).filter(d => d !== token)
+			// Normalize dependencies - remove self-references
+			const deps = entry.dependencies ?? []
+			const normalized = normalizeDependencies([...deps]).filter(d => d !== token) as Token<Adapter>[]
 
 			// Store node metadata
 			this.#nodes.set(token, { token, dependencies: normalized, timeouts: entry.timeouts })
 
-			// Guard and register the provider
-			const guarded = this.#guardProvider(token, provider)
-			this.container.register(token, guarded)
+			// Register the Adapter class in the container
+			this.container.register(token, { adapter: entry.adapter })
 
 			// Reset cached layers
 			this.#layers = null
 		}
 	}
 
-	// Extract pure provider from entry by removing dependencies and timeouts
-	#extractProvider<T>(entry: OrchestratorGraphEntry<T>): Provider<T> {
-		// Entry is a union of provider types with added dependencies/timeouts
-		// We need to strip dependencies and timeouts to get the pure provider
-		if (hasSchema(entry, { useValue: (v: unknown): v is unknown => true })) {
-			const e = entry as { useValue: T }
-			return { useValue: e.useValue } as Provider<T>
-		}
-		if (hasSchema(entry, { useFactory: isFunction })) {
-			const e = entry as { useFactory: (...args: never[]) => T, inject?: unknown }
-			// Preserve inject if present
-			if (hasSchema(e, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
-				return { useFactory: e.useFactory, inject: e.inject } as Provider<T>
-			}
-			return { useFactory: e.useFactory } as Provider<T>
-		}
-		if (hasSchema(entry, { useClass: isFunction })) {
-			const e = entry as { useClass: new (...args: never[]) => T, inject?: unknown }
-			// Preserve inject if present
-			if (hasSchema(e, { inject: (v: unknown): v is unknown => Array.isArray(v) || (typeof v === 'object' && v !== null) })) {
-				return { useClass: e.useClass, inject: e.inject } as Provider<T>
-			}
-			return { useClass: e.useClass } as Provider<T>
-		}
-		// Fallback - should not reach here with correct types
-		return entry as Provider<T>
-	}
-
 	/**
-	 * Start all components in dependency order.
+	 * Start all Adapter components in dependency order.
 	 *
-	 * - Optionally registers components via an orchestrator graph before starting.
+	 * - Optionally registers Adapter components via an orchestrator graph before starting.
 	 * - On failure, previously started components are rolled back (stopped) in reverse order.
 	 * - Aggregates errors with code ORK1013.
 	 *
-	 * @param graph - Optional orchestrator graph where keys are tokens and values are provider configurations with optional dependencies/timeouts/inject
+	 * @param graph - Optional orchestrator graph where keys are tokens and values are AdapterProvider with optional dependencies/timeouts
 	 * @returns A promise that resolves when all start jobs complete or rejects with an aggregated error.
 	 *
 	 * @example
 	 * ```ts
+	 * class A extends Adapter {}
+	 * class B extends Adapter {}
 	 * const TA = createToken<A>('A')
 	 * const TB = createToken<B>('B')
 	 * // Register and start together
 	 * await app.start({
-	 *   [TA]: { useFactory: () => new A() },
-	 *   [TB]: { useFactory: () => new B(), dependencies: [TA] },
+	 *   [TA]: { adapter: A },
+	 *   [TB]: { adapter: B, dependencies: [TA] },
 	 * })
 	 * // Or register first, then start
-	 * app.register({ [TA]: { useFactory: () => new A() } })
+	 * app.register({ [TA]: { adapter: A } })
 	 * await app.start()
 	 * ```
 	 */
@@ -259,7 +219,7 @@ export class Orchestrator {
 		}
 		// Start all components in dependency order (previously startAll)
 		const layers = this.#topoLayers()
-		const startedOrder: { token: Token<unknown>, lc: Adapter }[] = []
+		const startedOrder: { token: Token<Adapter>, lc: Adapter }[] = []
 		for (let i = 0; i < layers.length; i++) {
 			const layer = layers[i]
 			const jobs: Array<Task<OrchestratorStartResult>> = []
@@ -275,7 +235,7 @@ export class Orchestrator {
 			}
 			const results = await this.#runLayerWithTracing('start', i, jobs, ({ token: tkn, result: r }) => ({ token: tokenDescription(tkn), ok: r.ok, durationMs: r.durationMs, timedOut: r.ok ? undefined : r.timedOut }))
 			const failures: LifecycleErrorDetail[] = []
-			const successes: { token: Token<unknown>, lc: Adapter, durationMs: number }[] = []
+			const successes: { token: Token<Adapter>, lc: Adapter, durationMs: number }[] = []
 			for (const { token: tkn, lc, result: r } of results) {
 				if (r.ok) {
 					successes.push({ token: tkn, lc, durationMs: r.durationMs })
@@ -404,39 +364,11 @@ export class Orchestrator {
 		}
 	}
 
-	// Guard provider shapes against async values and functions immediately upon registration.
-	#guardProvider<T>(token: Token<T>, provider: Provider<T>): Provider<T> {
-		const desc = tokenDescription(token)
-		return matchProvider(provider, {
-			raw: (value) => {
-				if (isPromiseLike(value)) {
-					this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with a Promise value. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
-				}
-				return provider
-			},
-			value: (p) => {
-				if (isPromiseLike(p.useValue)) {
-					this.#diagnostic.fail('ORK1010', { scope: 'orchestrator', message: `Async providers are not supported: token '${desc}' was registered with useValue that is a Promise. Move async work into Lifecycle.onStart or pre-resolve the value before registration.`, helpUrl: HELP.providers })
-				}
-				return p
-			},
-			adapter: p => p,  // AdapterProvider is always sync
-			factoryTuple: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
-			factoryObject: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
-			factoryContainer: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),
-			factoryNoDeps: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),
-			classTuple: p => ({ useClass: p.useClass, inject: p.inject }),
-			classObject: p => ({ useClass: p.useClass, inject: p.inject }),
-			classContainer: p => ({ useClass: p.useClass }),
-			classNoDeps: p => ({ useClass: p.useClass }),
-		})
-	}
-
 	// Kahn-style O(V + E) layering with deterministic ordering
-	#topoLayers(): Token<unknown>[][] {
-		if (this.#layers) return this.#layers
+	#topoLayers(): Token<Adapter>[][] {
+		if (this.#layers) return this.#layers as Token<Adapter>[][]
 		const nodes = Array.from(this.#nodes.values())
-		const layers = this.#layer.compute(nodes)
+		const layers = this.#layer.compute(nodes) as Token<Adapter>[][]
 		this.#layers = layers
 		// tracing: emit computed layers once (guarded)
 		safeInvoke(this.#tracer?.onLayers, { layers: layers.map(layer => layer.map(t => tokenDescription(t))) })
@@ -446,13 +378,13 @@ export class Orchestrator {
 	}
 
 	// Group tokens by reverse layer order to drive stop/destroy phases correctly.
-	#groupByLayerOrder(tokens: ReadonlyArray<Token<unknown>>): Token<unknown>[][] {
+	#groupByLayerOrder(tokens: ReadonlyArray<Token<Adapter>>): Token<Adapter>[][] {
 		const layers = this.#topoLayers()
-		return this.#layer.group(tokens, layers)
+		return this.#layer.group(tokens, layers) as Token<Adapter>[][]
 	}
 
 	// Retrieve node metadata for a token or fail if unknown (internal invariant).
-	#getNodeEntry(token: Token<unknown>): NodeEntry {
+	#getNodeEntry(token: Token<Adapter>): NodeEntry {
 		const n = this.#nodes.get(token)
 		if (!n) {
 			this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: missing node entry' })
@@ -461,7 +393,7 @@ export class Orchestrator {
 	}
 
 	// Resolve per-node or default timeouts for a phase.
-	#getTimeout(token: Token<unknown>, phase: LifecyclePhase): number | undefined {
+	#getTimeout(token: Token<Adapter>, phase: LifecyclePhase): number | undefined {
 		const perNode = this.#getNodeEntry(token).timeouts
 		let fromNode: number | undefined
 		if (typeof perNode === 'number') {
@@ -540,7 +472,7 @@ export class Orchestrator {
 	}
 
 	// Stop helper shared by stop() and rollback in start().
-	async #stopToken(tk: Token<unknown>, inst: Adapter, timeout: number | undefined, context: LifecycleContext): Promise<{ outcome: Outcome, error?: LifecycleErrorDetail }> {
+	async #stopToken(tk: Token<Adapter>, inst: Adapter, timeout: number | undefined, context: LifecycleContext): Promise<{ outcome: Outcome, error?: LifecycleErrorDetail }> {
 		const r = await this.#runPhase(inst, 'stop', timeout)
 		if (r.ok) {
 			safeInvoke(this.#events?.onComponentStop, { token: tk, durationMs: r.durationMs })
@@ -554,7 +486,7 @@ export class Orchestrator {
 	}
 
 	// Destroy helper sits immediately before destroy().
-	async #destroyToken(tk: Token<unknown>, inst: Adapter, stopTimeout: number | undefined, destroyTimeout: number | undefined): Promise<DestroyJobResult> {
+	async #destroyToken(tk: Token<Adapter>, inst: Adapter, stopTimeout: number | undefined, destroyTimeout: number | undefined): Promise<DestroyJobResult> {
 		const out: { stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] } = {}
 		const localErrors: LifecycleErrorDetail[] = []
 		if (inst.state === 'started') {
@@ -630,47 +562,15 @@ function orchestratorUsing(
 }
 
 // Normalize dependency shapes to an array and dedupe while preserving order.
-function normalizeDependencies(deps?: Token<unknown>[] | Record<string, Token<unknown>>): Token<unknown>[] {
+function normalizeDependencies(deps?: Token<Adapter>[] | Record<string, Token<Adapter>>): Token<Adapter>[] {
 	if (!deps) return []
 	const arr = Array.isArray(deps) ? deps : Object.values(deps)
-	const seen = new Set<Token<unknown>>()
-	const out: Token<unknown>[] = []
+	const seen = new Set<Token<Adapter>>()
+	const out: Token<Adapter>[] = []
 	for (const d of arr) {
 		if (!d || seen.has(d)) continue
 		seen.add(d)
 		out.push(d)
 	}
 	return out
-}
-
-// Infer dependencies from provider inject shapes (tuple/object) when present.
-function inferDependencies<T>(provider: Provider<T>): Token<unknown>[] {
-	if (isRawProviderValue(provider)) return []
-	if (isValueProvider(provider)) return []
-	if (isFactoryProvider(provider)) {
-		if (isFactoryProviderWithTuple<T, readonly unknown[]>(provider)) return [...provider.inject]
-		if (isFactoryProviderWithObject(provider)) return Object.values(provider.inject)
-	}
-	if (isClassProvider(provider)) {
-		if (isClassProviderWithTuple<T, readonly unknown[]>(provider)) return [...provider.inject]
-		if (isClassProviderWithObject(provider)) return Object.values(provider.inject)
-	}
-	return []
-}
-
-function wrapFactory<R>(diag: DiagnosticPort, fn: () => R, tokenDesc: string): () => R
-function wrapFactory<R>(diag: DiagnosticPort, fn: (c: Container) => R, tokenDesc: string): (c: Container) => R
-function wrapFactory<A extends readonly unknown[], R>(diag: DiagnosticPort, fn: (...args: A) => R, tokenDesc: string): (...args: A) => R
-function wrapFactory<A extends readonly unknown[], R>(diag: DiagnosticPort, fn: (...args: A) => R, tokenDesc: string): (...args: A) => R {
-	// disallow async functions immediately
-	if (isAsyncFunction(fn)) {
-		diag.fail('ORK1011', { scope: 'orchestrator', message: `Async providers are not supported: useFactory for token '${tokenDesc}' is an async function. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, helpUrl: HELP.providers })
-	}
-	return (...args: A): R => {
-		const out = fn(...args)
-		if (isPromiseLike(out)) {
-			diag.fail('ORK1012', { scope: 'orchestrator', message: `Async providers are not supported: useFactory for token '${tokenDesc}' returned a Promise. Factories must be synchronous. Move async work into Lifecycle.onStart or pre-resolve the value.`, helpUrl: HELP.providers })
-		}
-		return out
-	}
 }

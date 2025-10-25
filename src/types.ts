@@ -228,8 +228,13 @@ export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
  * @typeParam I - The Adapter subclass instance type
  */
 export type AdapterSubclass<I> = {
-	new (...args: never[]): I
-	transition<T extends I>(this: AdapterSubclass<T>, to: LifecycleState): Promise<T>
+	new (opts?: LifecycleOptions): I
+	getInstance(opts?: LifecycleOptions): I
+	getState(): LifecycleState
+	create(opts?: LifecycleOptions): Promise<void>
+	start(opts?: LifecycleOptions): Promise<void>
+	stop(): Promise<void>
+	destroy(): Promise<void>
 }
 
 export type LifecycleEventMap = {

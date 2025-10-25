@@ -12,31 +12,25 @@ import { safeInvoke } from './helpers.js'
 /**
  * Abstract base class for building adapters/components with deterministic lifecycle management.
  *
+ * This class supports both singleton pattern (via static methods) and instance-based usage (for Container/Orchestrator).
+ *
  * States: 'created' → 'started' → 'stopped' → 'destroyed'.
  * Override protected hooks (onCreate/onStart/onStop/onDestroy/onTransition) to implement behavior.
  * Use .on('transition' | 'create' | 'start' | 'stop' | 'destroy' | 'error') to observe lifecycle events.
  *
- * Static Methods
- * --------------
- * - create(): Factory method that creates and transitions an instance to 'created'
- * - start(): Factory method that creates an instance and transitions to 'started'
- * - stop(): Factory method that creates an instance and transitions to 'stopped'
- * - destroy(): Factory method that creates an instance and transitions to 'destroyed'
+ * Static Methods (Singleton Pattern - Recommended for Direct Use)
+ * ----------------------------------------------------------------
+ * - getInstance(): Get or create the singleton instance for this subclass
+ * - create(): Transition the singleton instance to 'created' state
+ * - start(): Transition the singleton instance to 'started' state
+ * - stop(): Transition the singleton instance to 'stopped' state
+ * - destroy(): Transition the singleton instance to 'destroyed' state and clear it
+ * - getState(): Get the current state of the singleton instance
  *
- * Instance Methods
- * ----------------
- * - create(): Transition from 'created' to 'created' (idempotent)
- * - start(): Transition to 'started'
- * - stop(): Transition to 'stopped'
- * - destroy(): Transition to 'destroyed'
- *
- * Options
- * -------
- * - timeouts: number of milliseconds to cap each hook (default: 5000).
- * - emitInitial: when true (default), first transition listener receives the current state immediately.
- * - emitter: custom EmitterPort to receive events.
- * - queue: custom QueuePort to serialize hooks and apply deadlines.
- * - logger/diagnostic: ports used by default adapters and error reporting.
+ * Instance Methods (For Container/Orchestrator)
+ * ----------------------------------------------
+ * These methods are public to allow Container/Orchestrator to manage multiple instances,
+ * but direct usage should prefer the static singleton methods above.
  *
  * @example
  * ```ts
@@ -46,7 +40,7 @@ import { safeInvoke } from './helpers.js'
  * class HttpServer extends Adapter {
  *   #server?: { listen: () => Promise<void>, close: () => Promise<void> }
  *   readonly #port: number
- *   constructor(port: number) { super(); this.#port = port }
+ *   constructor(port: number = 3000) { super(); this.#port = port }
  *   protected async onStart() {
  *     // create server; await server.listen()
  *     this.#server = undefined
@@ -56,20 +50,27 @@ import { safeInvoke } from './helpers.js'
  *   }
  * }
  *
- * // Register and drive it via the container
+ * // Recommended: Use static methods for singleton lifecycle management
+ * await HttpServer.start()  // Creates singleton and starts it
+ * await HttpServer.stop()   // Stops the singleton
+ * await HttpServer.destroy() // Destroys and clears the singleton
+ *
+ * // Also supported: Container/Orchestrator can create multiple instances
  * const TOK = createToken<HttpServer>('http')
  * const container = new Container()
  * container.register(TOK, { useFactory: () => new HttpServer(3000) })
  * const srv = container.resolve(TOK)
- * await srv.start()
- * await srv.stop()
- * await container.destroy() // ensures srv is destroyed
+ * await srv.start()  // Instance method
  * ```
  *
  * @remarks
  * Override any of the protected hooks: onCreate, onStart, onStop, onDestroy, onTransition.
+ * The singleton instance is stored per subclass, not shared across all Adapter subclasses.
  */
 export abstract class Adapter {
+// Singleton instance storage per subclass
+private static instances = new WeakMap<AdapterSubclass<Adapter>, Adapter>()
+
 #state: LifecycleState = 'created'
 #emitInitial: boolean = true
 
@@ -101,91 +102,150 @@ this.#emitter = opts.emitter ?? new EmitterAdapter<LifecycleEventMap>({ logger: 
 this.#queue = opts.queue ?? new QueueAdapter({ concurrency: 1, logger: this.#logger, diagnostic: this.#diagnostic })
 }
 
-/* Static Lifecycle Methods */
+/* Static Singleton Lifecycle Methods */
 
 /**
- * Create and return an instance in 'created' state.
+ * Get the singleton instance for this subclass. Creates it if it doesn't exist.
  *
  * @typeParam I - The Adapter subclass instance type
- * @returns A promise resolving to the created instance
+ * @param opts - Optional lifecycle options for instance creation
+ * @returns The singleton instance
  */
-static async create<I extends Adapter>(this: AdapterSubclass<I>): Promise<I> {
-return this.transition<I>('created')
+static getInstance<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): I {
+let instance = Adapter.instances.get(this) as I | undefined
+if (!instance) {
+instance = new this(opts)
+Adapter.instances.set(this, instance)
 }
-
-/**
- * Create an instance and transition to 'started' state.
- *
- * @typeParam I - The Adapter subclass instance type
- * @returns A promise resolving to the started instance
- */
-static async start<I extends Adapter>(this: AdapterSubclass<I>): Promise<I> {
-return this.transition<I>('started')
-}
-
-/**
- * Create an instance and transition to 'stopped' state.
- *
- * @typeParam I - The Adapter subclass instance type
- * @returns A promise resolving to the stopped instance
- */
-static async stop<I extends Adapter>(this: AdapterSubclass<I>): Promise<I> {
-return this.transition<I>('stopped')
-}
-
-/**
- * Create an instance and transition to 'destroyed' state, then return void.
- *
- * @typeParam I - The Adapter subclass instance type
- * @returns A promise resolving when the instance is destroyed
- */
-static async destroy<I extends Adapter>(this: AdapterSubclass<I>): Promise<void> {
-await this.transition<I>('destroyed')
-}
-
-/**
- * Generic transition method to handle state changes.
- * Creates an instance and transitions it to the target state.
- *
- * @typeParam I - The Adapter subclass instance type
- * @param to - Target lifecycle state
- * @returns A promise resolving to the instance in the target state
- */
-private static async transition<I extends Adapter>(this: AdapterSubclass<I>, to: LifecycleState): Promise<I> {
-const instance = new this()
-
-// Transition through states in order until we reach the target
-const states: LifecycleState[] = [...lifecycle]
-const targetIdx = states.indexOf(to)
-const currentIdx = states.indexOf(instance.state)
-
-if (targetIdx < currentIdx) {
-throw new Error('Cannot transition backwards from ' + instance.state + ' to ' + to)
-// Programming error: attempting backwards transition. Using Error instead of diagnostics
-// since this is called from a static context before full instance setup.
-}
-
-// Transition through each intermediate state
-for (let i = currentIdx; i <= targetIdx; i++) {
-const state = states[i]
-if (state === 'created' && i === currentIdx) {
-// Already in created state, optionally call create()
-if (i < targetIdx) continue
-await instance.create()
-}
-else if (state === 'started') {
-await instance.start()
-}
-else if (state === 'stopped') {
-await instance.stop()
-}
-else if (state === 'destroyed') {
-await instance.destroy()
-}
-}
-
 return instance
 }
+
+/**
+ * Get the current state of the singleton instance.
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @returns The current lifecycle state, or 'created' if no instance exists
+ */
+static getState<I extends Adapter>(this: AdapterSubclass<I>): LifecycleState {
+const instance = Adapter.instances.get(this) as I | undefined
+return instance?.state ?? 'created'
+}
+
+/**
+ * Transition the singleton instance to 'created' state (idempotent).
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @param opts - Optional lifecycle options for instance creation
+ * @returns A promise resolving when the transition completes
+ */
+static async create<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): Promise<void> {
+const instance = this.getInstance(opts)
+await instance.create()
+}
+
+/**
+ * Transition the singleton instance to 'started' state.
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @param opts - Optional lifecycle options for instance creation
+ * @returns A promise resolving when the transition completes
+ */
+static async start<I extends Adapter>(this: AdapterSubclass<I>, opts?: LifecycleOptions): Promise<void> {
+const instance = this.getInstance(opts)
+await instance.start()
+}
+
+/**
+ * Transition the singleton instance to 'stopped' state.
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @returns A promise resolving when the transition completes
+ */
+static async stop<I extends Adapter>(this: AdapterSubclass<I>): Promise<void> {
+const instance = Adapter.instances.get(this) as I | undefined
+if (!instance) {
+throw new Error('Cannot stop: no instance exists. Call start() first.')
+}
+await instance.stop()
+}
+
+/**
+ * Transition the singleton instance to 'destroyed' state and clear it.
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @returns A promise resolving when the transition completes
+ */
+static async destroy<I extends Adapter>(this: AdapterSubclass<I>): Promise<void> {
+const instance = Adapter.instances.get(this) as I | undefined
+if (!instance) {
+// Already destroyed or never created
+return
+}
+await instance.destroy()
+Adapter.instances.delete(this)
+}
+
+/**
+ * Access the emitter port of the singleton instance.
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @returns The EmitterPort instance for lifecycle events
+ * @throws Error if no instance exists
+ */
+static getEmitter<I extends Adapter>(this: AdapterSubclass<I>): EmitterPort<LifecycleEventMap> {
+const instance = Adapter.instances.get(this) as I | undefined
+if (!instance) {
+throw new Error('Cannot get emitter: no instance exists. Call getInstance() first.')
+}
+return instance.#emitter
+}
+
+/**
+ * Subscribe to a lifecycle event on the singleton instance.
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @typeParam T - Event key in the lifecycle event map
+ * @param evt - Event name to subscribe to
+ * @param fn - Listener function receiving tuple-typed arguments for the event
+ * @returns The subclass constructor for chaining
+ */
+static on<I extends Adapter, T extends keyof LifecycleEventMap & string>(
+this: AdapterSubclass<I>,
+evt: T,
+fn: (...args: LifecycleEventMap[T]) => void,
+): AdapterSubclass<I> {
+const instance = this.getInstance()
+instance.on(evt, fn)
+return this
+}
+
+/**
+ * Unsubscribe from a lifecycle event on the singleton instance.
+ *
+ * @typeParam I - The Adapter subclass instance type
+ * @typeParam T - Event key in the lifecycle event map
+ * @param evt - Event name to unsubscribe from
+ * @param fn - The exact listener function to remove
+ * @returns The subclass constructor for chaining
+ */
+static off<I extends Adapter, T extends keyof LifecycleEventMap & string>(
+this: AdapterSubclass<I>,
+evt: T,
+fn: (...args: LifecycleEventMap[T]) => void,
+): AdapterSubclass<I> {
+const instance = Adapter.instances.get(this) as I | undefined
+if (instance) {
+instance.off(evt, fn)
+}
+return this
+}
+
+/**
+ * Get the current lifecycle state.
+ *
+ * @returns The current state: 'created', 'started', 'stopped', or 'destroyed'
+ */
+get state(): LifecycleState { return this.#state }
 
 /**
  * Access the emitter port used for lifecycle events.
@@ -219,15 +279,8 @@ get logger(): LoggerPort { return this.#logger }
  */
 get diagnostics(): DiagnosticPort { return this.#diagnostic }
 
-/**
- * Get the current lifecycle state.
- *
- * @returns The current state: 'created', 'started', 'stopped', or 'destroyed'
- */
-get state(): LifecycleState { return this.#state }
-
 // Internal: set state and emit transition events.
-protected setState(next: LifecycleState): void {
+private setState(next: LifecycleState): void {
 // avoid emitting when state doesn't actually change
 if (this.#state === next) return
 this.#state = next

@@ -1,27 +1,30 @@
 import { describe, test } from 'vitest'
 import assert from 'node:assert/strict'
-import { extendPorts, createPortToken, createPortTokens, Orchestrator, NoopLogger } from '@orkestrel/core'
+import { extendPorts, createPortToken, createPortTokens, Orchestrator, Adapter, NoopLogger } from '@orkestrel/core'
 
 const logger = new NoopLogger()
 
 interface EmailPort { send(to: string, subject: string, body: string): Promise<void> }
-class InMemoryEmailAdapter implements EmailPort { async send() { /* no-op */ } }
+class InMemoryEmailAdapter extends Adapter implements EmailPort {
+	static instance?: InMemoryEmailAdapter
+	async send() { /* no-op */ }
+}
 
 interface FeatureFlagPort { isEnabled(flag: string): boolean }
 
 describe('Ports suite', () => {
 	test('createPortTokens creates a base token set; extendPorts merges', async () => {
-		const Base = createPortTokens({ email: {} as EmailPort })
+		const Base = createPortTokens({ email: {} as InMemoryEmailAdapter })
 		const Extended = extendPorts(Base, { featureFlag: {} as FeatureFlagPort })
 		assert.ok(Base.email)
 		assert.ok(Extended.featureFlag)
 		const orch = new Orchestrator({ logger })
-		await orch.start({
-			[Base.email]: { useFactory: () => new InMemoryEmailAdapter() },
-		})
+		// Register using AdapterProvider pattern
+		orch.container.register(Base.email, { adapter: InMemoryEmailAdapter })
 		const email = orch.container.resolve(Base.email)
 		assert.equal(typeof email.send, 'function')
 		await orch.destroy()
+		await InMemoryEmailAdapter.destroy().catch(() => {})
 	})
 
 	test('extendPorts (single-arg) creates tokens from shape', () => {

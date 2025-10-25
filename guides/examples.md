@@ -1,43 +1,11 @@
 # Examples
 
-Container: resolve a map and a tuple
-```ts
-import { Container, createToken } from '@orkestrel/core'
-
-const A = createToken<number>('A')
-const B = createToken<string>('B')
-const C = createToken<boolean>('C')
-
-const c = new Container()
-c.set(A, 1)
-c.set(B, 'two')
-c.set(C, true)
-
-// map
-const { a, b, c: cval } = c.resolve({ a: A, b: B, c: C })
-// tuple
-const [aa, bb] = c.resolve([A, B] as const)
-```
-
-Container: scoped overrides with using
-```ts
-const A = createToken<number>('A')
-const root = new Container()
-root.set(A, 7)
-
-const out = await root.using(async (scope) => {
-  scope.set(A, 41)
-  return scope.resolve(A) + 1
-})
-// out === 43
-// after using(), the child scope is destroyed and root remains unchanged
-```
-
-Lifecycle: simple adapter
+Lifecycle: simple adapter with singleton pattern
 ```ts
 import { Adapter, createToken, Container } from '@orkestrel/core'
 
 class Cache extends Adapter {
+  static instance?: Cache
   ready = false
   protected async onStart() { this.ready = true }
   protected async onStop() { this.ready = false }
@@ -45,58 +13,88 @@ class Cache extends Adapter {
 
 const CacheTok = createToken<Cache>('Cache')
 const c = new Container()
-c.register(CacheTok, { useFactory: () => new Cache() })
+c.register(CacheTok, { adapter: Cache })
+
+// Using static methods
+await Cache.start()
+console.log(Cache.getState())  // 'started'
+
+// Or resolve from container
 const cache = c.resolve(CacheTok)
-await cache.start()
-await cache.stop()
+console.log(cache.state)  // 'started'
+
+await Cache.stop()
 await c.destroy()
 ```
 
-Orchestrator: register helper and start order
+Orchestrator: registration and start order
 ```ts
-import { Orchestrator, Container, Adapter, createToken, register } from '@orkestrel/core'
+import { Orchestrator, Container, Adapter, createToken } from '@orkestrel/core'
 
-class A extends Adapter {}
-class B extends Adapter {}
+class A extends Adapter {
+  static instance?: A
+}
+
+class B extends Adapter {
+  static instance?: B
+}
+
 const TA = createToken<A>('A')
 const TB = createToken<B>('B')
 
-const app = new Orchestrator(new Container())
-await app.start([
-  register(TA, { useFactory: () => new A() }),
-  register(TB, { useFactory: () => new B() }, { dependencies: [TA] }),
-])
+const c = new Container()
+c.register(TA, { adapter: A })
+c.register(TB, { adapter: B, dependencies: [TA] })
+
+const app = new Orchestrator(c)
+await app.start()  // Starts in dependency order: A then B
 await app.destroy()
 ```
 
-Orchestrator: infer dependencies from inject
+Orchestrator: explicit dependencies
 ```ts
-class NeedsPorts extends Adapter { constructor(public a: A, public b: B) { super() } }
-const TA = createToken<A>('A')
-const TB = createToken<B>('B')
-const TNeeds = createToken<NeedsPorts>('Needs')
-const app = new Orchestrator(new Container())
-await app.start([
-  register(TA, { useFactory: () => new A() }),
-  register(TB, { useFactory: () => new B() }),
-  // dependencies omitted; inferred from tuple inject
-  register(TNeeds, { useClass: NeedsPorts, inject: [TA, TB] }),
-])
+class ServiceA extends Adapter {
+  static instance?: ServiceA
+}
+
+class ServiceB extends Adapter {
+  static instance?: ServiceB
+  // ServiceB depends on ServiceA
+}
+
+const TA = createToken<ServiceA>('A')
+const TB = createToken<ServiceB>('B')
+
+const c = new Container()
+c.register(TA, { adapter: ServiceA })
+c.register(TB, { adapter: ServiceB, dependencies: [TA] })
+
+const app = new Orchestrator(c)
+await app.start()
 await app.destroy()
 ```
 
 Orchestrator: per-registration timeouts
 ```ts
-class SlowStart extends Adapter { constructor(private ms: number) { super() } protected async onStart() { await new Promise(r => setTimeout(r, this.ms)) } }
+class SlowStart extends Adapter {
+  static instance?: SlowStart
+  protected async onStart() { 
+    await new Promise(r => setTimeout(r, 100))
+  }
+}
+
 const SLOW = createToken<SlowStart>('SLOW')
-const app = new Orchestrator(new Container())
-await app.start([
-  register(SLOW, { useFactory: () => new SlowStart(100) }, { timeouts: { onStart: 10 } }),
-]).catch(() => {/* aggregated error ORK1013 */})
+const c = new Container()
+c.register(SLOW, { adapter: SlowStart, timeouts: { onStart: 10 } })
+
+const app = new Orchestrator(c)
+await app.start().catch(() => {
+  // Aggregated error ORK1013 due to timeout
+})
 ```
 
 Orchestrator: tracer hooks
-```js
+```ts
 import { Orchestrator, Container } from '@orkestrel/core'
 
 const phases = []
@@ -115,11 +113,16 @@ const app = new Orchestrator(new Container(), {
 
 Ports: bulk and single tokens
 ```ts
-import { createPortTokens, createPortToken, Container } from '@orkestrel/core'
+import { createPortTokens, createPortToken, Container, Adapter } from '@orkestrel/core'
 
-const ports = createPortTokens({ logger: undefined as { info(msg: string): void } })
+class Logger extends Adapter {
+  static instance?: Logger
+  info(msg: string) { console.log(msg) }
+}
+
+const ports = createPortTokens({ logger: undefined as Logger })
 const c = new Container()
-c.set(ports.logger, { info: console.log })
+c.register(ports.logger, { adapter: Logger })
 c.resolve(ports.logger).info('hi')
 
 const Http = createPortToken<{ get(url: string): Promise<string> }>('http')
@@ -127,22 +130,52 @@ const Http = createPortToken<{ get(url: string): Promise<string> }>('http')
 
 Global helpers
 ```ts
-import { container, orchestrator, createToken } from '@orkestrel/core'
+import { container, orchestrator, createToken, Adapter } from '@orkestrel/core'
+
+class Service extends Adapter {
+  static instance?: Service
+}
 
 // containers
-const A = createToken<number>('A')
-container().set(A, 7)
-const v = container.resolve(A) // 7
-await container.using(async (scope) => { scope.set(A, 1) })
+const A = createToken<Service>('A')
+container().register(A, { adapter: Service })
+const v = container.resolve(A)  // Service singleton instance
+await container.using(async (scope) => { 
+  // Register scoped overrides
+})
 
 // orchestrators
 const app = orchestrator()
 await app.container.using(scope => {/* register */})
 ```
 
+Container: scoped overrides with using
+```ts
+class Counter extends Adapter {
+  static instance?: Counter
+  count = 0
+}
+
+const A = createToken<Counter>('A')
+const root = new Container()
+root.register(A, { adapter: Counter })
+
+const out = await root.using(async (scope) => {
+  // Scope inherits parent registrations but can override
+  class ScopedCounter extends Adapter {
+    static instance?: ScopedCounter
+    count = 41
+  }
+  scope.register(A, { adapter: ScopedCounter as any })
+  return scope.resolve(A).count + 1
+})
+// out === 42
+// after using(), the child scope is destroyed and root remains unchanged
+```
+
 See also
 - Overview and Start for the mental model and installation
-- Concepts for tokens/providers/lifecycle/orchestration
+- Concepts for tokens/adapters/lifecycle/orchestration
 - Core for built-in adapters
 - Tips for patterns and troubleshooting
 - Tests for fast, deterministic testing guidance

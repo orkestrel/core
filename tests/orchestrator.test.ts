@@ -1,11 +1,9 @@
 import { describe, test, beforeEach, afterEach } from 'vitest'
 import assert from 'node:assert/strict'
-import type { Token } from '@orkestrel/core'
 import { NoopLogger,
 	Orchestrator, orchestrator, createToken, Container, Adapter, tokenDescription, QueueAdapter,
 	isAggregateLifecycleError, isLifecycleErrorDetail,
 } from '@orkestrel/core'
-import { hasOwn } from '@orkestrel/validator'
 
 let logger: NoopLogger
 
@@ -28,129 +26,6 @@ class TestComponent extends Adapter {
 	}
 }
 
-class FailingStartComponent extends Adapter {
-	protected async onStart(): Promise<void> {
-		throw new Error('boom')
-	}
-}
-class FailingDestroyComponent extends Adapter {
-	protected async onDestroy(): Promise<void> {
-		throw new Error('bye')
-	}
-}
-
-class SlowStart extends Adapter {
-	readonly #delayMs: number
-	constructor(delayMs: number) {
-		super({ logger })
-		this.#delayMs = delayMs
-	}
-
-	protected async onStart(): Promise<void> {
-		await new Promise(r => setTimeout(r, this.#delayMs))
-	}
-}
-
-class FailingStopDestroyComponent extends Adapter {
-	protected async onStop() {
-		throw new Error('stop-bad')
-	}
-
-	protected async onDestroy() {
-		throw new Error('destroy-bad')
-	}
-}
-
-class SlowStop extends Adapter {
-	readonly #delayMs: number
-	constructor(delayMs: number) {
-		super({ logger })
-		this.#delayMs = delayMs
-	}
-
-	protected async onStop(): Promise<void> {
-		await new Promise(r => setTimeout(r, this.#delayMs))
-	}
-}
-
-class Track extends Adapter {
-	public started = false
-	public stopped = false
-	protected async onStart(): Promise<void> {
-		this.started = true
-	}
-
-	protected async onStop(): Promise<void> {
-		this.stopped = true
-	}
-}
-
-// Tiny seeded PRNG (LCG) for deterministic runs without deps
-function makeRng(seed: number) {
-	let s = seed >>> 0
-	return {
-		nextU32() {
-			s = (s * 1664525 + 1013904223) >>> 0
-			return s
-		},
-		next() {
-			return (this.nextU32() & 0xffffffff) / 0x100000000
-		},
-		rangeInt(min: number, max: number) {
-			const r = this.next()
-			return Math.floor(min + r * (max - min + 1))
-		},
-		chance(p: number) {
-			return this.next() < p
-		},
-		shuffle<T>(arr: T[]): T[] {
-			for (let i = arr.length - 1; i > 0; i--) {
-				const j = this.rangeInt(0, i)
-				const t = arr[i]
-				arr[i] = arr[j]
-				arr[j] = t
-			}
-			return arr
-		},
-	}
-}
-
-// Build a random DAG with N nodes. We add edges i->j only for i<j to ensure acyclic.
-function buildRandomDag(rng: ReturnType<typeof makeRng>) {
-	const n = rng.rangeInt(3, 8)
-	const nodes = Array.from({ length: n }, (_, i) => i)
-	const edges: Array<[number, number]> = []
-	for (let i = 0; i < n; i++) {
-		for (let j = i + 1; j < n; j++) {
-			if (rng.chance(0.3)) edges.push([i, j])
-		}
-	}
-	const labels = rng.shuffle(nodes.slice())
-	return { n, edges, labels }
-}
-
-function makeRecorder() {
-	let counter = 0
-	class Recorder extends Adapter {
-		public startedAt: number | null = null
-		public stoppedAt: number | null = null
-		protected async onStart(): Promise<void> { this.startedAt = counter++ }
-		protected async onStop(): Promise<void> { this.stoppedAt = counter++ }
-	}
-	return { Recorder }
-}
-
-class FailingOnStart extends Adapter {
-	protected async onStart(): Promise<void> {
-		throw new Error('fail-start')
-	}
-}
-
-type HasOrder = { startedAt: number | null, stoppedAt: number | null }
-function hasOrder(x: unknown): x is HasOrder {
-	return hasOwn(x, 'startedAt', 'stoppedAt')
-}
-
 describe('Orchestrator suite', () => {
 	beforeEach(() => {
 		logger = new NoopLogger()
@@ -166,37 +41,85 @@ describe('Orchestrator suite', () => {
 
 	test('starts components in topological order', async () => {
 		TestComponent.counter = 0
-		const A = createToken<TestComponent>('A')
-		const B = createToken<TestComponent>('B')
-		const C = createToken<TestComponent>('C')
-		const a = new TestComponent('A')
-		const b = new TestComponent('B')
-		const c = new TestComponent('C')
+
+		// Create separate adapter classes for each component
+		class ComponentA extends Adapter {
+			static instance?: ComponentA
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		class ComponentB extends Adapter {
+			static instance?: ComponentB
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		class ComponentC extends Adapter {
+			static instance?: ComponentC
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+
+		const A = createToken<ComponentA>('A')
+		const B = createToken<ComponentB>('B')
+		const C = createToken<ComponentC>('C')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[A]: { useValue: a },
-			[B]: { useValue: b, dependencies: [A] },
-			[C]: { useValue: c, dependencies: [B] },
+			[A]: { adapter: ComponentA },
+			[B]: { adapter: ComponentB, dependencies: [A] },
+			[C]: { adapter: ComponentC, dependencies: [B] },
 		})
 		await orch.start()
+		const a = ComponentA.getInstance() as ComponentA
+		const b = ComponentB.getInstance() as ComponentB
+		const c = ComponentC.getInstance() as ComponentC
 		assert.equal(a.startedAt, 0)
 		assert.equal(b.startedAt, 1)
 		assert.equal(c.startedAt, 2)
 		await orch.stop()
 		assert.ok((c.stoppedAt as number) < (b.stoppedAt as number))
 		assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
+
+		// Cleanup
+		await ComponentA.destroy()
+		await ComponentB.destroy()
+		await ComponentC.destroy()
 	})
 
 	test('detects dependency cycles', async () => {
-		TestComponent.counter = 0
-		const A = createToken<TestComponent>('A')
-		const B = createToken<TestComponent>('B')
-		const a = new TestComponent('A')
-		const b = new TestComponent('B')
+		class CycleA extends Adapter {
+			static instance?: CycleA
+		}
+		class CycleB extends Adapter {
+			static instance?: CycleB
+		}
+
+		const A = createToken<CycleA>('A')
+		const B = createToken<CycleB>('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[A]: { useValue: a, dependencies: [B] },
-			[B]: { useValue: b, dependencies: [A] },
+			[A]: { adapter: CycleA, dependencies: [B] },
+			[B]: { adapter: CycleB, dependencies: [A] },
 		})
 		await assert.rejects(() => orch.start(), (err: unknown) => {
 			assert.match((err as Error).message, /Cycle detected/)
@@ -208,18 +131,37 @@ describe('Orchestrator suite', () => {
 			}
 			return true
 		})
+		await CycleA.destroy().catch(() => {})
+		await CycleB.destroy().catch(() => {})
 	})
 
 	test('aggregates start errors and rolls back started components', async () => {
+		class GoodComponent extends Adapter {
+			static instance?: GoodComponent
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		class BadComponent extends Adapter {
+			static instance?: BadComponent
+			protected async onStart(): Promise<void> {
+				throw new Error('boom')
+			}
+		}
+
 		TestComponent.counter = 0
-		const GOOD = createToken<TestComponent>('GOOD')
-		const BAD = createToken<FailingStartComponent>('BAD')
-		const good = new TestComponent('GOOD')
-		const bad = new FailingStartComponent({ logger })
+		const GOOD = createToken<GoodComponent>('GOOD')
+		const BAD = createToken<BadComponent>('BAD')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[GOOD]: { useValue: good },
-			[BAD]: { useValue: bad, dependencies: [GOOD] },
+			[GOOD]: { adapter: GoodComponent },
+			[BAD]: { adapter: BadComponent, dependencies: [GOOD] },
 		})
 		await assert.rejects(async () => orch.start(), (err: unknown) => {
 			if (isAggregateLifecycleError(err)) {
@@ -228,17 +170,23 @@ describe('Orchestrator suite', () => {
 			}
 			return true
 		})
+		const good = GoodComponent.getInstance() as GoodComponent
 		assert.notEqual(good.startedAt, null)
 		await orch.destroy().catch(() => {})
+		await GoodComponent.destroy()
+		await BadComponent.destroy()
 	})
 
 	test('unknown dependency error contains context', async () => {
-		const A = createToken<TestComponent>('A')
-		const B = createToken<TestComponent>('B')
-		const a = new TestComponent('A')
+		class ComponentA extends Adapter {
+			static instance?: ComponentA
+		}
+
+		const A = createToken<ComponentA>('A')
+		const B = createToken<Adapter>('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[A]: { useValue: a, dependencies: [B] },
+			[A]: { adapter: ComponentA, dependencies: [B] },
 		})
 		await assert.rejects(() => orch.start(), (err: unknown) => {
 			assert.match((err as Error).message, /Unknown dependency B required by A/)
@@ -246,16 +194,26 @@ describe('Orchestrator suite', () => {
 			assert.equal((err as WithDiag).code, 'ORK1008')
 			return true
 		})
+		await ComponentA.destroy().catch(() => {})
 	})
 
 	test('destroy aggregates component and container errors', async () => {
-		const BAD = createToken<FailingDestroyComponent>('BAD')
-		const good = new TestComponent('GOOD')
-		const GOOD = createToken<TestComponent>('GOOD')
+		class GoodComp extends Adapter {
+			static instance?: GoodComp
+		}
+		class BadComp extends Adapter {
+			static instance?: BadComp
+			protected async onDestroy(): Promise<void> {
+				throw new Error('bye')
+			}
+		}
+
+		const BAD = createToken<BadComp>('BAD')
+		const GOOD = createToken<GoodComp>('GOOD')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
-			[GOOD]: { useValue: good },
-			[BAD]: { useValue: new FailingDestroyComponent({ logger }) },
+			[GOOD]: { adapter: GoodComp },
+			[BAD]: { adapter: BadComp },
 		})
 		await orch.start()
 		await orch.stop()
@@ -269,6 +227,8 @@ describe('Orchestrator suite', () => {
 			}
 			return true
 		})
+		await GoodComp.destroy().catch(() => {})
+		await BadComp.destroy().catch(() => {})
 	})
 
 	test('global getter supports default symbol and named string keys', async () => {
@@ -287,16 +247,45 @@ describe('Orchestrator suite', () => {
 	})
 
 	test('start rollback stops previously started components on failure', async () => {
-		const A = createToken<Track>('A')
-		const B = createToken<Track>('B')
-		const X = createToken<FailingStartComponent>('X')
+		class TrackA extends Adapter {
+			static instance?: TrackA
+			public started = false
+			public stopped = false
+			protected async onStart(): Promise<void> {
+				this.started = true
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stopped = true
+			}
+		}
+		class TrackB extends Adapter {
+			static instance?: TrackB
+			public started = false
+			public stopped = false
+			protected async onStart(): Promise<void> {
+				this.started = true
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stopped = true
+			}
+		}
+		class FailingX extends Adapter {
+			static instance?: FailingX
+			protected async onStart(): Promise<void> {
+				throw new Error('boom')
+			}
+		}
+
+		const A = createToken<TrackA>('A')
+		const B = createToken<TrackB>('B')
+		const X = createToken<FailingX>('X')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
-		const a = new Track({ logger })
-		const b = new Track({ logger })
 		orch.register({
-			[A]: { useValue: a },
-			[B]: { useValue: b, dependencies: [A] },
-			[X]: { useValue: new FailingStartComponent({ logger }), dependencies: [A] },
+			[A]: { adapter: TrackA },
+			[B]: { adapter: TrackB, dependencies: [A] },
+			[X]: { adapter: FailingX, dependencies: [A] },
 		})
 		let err: unknown
 		try {
@@ -305,6 +294,8 @@ describe('Orchestrator suite', () => {
 		catch (e) {
 			err = e
 		}
+		const a = TrackA.getInstance() as TrackA
+		const b = TrackB.getInstance() as TrackB
 		assert.deepStrictEqual(
 			{ aStarted: a.started, bStarted: b.started, aStopped: a.stopped, bStopped: b.stopped, hasErr: !!err },
 			{ aStarted: true, bStarted: true, aStopped: true, bStopped: true, hasErr: true },
@@ -312,13 +303,21 @@ describe('Orchestrator suite', () => {
 	})
 
 	test('per-lifecycle onStart timeout triggers failure with telemetry', async () => {
-		const SLOW = createToken<SlowStart>('SLOW')
+		class SlowStartAdapter extends Adapter {
+			static instance?: SlowStartAdapter
+			protected async onStart(): Promise<void> {
+				await new Promise(r => setTimeout(r, 30))
+			}
+		}
+
+		const SLOW = createToken<SlowStartAdapter>('SLOW')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		let err: unknown
 		try {
-			await orch.start({
-				[SLOW]: { useFactory: () => new SlowStart(30), timeouts: { onStart: 10 } },
+			orch.register({
+				[SLOW]: { adapter: SlowStartAdapter, timeouts: { onStart: 10 } },
 			})
+			await orch.start()
 		}
 		catch (e) {
 			err = e
@@ -331,14 +330,23 @@ describe('Orchestrator suite', () => {
 		assert.ok(det.every(isLifecycleErrorDetail))
 		assert.ok(det.some(d => d.tokenDescription === 'SLOW' && d.phase === 'start' && d.timedOut && Number.isFinite(d.durationMs)))
 		assert.ok(det.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
+		await SlowStartAdapter.destroy().catch(() => {})
 	})
 
 	test('per-lifecycle onStop timeout triggers failure with telemetry', async () => {
-		const SLOW_STOP = createToken<SlowStop>('SLOW_STOP')
+		class SlowStopAdapter extends Adapter {
+			static instance?: SlowStopAdapter
+			protected async onStop(): Promise<void> {
+				await new Promise(r => setTimeout(r, 30))
+			}
+		}
+
+		const SLOW_STOP = createToken<SlowStopAdapter>('SLOW_STOP')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
-		await orch.start({
-			[SLOW_STOP]: { useFactory: () => new SlowStop(30), timeouts: { onStop: 10 } },
+		orch.register({
+			[SLOW_STOP]: { adapter: SlowStopAdapter, timeouts: { onStop: 10 } },
 		})
+		await orch.start()
 		let err: unknown
 		try {
 			await orch.stop()
@@ -354,14 +362,27 @@ describe('Orchestrator suite', () => {
 		assert.ok(details.every(isLifecycleErrorDetail))
 		assert.ok(details.some(d => d.tokenDescription === 'SLOW_STOP' && d.phase === 'stop' && d.timedOut && Number.isFinite(d.durationMs)))
 		assert.ok(details.some(d => d.error.name === 'TimeoutError' || (d.error as Error & { code?: string }).code === 'ORK1021'))
+		await SlowStopAdapter.destroy().catch(() => {})
 	})
 
 	test('destroy() aggregates stop and destroy errors', async () => {
-		const FB = createToken<FailingStopDestroyComponent>('FB')
+		class FailingBoth extends Adapter {
+			static instance?: FailingBoth
+			protected async onStop() {
+				throw new Error('stop-bad')
+			}
+
+			protected async onDestroy() {
+				throw new Error('destroy-bad')
+			}
+		}
+
+		const FB = createToken<FailingBoth>('FB')
 		const app = new Orchestrator(new Container({ logger }), { logger })
-		await app.start({
-			[FB]: { useFactory: () => new FailingStopDestroyComponent({ logger }) },
+		app.register({
+			[FB]: { adapter: FailingBoth },
 		})
+		await app.start()
 		await assert.rejects(() => app.destroy(), (err: unknown) => {
 			assert.match((err as Error).message, /Errors during destroy/)
 			type WithDiag = Error & { code?: string }
@@ -375,55 +396,35 @@ describe('Orchestrator suite', () => {
 		})
 
 		await app.destroy().catch(() => {})
-	})
-
-	test('async provider guard: useValue Promise throws at registration', () => {
-		const T = createToken<Promise<number>>('AsyncVal')
-		const orch = new Orchestrator(new Container({ logger }), { logger })
-		assert.throws(() => orch.register({
-			[T]: { useValue: Promise.resolve(1) },
-		}), (err: unknown) => {
-			assert.match((err as Error).message, /Async providers are not supported/)
-			// removed formatted prefix assertion
-			type WithDiag4 = Error & { code?: string }
-			assert.equal((err as WithDiag4).code, 'ORK1010')
-			return true
-		})
-	})
-
-	test('async provider guard: useFactory Promise throws at registration', () => {
-		const T = createToken<number>('AsyncFactory')
-		const orch = new Orchestrator(new Container({ logger }), { logger })
-		const prov = { useFactory: async () => 1 } as unknown as { useFactory: () => number }
-		assert.throws(() => orch.register({
-			[T]: prov,
-		}), (err: unknown) => {
-			assert.match((err as Error).message, /Async providers are not supported/)
-			// removed formatted prefix assertion
-			type WithDiag5 = Error & { code?: string }
-			assert.equal((err as WithDiag5).code, 'ORK1011')
-			return true
-		})
+		await FailingBoth.destroy().catch(() => {})
 	})
 
 	test('dependency graph wires dependencies correctly', async () => {
-		class A extends Adapter {}
-		class B extends Adapter {}
+		class A extends Adapter {
+			static instance?: A
+		}
+		class B extends Adapter {
+			static instance?: B
+		}
 		const TA = createToken<A>('A')
 		const TB = createToken<B>('B')
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start({
-			[TA]: { useFactory: () => new A({ logger }) },
-			[TB]: { useFactory: () => new B({ logger }), dependencies: [TA] },
+		app.register({
+			[TA]: { adapter: A },
+			[TB]: { adapter: B, dependencies: [TA] },
 		})
+		await app.start()
 		assert.ok(c.get(TA) instanceof A)
 		assert.ok(c.get(TB) instanceof B)
 		await app.destroy()
+		await A.destroy()
+		await B.destroy()
 	})
 
 	test('defaultTimeouts on orchestrator apply when register omits timeouts', async () => {
 		class SlowS extends Adapter {
+			static instance?: SlowS
 			protected async onStart() {}
 
 			protected async onStop() {
@@ -432,9 +433,10 @@ describe('Orchestrator suite', () => {
 		}
 		const T = createToken<SlowS>('SlowS')
 		const app = new Orchestrator(new Container({ logger }), { logger, timeouts: { onStop: 10 } })
-		await app.start({
-			[T]: { useFactory: () => new SlowS({ logger }) },
+		app.register({
+			[T]: { adapter: SlowS },
 		})
+		await app.start()
 		let err: unknown
 		try {
 			await app.stop()
@@ -446,15 +448,18 @@ describe('Orchestrator suite', () => {
 		type WithDiag3 = Error & { code?: string }
 		assert.equal((err as WithDiag3).code, 'ORK1014')
 		await app.destroy().catch(() => {})
+		await SlowS.destroy().catch(() => {})
 	})
 
 	test('events callbacks are invoked for start/stop/destroy and errors', async () => {
 		class Ok extends Adapter {
+			static instance?: Ok
 			protected async onStart() {}
 			protected async onStop() {}
 			protected async onDestroy() {}
 		}
 		class BadStop extends Adapter {
+			static instance?: BadStop
 			protected async onStop() {
 				throw new Error('nope')
 			}
@@ -471,10 +476,11 @@ describe('Orchestrator suite', () => {
 				onComponentError: (d: { tokenDescription: string, phase: 'start' | 'stop' | 'destroy' }) => events.errors.push(`${d.tokenDescription}:${d.phase}`),
 			},
 		})
-		await app.start({
-			[TOK]: { useFactory: () => new Ok({ logger }) },
-			[BAD]: { useFactory: () => new BadStop({ logger }) },
+		app.register({
+			[TOK]: { adapter: Ok },
+			[BAD]: { adapter: BadStop },
 		})
+		await app.start()
 		assert.deepStrictEqual(
 			{ hasOK: events.starts.includes('OK'), hasBAD: events.starts.includes('BAD') },
 			{ hasOK: true, hasBAD: true },
@@ -496,44 +502,67 @@ describe('Orchestrator suite', () => {
 	})
 
 	test('register supports dependencies map and dedup/self-filter', async () => {
-		class Cmp extends Adapter {
+		class CmpA extends Adapter {
+			static instance?: CmpA
 			public startedAt: number | null = null
 			static counter = 0
 			protected async onStart(): Promise<void> {
-				this.startedAt = Cmp.counter++
+				this.startedAt = CmpA.counter++
 			}
 		}
-		const A = createToken<Cmp>('A')
-		const B = createToken<Cmp>('B')
+		class CmpB extends Adapter {
+			static instance?: CmpB
+			public startedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = CmpA.counter++
+			}
+		}
+		const A = createToken<CmpA>('A')
+		const B = createToken<CmpB>('B')
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start({
-			[A]: { useFactory: () => new Cmp({ logger }) },
-			[B]: { useFactory: () => new Cmp({ logger }), dependencies: [A] },
+		app.register({
+			[A]: { adapter: CmpA },
+			[B]: { adapter: CmpB, dependencies: [A] },
 		})
-		const a = c.get(A) as Cmp
-		const b = c.get(B) as Cmp
+		await app.start()
+		const a = c.get(A) as CmpA
+		const b = c.get(B) as CmpB
 		assert.ok(a && b)
 		assert.ok((a.startedAt as number) < (b.startedAt as number))
 		await app.destroy()
+		await CmpA.destroy()
+		await CmpB.destroy()
 	})
 
 	test('register options allow per-registration onStart timeout', async () => {
-		const SLOW = createToken<SlowStart>('SLOW_REG')
+		class SlowAdapter extends Adapter {
+			static instance?: SlowAdapter
+			protected async onStart(): Promise<void> {
+				await new Promise(r => setTimeout(r, 100))
+			}
+		}
+		const SLOW = createToken<SlowAdapter>('SLOW_REG')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		let err: unknown
 		try {
-			await orch.start({
-				[SLOW]: { useFactory: () => new SlowStart(100), timeouts: { onStart: 10 } },
+			orch.register({
+				[SLOW]: { adapter: SlowAdapter, timeouts: { onStart: 10 } },
 			})
+			await orch.start()
 		}
 		catch (e) { err = e }
 		assert.match((err as Error).message, /Errors during start/)
+		await SlowAdapter.destroy().catch(() => {})
 	})
 
 	test('tracer emits layers and per-phase outcomes', async () => {
-		class A extends Adapter {}
-		class B extends Adapter {}
+		class A extends Adapter {
+			static instance?: A
+		}
+		class B extends Adapter {
+			static instance?: B
+		}
 		const TA = createToken<A>('Tracer:A')
 		const TB = createToken<B>('Tracer:B')
 		const layersSeen: string[][][] = []
@@ -547,10 +576,11 @@ describe('Orchestrator suite', () => {
 				},
 			},
 		})
-		await app.start({
-			[TA]: { useFactory: () => new A({ logger }) },
-			[TB]: { useFactory: () => new B({ logger }), dependencies: [TA] },
+		app.register({
+			[TA]: { adapter: A },
+			[TB]: { adapter: B, dependencies: [TA] },
 		})
+		await app.start()
 		const first = layersSeen[0] ?? []
 		const startLayers = phases.filter(p => p.phase === 'start').map(p => p.layer)
 		assert.deepStrictEqual(
@@ -568,93 +598,170 @@ describe('Orchestrator suite', () => {
 		const sawStop = phases.some(p => p.phase === 'stop')
 		const sawDestroy = phases.some(p => p.phase === 'destroy')
 		assert.deepStrictEqual({ sawStop, sawDestroy }, { sawStop: true, sawDestroy: true })
+		await A.destroy()
+		await B.destroy()
 	})
 
 	test('per-layer concurrency limit caps start parallelism', async () => {
-		class ConcurrencyProbe extends Adapter {
-			static activeStart = 0
-			static peakStart = 0
-			readonly #delayMs: number
-			constructor(delayMs: number) {
-				super({ logger })
-				this.#delayMs = delayMs
-			}
-
+		let activeStart = 0
+		let peakStart = 0
+		class Probe1 extends Adapter {
+			static instance?: Probe1
 			protected async onStart() {
-				ConcurrencyProbe.activeStart++
-				ConcurrencyProbe.peakStart = Math.max(ConcurrencyProbe.peakStart, ConcurrencyProbe.activeStart)
-				await new Promise(r => setTimeout(r, this.#delayMs))
-				ConcurrencyProbe.activeStart--
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
 			}
 		}
-		ConcurrencyProbe.activeStart = 0
-		ConcurrencyProbe.peakStart = 0
-		const T1 = createToken<ConcurrencyProbe>('CC1')
-		const T2 = createToken<ConcurrencyProbe>('CC2')
-		const T3 = createToken<ConcurrencyProbe>('CC3')
-		const T4 = createToken<ConcurrencyProbe>('CC4')
+		class Probe2 extends Adapter {
+			static instance?: Probe2
+			protected async onStart() {
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
+			}
+		}
+		class Probe3 extends Adapter {
+			static instance?: Probe3
+			protected async onStart() {
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
+			}
+		}
+		class Probe4 extends Adapter {
+			static instance?: Probe4
+			protected async onStart() {
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
+			}
+		}
+
+		const T1 = createToken<Probe1>('CC1')
+		const T2 = createToken<Probe2>('CC2')
+		const T3 = createToken<Probe3>('CC3')
+		const T4 = createToken<Probe4>('CC4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
-		await app.start({
-			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
+		app.register({
+			[T1]: { adapter: Probe1 },
+			[T2]: { adapter: Probe2 },
+			[T3]: { adapter: Probe3 },
+			[T4]: { adapter: Probe4 },
 		})
-		assert.ok(ConcurrencyProbe.peakStart <= 2)
+		await app.start()
+		assert.ok(peakStart <= 2)
 		await app.destroy()
+		await Probe1.destroy()
+		await Probe2.destroy()
+		await Probe3.destroy()
+		await Probe4.destroy()
 	})
 
 	test('per-layer concurrency limit caps stop and destroy parallelism', async () => {
-		class ConcurrencyProbe extends Adapter {
-			static activeStop = 0
-			static peakStop = 0
-			static activeDestroy = 0
-			static peakDestroy = 0
-			readonly #delayMs: number
-			constructor(delayMs: number) {
-				super({ logger })
-				this.#delayMs = delayMs
-			}
-
+		let activeStop = 0
+		let peakStop = 0
+		let activeDestroy = 0
+		let peakDestroy = 0
+		class Probe1 extends Adapter {
+			static instance?: Probe1
 			protected async onStop() {
-				ConcurrencyProbe.activeStop++
-				ConcurrencyProbe.peakStop = Math.max(ConcurrencyProbe.peakStop, ConcurrencyProbe.activeStop)
-				await new Promise(r => setTimeout(r, this.#delayMs))
-				ConcurrencyProbe.activeStop--
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
 			}
 
 			protected async onDestroy() {
-				ConcurrencyProbe.activeDestroy++
-				ConcurrencyProbe.peakDestroy = Math.max(ConcurrencyProbe.peakDestroy, ConcurrencyProbe.activeDestroy)
-				await new Promise(r => setTimeout(r, this.#delayMs))
-				ConcurrencyProbe.activeDestroy--
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
 			}
 		}
-		ConcurrencyProbe.activeStop = 0
-		ConcurrencyProbe.peakStop = 0
-		ConcurrencyProbe.activeDestroy = 0
-		ConcurrencyProbe.peakDestroy = 0
-		const T1 = createToken<ConcurrencyProbe>('CD1')
-		const T2 = createToken<ConcurrencyProbe>('CD2')
-		const T3 = createToken<ConcurrencyProbe>('CD3')
-		const T4 = createToken<ConcurrencyProbe>('CD4')
+		class Probe2 extends Adapter {
+			static instance?: Probe2
+			protected async onStop() {
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
+			}
+
+			protected async onDestroy() {
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
+			}
+		}
+		class Probe3 extends Adapter {
+			static instance?: Probe3
+			protected async onStop() {
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
+			}
+
+			protected async onDestroy() {
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
+			}
+		}
+		class Probe4 extends Adapter {
+			static instance?: Probe4
+			protected async onStop() {
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
+			}
+
+			protected async onDestroy() {
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
+			}
+		}
+
+		const T1 = createToken<Probe1>('CD1')
+		const T2 = createToken<Probe2>('CD2')
+		const T3 = createToken<Probe3>('CD3')
+		const T4 = createToken<Probe4>('CD4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
-		await app.start({
-			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
+		app.register({
+			[T1]: { adapter: Probe1 },
+			[T2]: { adapter: Probe2 },
+			[T3]: { adapter: Probe3 },
+			[T4]: { adapter: Probe4 },
 		})
+		await app.start()
 		await app.stop().catch(() => {})
-		assert.ok(ConcurrencyProbe.peakStop <= 2)
+		assert.ok(peakStop <= 2)
 		await app.start().catch(() => {})
 		await app.destroy().catch(() => {})
-		assert.ok(ConcurrencyProbe.peakDestroy <= 2)
+		assert.ok(peakDestroy <= 2)
+		await Probe1.destroy().catch(() => {})
+		await Probe2.destroy().catch(() => {})
+		await Probe3.destroy().catch(() => {})
+		await Probe4.destroy().catch(() => {})
 	})
 
-	test('tracer start outcomes include failures', async () => {
-		class Good extends Adapter { protected async onStart() {} }
+	test('tracer start outcomes include failures (first)', async () => {
+		class Good extends Adapter {
+			static instance?: Good
+			protected async onStart() {}
+		}
 		class Bad extends Adapter {
+			static instance?: Bad
 			protected async onStart() {
 				throw new Error('fail-start')
 			}
@@ -665,10 +772,11 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(new Container({ logger }), { logger, tracer: { onLayers: () => {}, onPhase: p => phases.push(p) } })
 		let err: unknown
 		try {
-			await app.start({
-				[TG]: { useFactory: () => new Good({ logger }) },
-				[TB]: { useFactory: () => new Bad({ logger }), dependencies: [TG] },
+			app.register({
+				[TG]: { adapter: Good },
+				[TB]: { adapter: Bad, dependencies: [TG] },
 			})
+			await app.start()
 		}
 		catch (e) {
 			err = e
@@ -685,47 +793,13 @@ describe('Orchestrator suite', () => {
 			{ hasStartPhase: true, goodOk: true, badNotOk: true, hasErr: true },
 		)
 		await app.destroy().catch(() => {})
-	})
-
-	test('tracer does not emit onPhase for layers with no outcomes', async () => {
-		interface APort { a: true }
-		interface BPort { b: true }
-		const A = createToken<APort>('test:A')
-		const B = createToken<BPort>('test:B')
-		class BImpl extends Adapter implements BPort { b = true as const }
-		const phases: Array<{ phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: { token: string, ok: boolean, durationMs: number, timedOut?: boolean }[] }> = []
-		const app = new Orchestrator(new Container({ logger }), {
-			logger,
-			tracer: {
-				onLayers: () => {},
-				onPhase: (p: { phase: 'start' | 'stop' | 'destroy', layer: number, outcomes: Array<{ token: string, ok: boolean, durationMs: number, timedOut?: boolean }> }) => phases.push(p),
-			},
-		})
-		app.register({
-			[A]: { useValue: { a: true } },
-			[B]: { useFactory: () => new BImpl({ logger }), dependencies: [A] },
-		})
-		await app.start()
-		try {
-			const startPhases = phases.filter(p => p.phase === 'start')
-			assert.deepStrictEqual(
-				{
-					sawAny: phases.length > 0,
-					startCountIs1: startPhases.length === 1,
-					startLayerIs1: startPhases[0]?.layer === 1,
-					outcomesArray: Array.isArray(startPhases[0]?.outcomes),
-					outcomesNonEmpty: (startPhases[0]?.outcomes?.length ?? 0) > 0,
-				},
-				{ sawAny: true, startCountIs1: true, startLayerIs1: true, outcomesArray: true, outcomesNonEmpty: true },
-			)
-		}
-		finally {
-			await app.destroy()
-		}
+		await Good.destroy()
+		await Bad.destroy()
 	})
 
 	test('destroy() stops then destroys in one pass', async () => {
-		class T extends Adapter {
+		class TA extends Adapter {
+			static instance?: TA
 			public started = false
 			public stopped = false
 			protected async onStart() {
@@ -736,16 +810,29 @@ describe('Orchestrator suite', () => {
 				this.stopped = true
 			}
 		}
-		const A = createToken<T>('T:A')
-		const B = createToken<T>('T:B')
+		class TB extends Adapter {
+			static instance?: TB
+			public started = false
+			public stopped = false
+			protected async onStart() {
+				this.started = true
+			}
+
+			protected async onStop() {
+				this.stopped = true
+			}
+		}
+		const A = createToken<TA>('T:A')
+		const B = createToken<TB>('T:B')
 		const c = new Container({ logger })
 		const app = new Orchestrator(c, { logger })
-		await app.start({
-			[A]: { useFactory: () => new T({ logger }) },
-			[B]: { useFactory: () => new T({ logger }), dependencies: [A] },
+		app.register({
+			[A]: { adapter: TA },
+			[B]: { adapter: TB, dependencies: [A] },
 		})
-		const a = c.get(A) as T
-		const b = c.get(B) as T
+		await app.start()
+		const a = c.get(A) as TA
+		const b = c.get(B) as TB
 		assert.ok(a && b)
 		assert.equal(a.started, true)
 		assert.equal(b.started, true)
@@ -754,172 +841,17 @@ describe('Orchestrator suite', () => {
 		assert.equal(b.stopped, true)
 		assert.equal(a.state, 'destroyed')
 		assert.equal(b.state, 'destroyed')
-	})
-
-	test('rollback stops all previously started components on failure', async () => {
-		const rng = makeRng(42)
-		for (let iter = 0; iter < 10; iter++) {
-			const { n, edges } = buildRandomDag(rng)
-			const { Recorder } = makeRecorder()
-			const tokens = Array.from({ length: n }, (_, i) => createToken<Adapter>(`X${i}`))
-			const instances: Adapter[] = Array.from({ length: n }, () => new Recorder({ logger }))
-			let edgeList: Array<[number, number]> = edges.slice()
-			if (edgeList.length === 0) {
-				if (n >= 2) edgeList = [[0, 1]]
-				else continue
-			}
-			const pick = (makeRng(iter + 1)).rangeInt(0, edgeList.length - 1)
-			const chosen = edgeList[pick]
-			if (!chosen) continue
-			const [_, v] = chosen
-			instances[v] = new FailingOnStart({ logger })
-			const c = new Container({ logger })
-			const app = new Orchestrator(c, { logger })
-			const depsFor = (idx: number) => edgeList.filter(([_, dst]) => dst === idx).map(([src]) => tokens[src])
-			const graph: Record<symbol, { useValue: Adapter, dependencies?: Token<unknown>[] }> = {}
-			for (let i = 0; i < n; i++) {
-				const deps = depsFor(i)
-				graph[tokens[i]] = deps.length > 0 ? { useValue: instances[i], dependencies: deps } : { useValue: instances[i] }
-			}
-			app.register(graph)
-			try {
-				await app.start()
-			}
-			catch { /* empty */ }
-			for (let i = 0; i < n; i++) {
-				const inst = instances[i]
-				if (hasOrder(inst) && inst.startedAt !== null) {
-					assert.notEqual(inst.stoppedAt, null, `node ${i} started but was not stopped during rollback`)
-				}
-			}
-			await app.destroy().catch(() => {})
-		}
-	})
-
-	test('register helper supports useClass with tuple inject', async () => {
-		interface LPort { info(msg: string): void }
-		const TLOG = createToken<LPort>('Reg:LOG')
-		const TCFG = createToken<{ n: number }>('Reg:CFG')
-		class L implements LPort { info(_m: string) {} }
-		class WithDeps extends Adapter {
-			constructor(public readonly l: LPort, public readonly cfg: { n: number }) {
-				super({ logger })
-			}
-		}
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		const WITH_TOKEN = createToken<WithDeps>('Reg:WITH')
-		await app.start({
-			[TLOG]: { useClass: L },
-			[TCFG]: { useValue: { n: 1 } },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
-		})
-		await app.destroy()
-	})
-
-	test('start accepts direct useClass with tuple inject in registration object', async () => {
-		interface LPort { info(msg: string): void }
-		const TLOG = createToken<LPort>('Start:LOG')
-		const TCFG = createToken<{ n: number }>('Start:CFG')
-		class L implements LPort { info(_m: string) {} }
-		class WithDeps extends Adapter {
-			constructor(public readonly l: LPort, public readonly cfg: { n: number }) {
-				super({ logger })
-			}
-
-			protected async onStart() {}
-		}
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		const WITH_TOKEN = createToken<WithDeps>('Start:WITH')
-		await app.start({
-			[TLOG]: { useClass: L },
-			[TCFG]: { useValue: { n: 2 } },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
-		})
-		await app.destroy()
-	})
-
-	test('infers dependencies from tuple inject for class provider when dependencies omitted', async () => {
-		let counter = 0
-		class Rec extends Adapter {
-			public startedAt: number | null = null
-			protected async onStart() {
-				this.startedAt = counter++
-			}
-		}
-		class WithDeps extends Adapter {
-			public startedAt: number | null = null
-			constructor(public readonly a: Rec, public readonly b: Rec) { super({ logger }) }
-			protected async onStart() { this.startedAt = counter++ }
-		}
-		const TA = createToken<Rec>('Infer:TA')
-		const TB = createToken<Rec>('Infer:TB')
-		const TC = createToken<WithDeps>('Infer:TC')
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		await app.start({
-			[TA]: { useFactory: () => new Rec({ logger }) },
-			[TB]: { useFactory: () => new Rec({ logger }) },
-			// dependencies omitted; should be inferred from inject tuple
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[TC]: { useClass: WithDeps, inject: [TA, TB] } as any,
-		})
-		const a = c.get(TA) as Rec
-		const b = c.get(TB) as Rec
-		const withDeps = c.get(TC) as WithDeps
-		assert.ok(a && b && withDeps)
-		// injected identity preserved
-		assert.equal(withDeps.a, a)
-		assert.equal(withDeps.b, b)
-		// start order respects inferred deps
-		assert.ok((a.startedAt as number) < (withDeps.startedAt as number))
-		assert.ok((b.startedAt as number) < (withDeps.startedAt as number))
-		await app.destroy()
-	})
-
-	// NEW: inference from tuple inject without explicit dependencies (factory)
-	test('infers dependencies from tuple inject for factory provider when dependencies omitted', async () => {
-		let counter = 0
-		class Rec extends Adapter {
-			public startedAt: number | null = null
-			protected async onStart() {
-				this.startedAt = counter++
-			}
-		}
-		class UsesDeps extends Adapter {
-			public startedAt: number | null = null
-			constructor(public readonly a: Rec, public readonly b: Rec) { super({ logger }) }
-			protected async onStart() { this.startedAt = counter++ }
-		}
-		const TA = createToken<Rec>('InferF:TA')
-		const TB = createToken<Rec>('InferF:TB')
-		const TD = createToken<UsesDeps>('InferF:TD')
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		await app.start({
-			[TA]: { useFactory: () => new Rec({ logger }) },
-			[TB]: { useFactory: () => new Rec({ logger }) },
-			// dependencies omitted; should be inferred from inject tuple
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[TD]: { useFactory: (a: Rec, b: Rec) => new UsesDeps(a, b), inject: [TA, TB] } as any,
-		})
-		const a = c.get(TA) as Rec
-		const b = c.get(TB) as Rec
-		const dep = c.get(TD) as UsesDeps
-		assert.ok(a && b && dep)
-		assert.equal(dep.a, a)
-		assert.equal(dep.b, b)
-		assert.ok((a.startedAt as number) < (dep.startedAt as number))
-		assert.ok((b.startedAt as number) < (dep.startedAt as number))
-		await app.destroy()
+		await TA.destroy()
+		await TB.destroy()
 	})
 
 	test('tracer start outcomes include failures', async () => {
-		class Good extends Adapter { protected async onStart() {} }
+		class Good extends Adapter {
+			static instance?: Good
+			protected async onStart() {}
+		}
 		class Bad extends Adapter {
+			static instance?: Bad
 			protected async onStart() {
 				throw new Error('fail-start')
 			}
@@ -930,10 +862,11 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(new Container({ logger }), { logger, tracer: { onLayers: () => {}, onPhase: p => phases.push(p) } })
 		let err: unknown
 		try {
-			await app.start({
-				[TG]: { useFactory: () => new Good({ logger }) },
-				[TB]: { useFactory: () => new Bad({ logger }), dependencies: [TG] },
+			app.register({
+				[TG]: { adapter: Good },
+				[TB]: { adapter: Bad, dependencies: [TG] },
 			})
+			await app.start()
 		}
 		catch (e) {
 			err = e
@@ -950,14 +883,18 @@ describe('Orchestrator suite', () => {
 			{ hasStartPhase: true, goodOk: true, badNotOk: true, hasErr: true },
 		)
 		await app.destroy().catch(() => {})
+		await Good.destroy()
+		await Bad.destroy()
 	})
 
 	test('events callbacks errors are isolated and do not disrupt orchestration', async () => {
 		class Ok extends Adapter {
+			static instance?: Ok
 			protected async onStart() {}
 			protected async onStop() {}
 		}
 		class BadStop extends Adapter {
+			static instance?: BadStop
 			protected async onStart() {}
 			protected async onStop() {
 				throw new Error('bad-stop')
@@ -976,10 +913,11 @@ describe('Orchestrator suite', () => {
 				},
 			},
 		})
-		await app.start({
-			[TOK]: { useFactory: () => new Ok({ logger }) },
-			[TBAD]: { useFactory: () => new BadStop({ logger }) },
+		app.register({
+			[TOK]: { adapter: Ok },
+			[TBAD]: { adapter: BadStop },
 		})
+		await app.start()
 		let stopErr: unknown
 		try {
 			await app.stop()
@@ -990,14 +928,18 @@ describe('Orchestrator suite', () => {
 		type WithDiag = Error & { code?: string }
 		assert.equal((stopErr as WithDiag).code, 'ORK1014')
 		await app.destroy().catch(() => {})
+		await Ok.destroy()
+		await BadStop.destroy()
 	})
 
 	test('duplicate registration for the same token throws ORK1007', () => {
-		class C extends Adapter {}
+		class C extends Adapter {
+			static instance?: C
+		}
 		const T = createToken<C>('dup')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
-		orch.register({ [T]: { useFactory: () => new C({ logger }) } })
-		assert.throws(() => orch.register({ [T]: { useFactory: () => new C({ logger }) } }), (err: unknown) => {
+		orch.register({ [T]: { adapter: C } })
+		assert.throws(() => orch.register({ [T]: { adapter: C } }), (err: unknown) => {
 			assert.match((err as Error).message, /Duplicate registration/)
 			// removed formatted prefix assertion
 			return (err as Error & { code?: string }).code === 'ORK1007'
@@ -1006,6 +948,7 @@ describe('Orchestrator suite', () => {
 
 	test('numeric defaultTimeouts apply to all phases', async () => {
 		class SlowBoth extends Adapter {
+			static instance?: SlowBoth
 			protected async onStart() {}
 
 			protected async onStop() {
@@ -1014,9 +957,10 @@ describe('Orchestrator suite', () => {
 		}
 		const T = createToken<SlowBoth>('NumDef:SlowBoth')
 		const app = new Orchestrator(new Container({ logger }), { logger, timeouts: 10 })
-		await app.start({
-			[T]: { useFactory: () => new SlowBoth({ logger }) },
+		app.register({
+			[T]: { adapter: SlowBoth },
 		})
+		await app.start()
 		let stopErr: unknown
 		try {
 			await app.stop()
@@ -1028,6 +972,7 @@ describe('Orchestrator suite', () => {
 		const det = stopErr.details
 		assert.ok(det.some(d => d.tokenDescription === 'NumDef:SlowBoth' && d.timedOut && d.phase === 'stop'))
 		await app.destroy().catch(() => {})
+		await SlowBoth.destroy()
 	})
 
 	test('orchestrator.using(fn) awaits promised return and forwards value', async () => {
@@ -1041,70 +986,59 @@ describe('Orchestrator suite', () => {
 		assert.equal(value, 123)
 	})
 
-	test('orchestrator.using(apply, fn) supports async apply and fn and returns value', async () => {
-		for (const name of orchestrator.list()) orchestrator.clear(name, true)
-		const app = new Orchestrator(new Container({ logger }), { logger })
-		orchestrator.set('oX', app)
-		const T = createToken<number>('orch:val')
-		const res = await orchestrator.using(
-			async (o) => {
-				await new Promise(r => setTimeout(r, 1))
-				o.container.set(T, 7)
-			},
-			async (o) => {
-				await Promise.resolve()
-				return (o.container.resolve(T) as number) * 6
-			},
-			'oX',
-		)
-		assert.equal(res, 42)
-		// Note: orchestrator.using leverages container.using internally; current implementation applies to the bound container.
-		assert.equal(app.container.resolve(T), 7)
-	})
-
-	test('class provider with container arg is supported and resolves container deps', async () => {
-		const DEP = createToken<number>('ClassWithContainer:DEP')
-		class NeedsC extends Adapter {
-			public got: number | undefined
-			readonly #c: Container
-			constructor(c: Container) {
-				super({ logger })
-				this.#c = c
-			}
-
-			protected async onStart() {
-				this.got = this.#c.resolve(DEP)
-			}
-		}
-		const T = createToken<NeedsC>('ClassWithContainer:COMP')
-		const app = new Orchestrator(new Container({ logger }), { logger })
-		app.container.set(DEP, 42)
-		await app.start({
-			[T]: { useClass: NeedsC },
-		})
-		const inst = app.container.get(T) as NeedsC
-		assert.ok(inst)
-		assert.equal(inst.got, 42)
-		await app.destroy()
-	})
-
 	test('register with dependency graph object', async () => {
 		TestComponent.counter = 0
-		const A = createToken<TestComponent>('A')
-		const B = createToken<TestComponent>('B')
-		const C = createToken<TestComponent>('C')
+		class CompA extends Adapter {
+			static instance?: CompA
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		class CompB extends Adapter {
+			static instance?: CompB
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		class CompC extends Adapter {
+			static instance?: CompC
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		const A = createToken<CompA>('A')
+		const B = createToken<CompB>('B')
+		const C = createToken<CompC>('C')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		orch.register({
-			[A]: { useFactory: () => new TestComponent('A') },
-			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
-			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
+			[A]: { adapter: CompA },
+			[B]: { adapter: CompB, dependencies: [A] },
+			[C]: { adapter: CompC, dependencies: [B] },
 		})
 
 		await orch.start()
-		const a = orch.container.get(A) as TestComponent
-		const b = orch.container.get(B) as TestComponent
-		const c = orch.container.get(C) as TestComponent
+		const a = orch.container.get(A) as CompA
+		const b = orch.container.get(B) as CompB
+		const c = orch.container.get(C) as CompC
 
 		assert.ok(a && b && c)
 		assert.equal(a.startedAt, 0)
@@ -1115,24 +1049,65 @@ describe('Orchestrator suite', () => {
 		assert.ok((c.stoppedAt as number) < (b.stoppedAt as number))
 		assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
 		await orch.destroy()
+		await CompA.destroy()
+		await CompB.destroy()
+		await CompC.destroy()
 	})
 
 	test('start with dependency graph object', async () => {
+		// Similar to register test - reuse same classes
 		TestComponent.counter = 0
-		const A = createToken<TestComponent>('A')
-		const B = createToken<TestComponent>('B')
-		const C = createToken<TestComponent>('C')
+		class CompA extends Adapter {
+			static instance?: CompA
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		class CompB extends Adapter {
+			static instance?: CompB
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		class CompC extends Adapter {
+			static instance?: CompC
+			public startedAt: number | null = null
+			public stoppedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+
+			protected async onStop(): Promise<void> {
+				this.stoppedAt = TestComponent.counter++
+			}
+		}
+		const A = createToken<CompA>('A')
+		const B = createToken<CompB>('B')
+		const C = createToken<CompC>('C')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
-		await orch.start({
-			[A]: { useFactory: () => new TestComponent('A') },
-			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
-			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
+		orch.register({
+			[A]: { adapter: CompA },
+			[B]: { adapter: CompB, dependencies: [A] },
+			[C]: { adapter: CompC, dependencies: [B] },
 		})
+		await orch.start()
 
-		const a = orch.container.get(A) as TestComponent
-		const b = orch.container.get(B) as TestComponent
-		const c = orch.container.get(C) as TestComponent
+		const a = orch.container.get(A) as CompA
+		const b = orch.container.get(B) as CompB
+		const c = orch.container.get(C) as CompC
 
 		assert.ok(a && b && c)
 		assert.equal(a.startedAt, 0)
@@ -1143,36 +1118,59 @@ describe('Orchestrator suite', () => {
 		assert.ok((c.stoppedAt as number) < (b.stoppedAt as number))
 		assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
 		await orch.destroy()
+		await CompA.destroy()
+		await CompB.destroy()
+		await CompC.destroy()
 	})
 
 	test('dependency graph with timeouts', async () => {
-		const A = createToken<SlowStart>('A')
-		const B = createToken<SlowStart>('B')
+		class SlowA extends Adapter {
+			static instance?: SlowA
+			protected async onStart(): Promise<void> {
+				await new Promise(r => setTimeout(r, 50))
+			}
+		}
+		class SlowB extends Adapter {
+			static instance?: SlowB
+			protected async onStart(): Promise<void> {
+				await new Promise(r => setTimeout(r, 50))
+			}
+		}
+		const A = createToken<SlowA>('A')
+		const B = createToken<SlowB>('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		orch.register({
-			[A]: { useFactory: () => new SlowStart(50), timeouts: { onStart: 1000 } },
-			[B]: { useFactory: () => new SlowStart(50), dependencies: [A], timeouts: { onStart: 1000 } },
+			[A]: { adapter: SlowA, timeouts: { onStart: 1000 } },
+			[B]: { adapter: SlowB, dependencies: [A], timeouts: { onStart: 1000 } },
 		})
 
 		await orch.start()
-		const a = orch.container.get(A) as SlowStart
-		const b = orch.container.get(B) as SlowStart
+		const a = orch.container.get(A) as SlowA
+		const b = orch.container.get(B) as SlowB
 
 		assert.ok(a && b)
 		assert.equal(a.state, 'started')
 		assert.equal(b.state, 'started')
 		await orch.destroy()
+		await SlowA.destroy()
+		await SlowB.destroy()
 	})
 
 	test('dependency graph detects cycles', async () => {
-		const A = createToken<TestComponent>('A')
-		const B = createToken<TestComponent>('B')
+		class CycleA extends Adapter {
+			static instance?: CycleA
+		}
+		class CycleB extends Adapter {
+			static instance?: CycleB
+		}
+		const A = createToken<CycleA>('A')
+		const B = createToken<CycleB>('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
 		orch.register({
-			[A]: { useFactory: () => new TestComponent('A'), dependencies: [B] },
-			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
+			[A]: { adapter: CycleA, dependencies: [B] },
+			[B]: { adapter: CycleB, dependencies: [A] },
 		})
 
 		await assert.rejects(() => orch.start(), (err: unknown) => {
@@ -1182,42 +1180,35 @@ describe('Orchestrator suite', () => {
 			return true
 		})
 		await orch.destroy().catch(() => {})
-	})
-
-	test('dependency graph with mixed value and factory providers', async () => {
-		TestComponent.counter = 0
-		const A = createToken<number>('A')
-		const B = createToken<TestComponent>('B')
-		const C = createToken<TestComponent>('C')
-		const orch = new Orchestrator(new Container({ logger }), { logger })
-
-		await orch.start({
-			[A]: { useValue: 42 },
-			[B]: { useFactory: () => new TestComponent('B'), dependencies: [A] },
-			[C]: { useFactory: () => new TestComponent('C'), dependencies: [B] },
-		})
-
-		const a = orch.container.get(A)
-		const b = orch.container.get(B) as TestComponent
-		const c = orch.container.get(C) as TestComponent
-
-		assert.equal(a, 42)
-		assert.ok(b && c)
-		assert.equal(b.startedAt, 0)
-		assert.equal(c.startedAt, 1)
-		await orch.destroy()
+		await CycleA.destroy().catch(() => {})
+		await CycleB.destroy().catch(() => {})
 	})
 
 	test('dependency graph errors aggregate on start failure', async () => {
 		TestComponent.counter = 0
-		const GOOD = createToken<TestComponent>('GOOD')
-		const BAD = createToken<FailingStartComponent>('BAD')
+		class GoodComp extends Adapter {
+			static instance?: GoodComp
+			public startedAt: number | null = null
+			protected async onStart(): Promise<void> {
+				this.startedAt = TestComponent.counter++
+			}
+		}
+		class BadComp extends Adapter {
+			static instance?: BadComp
+			protected async onStart(): Promise<void> {
+				throw new Error('boom')
+			}
+		}
+		const GOOD = createToken<GoodComp>('GOOD')
+		const BAD = createToken<BadComp>('BAD')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 
-		await assert.rejects(async () => orch.start({
-			[GOOD]: { useFactory: () => new TestComponent('GOOD') },
-			[BAD]: { useFactory: () => new FailingStartComponent({ logger }), dependencies: [GOOD] },
-		}), (err: unknown) => {
+		orch.register({
+			[GOOD]: { adapter: GoodComp },
+			[BAD]: { adapter: BadComp, dependencies: [GOOD] },
+		})
+
+		await assert.rejects(async () => orch.start(), (err: unknown) => {
 			if (isAggregateLifecycleError(err)) {
 				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')
 				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated start error details')
@@ -1225,8 +1216,10 @@ describe('Orchestrator suite', () => {
 			return true
 		})
 
-		const good = orch.container.get(GOOD) as TestComponent
+		const good = orch.container.get(GOOD) as GoodComp
 		assert.notEqual(good?.startedAt, null)
 		await orch.destroy().catch(() => {})
+		await GoodComp.destroy()
+		await BadComp.destroy()
 	})
 })

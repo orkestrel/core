@@ -70,17 +70,18 @@ Consistency
 - Prefer tiny extensions to existing shapes over new abstractions
 - Keep ports stable; evolve via narrowly scoped, additive methods with rationale
 
-## Providers and lifecycle (core constraints)
-- Providers are synchronous only
-    - `useValue`: must not be a Promise (sync only)
-    - `useFactory`: must not be `async` and must not return a Promise
-- Move async work to `Lifecycle` hooks (`onStart`, `onStop`, `onDestroy`) with per‑phase timeouts
-- On start failure, rollback deterministically (stop previously started components in reverse order)
+## Architecture and lifecycle (core constraints)
+- All components extend the `Adapter` base class
+- Each Adapter subclass uses the singleton pattern with `static instance?: AdapterClass`
+- Lifecycle is managed via static methods: `MyAdapter.start()`, `MyAdapter.stop()`, `MyAdapter.destroy()`
+- Container registers Adapter classes: `container.register(token, { adapter: AdapterClass })`
+- Dependencies are specified explicitly: `{ adapter: MyClass, dependencies: [TokenA, TokenB] }`
+- Async work happens in lifecycle hooks (`onStart`, `onStop`, `onDestroy`) with per‑phase timeouts
+- On start failure, rollback deterministically (stop previously started singletons in reverse order)
 
 Diagnostics (selected)
 - Unknown dependency → ORK1008
 - Cycle detected → ORK1009
-- Async provider guards → ORK1010/ORK1011/ORK1012
 - Aggregates on start/stop/destroy → ORK1013/ORK1014/ORK1017
 - Invalid transition / Hook timeout → ORK1020 / ORK1021
 
@@ -110,7 +111,10 @@ Determinism
 - Follow the TSDoc policy above strictly (including ```ts examples and no type/interface TSDoc)
 - Omit `@example` for simple getters/setters; include only description and `@returns` unless a remark is essential
 - Do not add new public APIs without a compelling multi‑site need
-- Providers stay synchronous; move async into lifecycle hooks
+- All components must extend `Adapter` with singleton pattern
+- Use static methods for lifecycle management
+- Dependencies must be specified explicitly
+- Move async into lifecycle hooks with timeouts
 - Ports minimal, adapters in‑memory; avoid Node‑only APIs in core
 - Strict types: no `any`, no non‑null assertions; prefer `readonly` results
 - Update tests alongside code; add new cases to the existing file

@@ -1,23 +1,9 @@
-import { arrayOf, hasSchema, isBoolean, isError, isFunction, isNumber, isObject, isString, literalOf, hasOwn } from '@orkestrel/validator'
+import { arrayOf, hasSchema, isBoolean, isError, isNumber, isObject, isString, literalOf, hasOwn } from '@orkestrel/validator'
 import type {
 	Token,
-	Provider,
-	ValueProvider,
-	FactoryProvider,
-	FactoryProviderNoDeps,
-	FactoryProviderWithTuple,
-	FactoryProviderWithObject,
-	ClassProvider,
-	ClassProviderWithTuple,
 	AdapterProvider,
 	AggregateLifecycleError,
 	SchemaSpec,
-	FactoryProviderWithContainer,
-	ClassProviderWithObject,
-	ClassProviderWithContainer,
-	ClassProviderNoDeps,
-	ProviderMatchHandlers,
-	ProviderMatchReturnHandlers,
 } from './types.js'
 import type { Adapter } from './adapter.js'
 
@@ -109,52 +95,6 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
 }
 
 /**
- * Check if a provider is a ValueProvider (`{ useValue }`).
- *
- * @typeParam T - Provided value type
- * @param p - Provider input
- * @returns True if `p` is a `ValueProvider`
- * @example
- * ```ts
- * isValueProvider({ useValue: 1 }) // true
- * ```
- */
-export function isValueProvider<T>(p: Provider<T>): p is ValueProvider<T> {
-	return isObject(p) && hasOwn(p, 'useValue')
-}
-
-/**
- * Check if a provider is a FactoryProvider (`{ useFactory }`).
- *
- * @typeParam T - Provided value type
- * @param p - Provider input
- * @returns True if `p` is a `FactoryProvider`
- * @example
- * ```ts
- * isFactoryProvider({ useFactory: () => 1 }) // true
- * ```
- */
-export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
-	return isObject(p) && hasOwn(p, 'useFactory')
-}
-
-/**
- * Check if a provider is a ClassProvider (`{ useClass }`).
- *
- * @typeParam T - Provided value type
- * @param p - Provider input
- * @returns True if `p` is a `ClassProvider`
- * @example
- * ```ts
- * class S {}
- * isClassProvider({ useClass: S }) // true
- * ```
- */
-export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
-	return isObject(p) && hasOwn(p, 'useClass')
-}
-
-/**
  * Check if a provider is an AdapterProvider (`{ adapter }`).
  *
  * @param p - Provider input
@@ -165,138 +105,8 @@ export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
  * isAdapterProvider({ adapter: MyAdapter }) // true
  * ```
  */
-export function isAdapterProvider(p: Provider<unknown>): p is AdapterProvider<typeof Adapter> {
+export function isAdapterProvider<T extends Adapter>(p: unknown): p is AdapterProvider<T> {
 	return isObject(p) && hasOwn(p, 'adapter')
-}
-
-/**
- * Class provider that uses tuple injection (`inject: [A, B, ...]`).
- *
- * @typeParam T - Provided value type
- * @typeParam A - Tuple of injected dependency types
- * @param p - Provider input
- * @returns True if class provider injects via a tuple of tokens
- * @example
- * ```ts
- * class S { constructor(_a: number, _b: string) {} }
- * isClassProviderWithTuple<number, readonly [number, string]>({ useClass: S, inject: [Symbol('A'), Symbol('B')] })
- * ```
- */
-export function isClassProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T> | ClassProvider<T>): p is ClassProviderWithTuple<T, A> {
-	return isObject(p) && hasOwn(p, 'useClass', 'inject') && isTokenArray(p.inject)
-}
-
-/**
- * Class provider that uses object injection (`inject: { a: A, b: B }`).
- *
- * @typeParam T - Provided value type
- * @param p - Provider input
- * @returns True if class provider injects via an object of tokens
- * @example
- * ```ts
- * class S { constructor(_deps: { a: number, b: string }) {} }
- * isClassProviderWithObject<number>({ useClass: S, inject: { a: Symbol('A'), b: Symbol('B') } } as any)
- * ```
- */
-export function isClassProviderWithObject<T>(p: Provider<T> | ClassProvider<T>): p is ClassProviderWithObject<T, Record<string, unknown>> {
-	return isClassProvider(p) && hasOwn(p, 'inject') && isTokenRecord(p.inject)
-}
-
-/**
- * Class provider whose constructor receives the Container as its first argument (no explicit `inject`).
- *
- * @typeParam T - Provided value type
- * @param p - Class provider input
- * @returns True if `useClass` constructor takes a `Container`
- * @example
- * ```ts
- * class S { constructor(_c: Container) {} }
- * isClassProviderWithContainer<number>({ useClass: S } as any)
- * ```
- */
-export function isClassProviderWithContainer<T>(p: ClassProvider<T>): p is ClassProviderWithContainer<T> {
-	return !hasOwn(p, 'inject') && isFunction(p.useClass) && p.useClass.length >= 1
-}
-
-/**
- * Class provider with a zero‑argument constructor (no dependencies).
- *
- * @typeParam T - Provided value type
- * @param p - Class provider input
- * @returns True if the `useClass` constructor has arity 0 and no `inject`
- * @example
- * ```ts
- * class S { constructor() {} }
- * isClassProviderNoDeps<number>({ useClass: S } as any)
- * ```
- */
-export function isClassProviderNoDeps<T>(p: ClassProvider<T>): p is ClassProviderNoDeps<T> {
-	return !hasOwn(p, 'inject') && isFunction(p.useClass) && p.useClass.length === 0
-}
-
-/**
- * Factory provider that uses tuple injection (`inject: [A, B, ...]`).
- *
- * @typeParam T - Provided value type
- * @typeParam A - Tuple of injected dependency types
- * @param p - Provider input
- * @returns True if factory provider injects via a tuple of tokens
- * @example
- * ```ts
- * const p = { useFactory: (a: number, b: string) => a + b.length, inject: [Symbol('A'), Symbol('B')] }
- * isFactoryProviderWithTuple<number, readonly [number, string]>p
- * ```
- */
-export function isFactoryProviderWithTuple<T, A extends readonly unknown[]>(p: Provider<T> | FactoryProvider<T>): p is FactoryProviderWithTuple<T, A> {
-	return isFactoryProvider(p) && hasOwn(p, 'inject') && isTokenArray(p.inject)
-}
-
-/**
- * Factory provider that uses object injection (`inject: { a: A, b: B }`).
- *
- * @typeParam T - Provided value type
- * @param p - Provider input
- * @returns True if factory provider injects via an object of tokens
- * @example
- * ```ts
- * const p = { useFactory: (d: { a: number, b: string }) => d.a + d.b.length, inject: { a: Symbol('A'), b: Symbol('B') } }
- * isFactoryProviderWithObject<number>p
- * ```
- */
-export function isFactoryProviderWithObject<T>(p: Provider<T> | FactoryProvider<T>): p is FactoryProviderWithObject<T, Record<string, unknown>> {
-	return isFactoryProvider(p) && hasOwn(p, 'inject') && isTokenRecord(p.inject)
-}
-
-/**
- * Factory provider whose function receives the Container as its first argument (no explicit `inject`).
- *
- * @typeParam T - Provided value type
- * @param p - Factory provider input
- * @returns True if `useFactory` takes a `Container`
- * @example
- * ```ts
- * const p = { useFactory: (c: Container) => 1 }
- * isFactoryProviderWithContainer<number>p
- * ```
- */
-export function isFactoryProviderWithContainer<T>(p: FactoryProvider<T>): p is FactoryProviderWithContainer<T> {
-	return !hasOwn(p, 'inject') && isFunction(p.useFactory) && p.useFactory.length >= 1
-}
-
-/**
- * Factory provider with a zero‑argument function (no dependencies).
- *
- * @typeParam T - Provided value type
- * @param p - Factory provider input
- * @returns True if the `useFactory` function has arity 0 and no `inject`
- * @example
- * ```ts
- * const fp: FactoryProviderNoDeps<number> = { useFactory: () => 1 }
- * isFactoryProviderNoDeps(fp) // true
- * ```
- */
-export function isFactoryProviderNoDeps<T>(p: FactoryProvider<T>): p is FactoryProviderNoDeps<T> {
-	return !hasOwn(p, 'inject') && isFunction(p.useFactory) && p.useFactory.length === 0
 }
 
 /**
@@ -373,35 +183,6 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 }
 
 /**
- * Check if a value looks like a provider object (has one of `useValue`/`useFactory`/`useClass`).
- *
- * @param x - Value to check
- * @returns True if `x` has at least one provider key
- * @example
- * ```ts
- * isProviderObject({ useValue: 1 }) // true
- * ```
- */
-export function isProviderObject(x: unknown): x is Readonly<Record<string, unknown>> & ({ useValue: unknown } | { useFactory: unknown } | { useClass: unknown }) {
-	return isObject(x) && (hasOwn(x, 'useValue') || hasOwn(x, 'useFactory') || hasOwn(x, 'useClass'))
-}
-
-/**
- * Check if a provider input is a raw value (i.e., not a provider object).
- *
- * @typeParam T - Provided value type
- * @param p - Provider input
- * @returns True if `p` is not an object provider
- * @example
- * ```ts
- * isRawProviderValue(42) // true
- * ```
- */
-export function isRawProviderValue<T>(p: Provider<T>): p is T {
-	return !isProviderObject(p)
-}
-
-/**
  * Guard for aggregate lifecycle error shape used by DiagnosticAdapter.aggregate.
  *
  * @param x - Value to validate
@@ -418,67 +199,4 @@ export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleEr
 		errors: arrayOf((e: unknown): e is Error => isError(e)),
 	} satisfies SchemaSpec
 	return hasSchema(x, schema)
-}
-
-/**
- * Match a provider against its specific shape and dispatch to typed handlers.
- *
- * Recognized shapes (checked in order):
- * 1) raw value (not a provider object)
- * 2) value provider: `{ useValue }`
- * 3) factory providers: tuple | object | container | noDeps
- * 4) class providers: tuple | object | container | noDeps
- *
- * @typeParam T - Value type produced by the provider
- * @typeParam R - Return type when using return handlers (inferred)
- * @param provider - Provider input (raw value or provider object)
- * @param h - Handlers for each supported provider shape
- * @returns When handlers return `Provider<T>`, the normalized `Provider<T>`; otherwise the custom type `R`
- * @throws Error with code `ORK1099` when the provider shape is unknown (internal invariant)
- * @example
- * ```ts
- * const out = matchProvider(42, {
- *   raw: v => ({ useValue: v }),
- *   value: p => p,
- *   factoryTuple: p => p,
- *   factoryObject: p => p,
- *   factoryContainer: p => p,
- *   factoryNoDeps: p => p,
- *   classTuple: p => p,
- *   classObject: p => p,
- *   classContainer: p => p,
- *   classNoDeps: p => p,
- * })
- * ```
- */
-export function matchProvider<T>(provider: Provider<T>, h: ProviderMatchHandlers<T>): Provider<T>
-export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchReturnHandlers<T, R>): R
-export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandlers<T> | ProviderMatchReturnHandlers<T, R>): Provider<T> | R {
-	// Raw value (not a provider object)
-	if (isRawProviderValue(provider)) return h.raw(provider as T)
-
-	// Value provider
-	if (isValueProvider(provider)) return h.value(provider)
-
-	// Adapter provider
-	if (isAdapterProvider(provider)) return h.adapter(provider as AdapterProvider<typeof Adapter>) as any
-
-	// Factory providers
-	if (isFactoryProvider(provider)) {
-		if (isFactoryProviderWithTuple(provider)) return h.factoryTuple(provider)
-		if (isFactoryProviderWithObject(provider)) return h.factoryObject(provider)
-		if (isFactoryProviderWithContainer(provider)) return h.factoryContainer(provider)
-		if (isFactoryProviderNoDeps(provider)) return h.factoryNoDeps(provider)
-	}
-
-	// Class providers
-	if (isClassProvider(provider)) {
-		if (isClassProviderWithTuple(provider)) return h.classTuple(provider)
-		if (isClassProviderWithObject(provider)) return h.classObject(provider)
-		if (isClassProviderWithContainer(provider)) return h.classContainer(provider)
-		if (isClassProviderNoDeps(provider)) return h.classNoDeps(provider)
-	}
-
-	// Unknown shape: throw an internal invariant error
-	throw Object.assign(new Error('Unknown provider shape'), { code: 'ORK1099', scope: 'internal' })
 }

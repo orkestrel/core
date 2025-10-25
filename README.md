@@ -1,6 +1,6 @@
 # Orkestrel Core
 
-Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire implementations via a tiny DI container, and drive lifecycles deterministically with an orchestrator.
+Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire Adapter classes via a tiny DI container, and drive lifecycles deterministically with an orchestrator.
 
 - Package: `@orkestrel/core`
 - TypeScript-first, ESM-only
@@ -23,8 +23,12 @@ npm install @orkestrel/core
 - FAQ: https://github.com/orkestrel/core/blob/main/guides/faq.md
 
 Notes
-- Providers are synchronous (no async factories or Promise values). Do async work in Lifecycle hooks.
-- Deterministic start/stop/destroy order with timeouts and rollback on failures.
+- All components extend `Adapter` base class with singleton pattern
+- Adapter classes registered in Container: `{ adapter: AdapterClass }`
+- Lifecycle managed via static methods: `MyAdapter.start()`, `MyAdapter.stop()`, `MyAdapter.destroy()`
+- Dependencies specified explicitly: `{ adapter: MyClass, dependencies: [TokenA, TokenB] }`
+- Async work happens in lifecycle hooks (`onStart`, `onStop`, `onDestroy`) with timeouts
+- Deterministic start/stop/destroy order with rollback on failures
 
 ## Scripts
 ```sh

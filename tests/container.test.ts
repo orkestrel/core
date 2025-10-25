@@ -4,17 +4,32 @@ import { createToken, Container, container, Adapter, NoopLogger, isAggregateLife
 
 let logger: NoopLogger
 
-class TestLifecycle extends Adapter {
+class TestAdapter extends Adapter {
+	static instance?: TestAdapter
 	started = 0
 	stopped = 0
+	value = 42
 
 	protected async onStart() { this.started++ }
 	protected async onStop() { this.stopped++ }
 }
 
+class DependentAdapter extends Adapter {
+	static instance?: DependentAdapter
+	message = 'dependent'
+}
+
 class FailingOnDestroy extends Adapter {
+	static instance?: FailingOnDestroy
 	protected async onDestroy(): Promise<void> {
 		throw new Error('destroy-fail')
+	}
+}
+
+class AnotherFailingOnDestroy extends Adapter {
+	static instance?: AnotherFailingOnDestroy
+	protected async onDestroy(): Promise<void> {
+		throw new Error('another-destroy-fail')
 	}
 }
 
@@ -22,22 +37,29 @@ describe('Container suite', () => {
 	beforeEach(() => {
 		logger = new NoopLogger()
 	})
-	afterEach(() => {
+	afterEach(async () => {
+		// Clean up singletons
+		await TestAdapter.destroy().catch(() => {})
+		await DependentAdapter.destroy().catch(() => {})
+		await FailingOnDestroy.destroy().catch(() => {})
+		await AnotherFailingOnDestroy.destroy().catch(() => {})
+		// Clean up container registry
 		for (const name of container.list()) {
 			container.clear(name, true)
 		}
 	})
 
-	test('value provider resolution', () => {
-		const TOK = createToken<number>('num')
+	test('adapter provider resolution', () => {
+		const TOK = createToken<TestAdapter>('test')
 		const c = new Container({ logger })
-		c.register(TOK, { useValue: 42 })
-		assert.strictEqual(c.resolve(TOK), 42)
+		c.register(TOK, { adapter: TestAdapter })
+		const instance = c.resolve(TOK)
+		assert.strictEqual(instance.value, 42)
 		assert.equal(c.has(TOK), true)
 	})
 
 	test('strict resolve missing token throws', () => {
-		const MISSING = createToken<number>('missing:strict')
+		const MISSING = createToken<TestAdapter>('missing:strict')
 		const c = new Container({ logger })
 		assert.throws(() => c.resolve(MISSING), (err: unknown) => {
 			const e = err as { message?: string, code?: string }
@@ -45,289 +67,173 @@ describe('Container suite', () => {
 		})
 	})
 
-	// Inject tests
-	test('factory provider with inject array resolves dependencies by order', () => {
-		const A = createToken<number>('A')
-		const B = createToken<string>('B')
-		const OUT = createToken<{ a: number, b: string }>('OUT')
+	test('get returns undefined for missing token', () => {
+		const MISSING = createToken<TestAdapter>('missing:get')
 		const c = new Container({ logger })
-		c.set(A, 10)
-		c.set(B, 'hi')
-		c.register(OUT, { useFactory: (a, b) => ({ a, b }), inject: [A, B] })
-		const v = c.resolve(OUT)
-		assert.deepEqual(v, { a: 10, b: 'hi' })
+		assert.equal(c.get(MISSING), undefined)
 	})
 
-	test('factory provider with inject object resolves named dependencies', () => {
-		const A = createToken<number>('A2')
-		const B = createToken<string>('B2')
-		const SUM = createToken<number>('SUM')
+	test('adapter lifecycle with container', async () => {
+		const TOK = createToken<TestAdapter>('lifecycle')
 		const c = new Container({ logger })
-		c.set(A, 3)
-		c.set(B, 'abcd')
-		c.register(SUM, { useFactory: ({ a, b }) => a + b.length, inject: { a: A, b: B } })
-		assert.equal(c.resolve(SUM), 3 + 4)
-	})
+		c.register(TOK, { adapter: TestAdapter })
 
-	class NeedsDeps { constructor(public readonly a: number, public readonly b: string) {} }
+		const instance = c.resolve(TOK)
+		assert.equal(instance.started, 0)
 
-	test('class provider with inject array constructs with resolved dependencies', () => {
-		const A = createToken<number>('A3')
-		const B = createToken<string>('B3')
-		const C = createToken<NeedsDeps>('C3')
-		const c = new Container({ logger })
-		c.set(A, 5)
-		c.set(B, 'z')
-		c.register(C, { useClass: NeedsDeps, inject: [A, B] })
-		const inst = c.resolve(C)
-		assert.equal(inst.a, 5)
-		assert.equal(inst.b, 'z')
-	})
+		await TestAdapter.start()
+		assert.equal(TestAdapter.getState(), 'started')
+		assert.equal(instance.started, 1)
 
-	test('factory provider resolution and get/has', () => {
-		const TOK = createToken<{ v: number }>('obj')
-		const MISS = createToken('missing')
-		const c = new Container({ logger })
-		c.register(TOK, { useFactory: () => ({ v: 10 }) })
-		assert.strictEqual(c.resolve(TOK).v, 10)
-		assert.equal(c.get(MISS), undefined)
-		assert.equal(c.has(MISS), false)
-	})
-
-	test('object-map strict resolution and optional get()', () => {
-		const A = createToken<number>('A')
-		const B = createToken<string>('B')
-		const C = createToken<boolean>('C')
-		const c = new Container({ logger })
-		c.set(A, 1)
-		c.set(B, 'two')
-		c.set(C, true)
-		const { a, b, c: cval } = c.resolve({ a: A, b: B, c: C })
-		const maybe = c.get({ a: A, x: createToken('X') })
-		assert.deepStrictEqual(
-			{ a, b, cval, maybeA: maybe.a, maybeX: maybe.x },
-			{ a: 1, b: 'two', cval: true, maybeA: 1, maybeX: undefined },
-		)
-	})
-
-	test('class provider without autostart; child container lookup', async () => {
-		const TOK = createToken<TestLifecycle>('life')
-		const c = new Container({ logger })
-		c.register(TOK, { useFactory: () => new TestLifecycle({ logger }) })
-		const child = c.createChild()
-		const inst = child.resolve(TOK)
-		// no autostart; instance should not be started yet
-		assert.strictEqual(inst.started, 0)
-		await inst.start()
-		assert.strictEqual(inst.started, 1)
-		await child.destroy()
 		await c.destroy()
-		// after destroy, lifecycle should be destroyed (stop may or may not have run depending on state)
-		assert.ok(inst.stopped >= 0)
+		assert.equal(TestAdapter.getState(), 'created') // destroy clears singleton
 	})
 
 	test('destroy aggregates errors and is idempotent', async () => {
-		const BAD = createToken<FailingOnDestroy>('bad')
+		const A = createToken<FailingOnDestroy>('bad')
+		const B = createToken<AnotherFailingOnDestroy>('bad2')
 		const c = new Container({ logger })
-		c.register(BAD, { useFactory: () => new FailingOnDestroy({ logger }) })
-		const inst = c.resolve(BAD)
-		await inst.start()
-		await inst.stop()
+		c.register(A, { adapter: FailingOnDestroy })
+		c.register(B, { adapter: AnotherFailingOnDestroy })
+
+		// Resolve to create instances
+		c.resolve(A)
+		c.resolve(B)
+
+		// Start them so they need to be stopped
+		await FailingOnDestroy.start()
+		await AnotherFailingOnDestroy.start()
+
+		// Destroy should aggregate errors
 		await assert.rejects(() => c.destroy(), (err: unknown) => {
-			assert.ok(isAggregateLifecycleError(err))
-			// container aggregate code
-			assert.equal((err as Error & { code?: string }).code, 'ORK1016')
-			const det = (err as { details?: unknown }).details
-			const errs = (err as { errors?: unknown }).errors
-			assert.ok(Array.isArray(det))
-			assert.ok(Array.isArray(errs))
-			assert.equal(det.length, errs.length)
-			return true
+			if (isAggregateLifecycleError(err)) {
+				assert.equal(err.errors.length, 2)
+				// Errors are wrapped as HookError
+				assert.match(err.errors[0].message, /Hook 'destroy' failed/)
+				assert.match(err.errors[1].message, /Hook 'destroy' failed/)
+				return true
+			}
+			return false
 		})
-		// Second call should not throw (already destroyed)
+
+		// Idempotent - second destroy is safe
 		await c.destroy()
 	})
 
-	test('global helper supports default symbol and named string keys', () => {
-		// clear any existing registrations (default is protected and will remain)
-		for (const name of container.list()) container.clear(name, true)
-		const ALT = new Container({ logger })
-		const T = createToken<number>('num2')
-		// register on default container directly
-		container().register(T, { useValue: 7 })
-		// default
-		const gotDef = container()
-		assert.equal(gotDef.resolve(T), 7)
-		// named
-		container.set('alt', ALT) // named (string)
-		const gotAlt = container('alt')
-		assert.ok(gotAlt)
-		// list/clear
-		const keys = container.list()
-		assert.deepStrictEqual(
-			{ sawNonString: keys.some(k => typeof k !== 'string'), sawAlt: keys.some(k => k === 'alt'), clearedAlt: container.clear('alt', true) },
-			{ sawNonString: true, sawAlt: true, clearedAlt: true },
-		)
-	})
+	test('child container inherits providers from parent', () => {
+		const TOK = createToken<TestAdapter>('inherit')
+		const parent = new Container({ logger })
+		parent.register(TOK, { adapter: TestAdapter })
 
-	test('callable getter resolves a token map with resolve({ ... })', () => {
-		// ensure clean registry state (default persists)
-		for (const name of container.list()) container.clear(name, true)
-		const A = createToken<number>('A')
-		const B = createToken<string>('B')
-		const c = container()
-		c.set(A, 123)
-		c.set(B, 'xyz')
-		const { a, b } = container().resolve({ a: A, b: B })
-		assert.deepStrictEqual({ a, b }, { a: 123, b: 'xyz' })
-	})
-
-	test('named container resolves a token map with resolve({ ... })', () => {
-		// clear any existing registrations (default persists)
-		for (const name of container.list()) container.clear(name, true)
-		const namedC = new Container({ logger })
-		container.set('tenantA', namedC)
-		const A = createToken<number>('A')
-		const B = createToken<string>('B')
-		namedC.set(A, 2)
-		namedC.set(B, 'z')
-		const { a, b } = container('tenantA').resolve({ a: A, b: B })
-		assert.deepStrictEqual({ a, b }, { a: 2, b: 'z' })
+		const child = parent.createChild()
+		assert.equal(child.has(TOK), true)
+		const instance = child.resolve(TOK)
+		assert.strictEqual(instance.value, 42)
 	})
 
 	test('using(fn) runs in a child scope and destroys it after', async () => {
-		class Scoped extends Adapter {
-			public destroyed = false
-			protected async onDestroy() { this.destroyed = true }
-		}
-		const T = createToken<Scoped>('Scoped')
-		const root = new Container({ logger })
-		let inst: Scoped | undefined
-		await root.using(async (scope) => {
-			scope.register(T, { useFactory: () => new Scoped({ logger }) })
-			inst = scope.resolve(T)
-			await Promise.resolve()
+		const TOK = createToken<TestAdapter>('scoped')
+		const c = new Container({ logger })
+
+		await c.using((scope) => {
+			scope.register(TOK, { adapter: TestAdapter })
+			const instance = scope.resolve(TOK)
+			assert.equal(instance.value, 42)
 		})
-		assert.deepStrictEqual(
-			{ hasInst: !!inst, destroyed: inst?.destroyed === true },
-			{ hasInst: true, destroyed: true },
-		)
+
+		// After using, the scoped registration is gone
+		assert.equal(c.has(TOK), false)
 	})
 
 	test('using(apply, fn) registers overrides in a child scope', async () => {
-		const T = createToken<string>('scoped:val')
-		const root = new Container({ logger })
-		// no root registration
-		const result = await root.using(
+		class Override extends Adapter {
+			static instance?: Override
+			value = 100
+		}
+
+		const TOK = createToken<Adapter>('override')
+		const c = new Container({ logger })
+		c.register(TOK, { adapter: TestAdapter })
+
+		await c.using(
 			(scope) => {
-				scope.register(T, { useValue: 'scoped-value' })
+				scope.register(TOK, { adapter: Override })
 			},
-			async (scope) => {
-				const v = scope.resolve(T)
-				assert.equal(v, 'scoped-value')
-				return v
+			(scope) => {
+				const instance = scope.resolve(TOK) as Override
+				assert.equal(instance.value, 100)
 			},
 		)
-		assert.equal(result, 'scoped-value')
-		// After using, scope is destroyed; root should still have no registration
-		assert.equal(root.get(T), undefined)
+
+		// Parent still has original
+		const instance = c.resolve(TOK) as TestAdapter
+		assert.equal(instance.value, 42)
+
+		await Override.destroy().catch(() => {})
 	})
 
-	test('register with lock prevents re-registration for the same token', () => {
-		const T = createToken<number>('lockReg')
+	test('register with lock prevents re-registration', () => {
+		const TOK = createToken<TestAdapter>('locked')
 		const c = new Container({ logger })
-		c.register(T, { useValue: 1 }, true) // lock
-		assert.equal(c.resolve(T), 1)
-		assert.throws(() => c.register(T, { useValue: 2 }), /Cannot replace locked provider/)
+		c.register(TOK, { adapter: TestAdapter }, true)
+
+		assert.throws(() => {
+			c.register(TOK, { adapter: TestAdapter })
+		}, /Cannot replace locked/)
 	})
 
-	test('set with lock prevents overwriting value', () => {
-		const T = createToken<string>('lockSet')
-		const c = new Container({ logger })
-		c.set(T, 'A', true)
-		assert.equal(c.resolve(T), 'A')
-		assert.throws(() => c.set(T, 'B'), /Cannot replace locked provider/)
-	})
-
-	test('child inherits providers via has/get from parent', () => {
-		const T = createToken<number>('parent:val')
-		const parent = new Container({ logger })
-		parent.set(T, 99)
-		const child = parent.createChild()
-		assert.deepStrictEqual(
-			{ has: child.has(T), get: child.get(T), resolve: child.resolve(T) },
-			{ has: true, get: 99, resolve: 99 },
-		)
-	})
-
-	// NEW: Promise-handling for using
 	test('using(fn) resolves promised return value', async () => {
-		const T = createToken<string>('using:return')
-		const root = new Container({ logger })
-		const out = await root.using(async (scope) => {
-			scope.register(T, { useValue: 'x' })
-			await Promise.resolve()
-			return scope.resolve(T) + '-done'
+		const TOK = createToken<TestAdapter>('promised')
+		const c = new Container({ logger })
+
+		const result = await c.using(async (scope) => {
+			scope.register(TOK, { adapter: TestAdapter })
+			const instance = scope.resolve(TOK)
+			await new Promise(r => setTimeout(r, 1))
+			return instance.value
 		})
-		assert.equal(out, 'x-done')
+
+		assert.equal(result, 42)
 	})
 
-	test('global container.using supports named containers and async apply/fn', async () => {
-		// reset registry state
-		for (const name of container.list()) container.clear(name, true)
-		const named = new Container({ logger })
-		container.set('tenantX', named)
-		const T = createToken<number>('n:val')
-		const out = await container.using(
-			async (scope) => {
-				// async apply without timers
-				await Promise.resolve()
-				scope.set(T, 41)
-			},
-			async (scope) => {
-				await Promise.resolve()
-				return scope.resolve(T) + 1
-			},
-			'tenantX',
-		)
-		assert.equal(out, 42)
-		// explicit: registration must not leak into the named container
-		assert.equal(named.get(T), undefined)
+	test('global container() returns default container', () => {
+		const c1 = container()
+		const c2 = container()
+		assert.strictEqual(c1, c2)
 	})
 
-	test('global container.using(fn) with name runs in a child scope without leaking', async () => {
-		for (const name of container.list()) container.clear(name, true)
-		const named = new Container({ logger })
-		container.set('tenantY', named)
-		const T = createToken<string>('n:val2')
-		await container.using(async (scope) => {
-			// register and resolve inside scope
-			scope.set(T, 'scoped')
-			assert.equal(scope.resolve(T), 'scoped')
-			await Promise.resolve()
-		}, 'tenantY')
-		// explicit: nothing should remain registered on the named container
-		assert.equal(named.get(T), undefined)
+	test('global container.resolve works with adapter provider', () => {
+		const TOK = createToken<TestAdapter>('global')
+		container().register(TOK, { adapter: TestAdapter })
+		const instance = container.resolve(TOK)
+		assert.equal(instance.value, 42)
 	})
 
-	test('resolve with tuple returns values in order', () => {
-		const A = createToken<number>('tuple:A')
-		const B = createToken<string>('tuple:B')
+	test('named containers are isolated', () => {
+		const TOK = createToken<TestAdapter>('named')
+		const c1 = new Container({ logger })
+		const c2 = new Container({ logger })
+
+		container.set('named1', c1)
+		container.set('named2', c2)
+
+		c1.register(TOK, { adapter: TestAdapter })
+
+		assert.equal(container('named1').has(TOK), true)
+		assert.equal(container('named2').has(TOK), false)
+	})
+
+	test('global container.using supports named containers', async () => {
+		const TOK = createToken<TestAdapter>('named-using')
 		const c = new Container({ logger })
-		c.set(A, 7)
-		c.set(B, 'eight')
-		const [a, b] = c.resolve([A, B] as const)
-		assert.deepStrictEqual([a, b], [7, 'eight'])
-	})
+		container.set('test', c)
 
-	test('get with tuple returns optional values in order', () => {
-		const A = createToken<number>('tuple2:A')
-		const B = createToken<string>('tuple2:B')
-		const C = createToken<boolean>('tuple2:C')
-		const c = new Container({ logger })
-		c.set(A, 1)
-		c.set(C, true)
-		const [a, b, cval] = c.get([A, B, C] as const)
-		assert.deepStrictEqual([a, b, cval], [1, undefined, true])
+		await container.using((scope) => {
+			scope.register(TOK, { adapter: TestAdapter })
+			assert.equal(scope.has(TOK), true)
+		}, 'test')
+
+		// After using, registration is gone from the child scope
+		assert.equal(c.has(TOK), false)
 	})
 })

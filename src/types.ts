@@ -50,17 +50,14 @@ export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithContain
 /**
  * Provider for Adapter subclasses using the singleton pattern.
  * Registers an Adapter class directly; lifecycle managed via static methods.
- * 
- * @typeParam T - The Adapter subclass constructor type
+ *
+ * @typeParam T - The Adapter instance type
  */
-export type AdapterProvider<T extends typeof Adapter> = {
-	readonly adapter: T
-	readonly dependencies?: readonly Token<unknown>[]
-	readonly timeouts?: number
-	readonly inject?: InjectTuple<readonly unknown[]> | InjectObject<Record<string, unknown>>
+export type AdapterProvider<T extends Adapter> = {
+	readonly adapter: AdapterSubclass<T>
 }
 
-export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | (T extends typeof Adapter ? AdapterProvider<T> : never)
+export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | (T extends Adapter ? AdapterProvider<T> : never)
 
 // -----------------------------------------------------------------------------
 // Provider matching
@@ -68,7 +65,7 @@ export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvi
 export type ProviderMatchHandlers<T> = {
 	raw: (value: T) => Provider<T>
 	value: (p: ValueProvider<T>) => Provider<T>
-	adapter: <A extends typeof Adapter>(p: AdapterProvider<A>) => AdapterProvider<A>
+	adapter: (p: T extends Adapter ? AdapterProvider<T> : never) => (T extends Adapter ? AdapterProvider<T> : never)
 	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => FactoryProviderWithTuple<T, A>
 	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => FactoryProviderWithObject<T, O>
 	factoryContainer: (p: FactoryProviderWithContainer<T>) => FactoryProviderWithContainer<T>
@@ -82,7 +79,7 @@ export type ProviderMatchHandlers<T> = {
 export type ProviderMatchReturnHandlers<T, R> = {
 	raw: (value: T) => R
 	value: (p: ValueProvider<T>) => R
-	adapter: <A extends typeof Adapter>(p: AdapterProvider<A>) => R
+	adapter: (p: T extends Adapter ? AdapterProvider<T> : never) => R
 	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => R
 	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => R
 	factoryContainer: (p: FactoryProviderWithContainer<T>) => R
@@ -242,7 +239,7 @@ export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
  * Type helper for Adapter subclass constructors.
  * @typeParam I - The Adapter subclass instance type
  */
-export type AdapterSubclass<I> = {
+export interface AdapterSubclass<I extends Adapter> {
 	new (opts?: LifecycleOptions): I
 	instance?: I
 	getInstance(opts?: LifecycleOptions): I
@@ -251,8 +248,8 @@ export type AdapterSubclass<I> = {
 	start(opts?: LifecycleOptions): Promise<void>
 	stop(): Promise<void>
 	destroy(): Promise<void>
-	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
-	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
+	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): unknown
+	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): unknown
 }
 
 export type LifecycleEventMap = {
@@ -278,7 +275,11 @@ export interface LifecycleOptions {
 // -----------------------------------------------------------------------------
 export interface ContainerOptions { readonly parent?: Container, readonly diagnostic?: DiagnosticPort, readonly logger?: LoggerPort }
 
-export interface ResolvedProvider<T> { value: T, lifecycle?: Adapter, disposable: boolean }
+export interface ResolvedProvider<T> {
+	value: T
+	lifecycle?: T extends Adapter ? AdapterSubclass<T> : never
+	disposable: boolean
+}
 export interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: ResolvedProvider<T> }
 
 export type ContainerGetter = {
@@ -314,7 +315,7 @@ export type Outcome = Readonly<{ token: string, ok: boolean, durationMs: number,
 
 export type DestroyJobResult = Readonly<{ stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] }>
 
-export type OrchestratorStartResult = Readonly<{ token: Token<unknown>, lc: Adapter, result: PhaseResult }>
+export type OrchestratorStartResult = Readonly<{ token: Token<Adapter>, lc: Adapter, result: PhaseResult }>
 
 export interface OrchestratorRegistration<T> {
 	readonly token: Token<T>
@@ -349,18 +350,16 @@ export type OrchestratorGetter = {
 }
 
 export interface RegisterOptions {
-	dependencies?: Token<unknown>[] | Record<string, Token<unknown>>
+	dependencies?: Token<Adapter>[] | Record<string, Token<Adapter>>
 	timeouts?: number | PhaseTimeouts
 }
 
-export type OrchestratorGraphEntry<T = unknown>
-	= | (ValueProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
-		| (FactoryProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
-		| (ClassProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
+export type OrchestratorGraphEntry<T extends Adapter = Adapter>
+	= AdapterProvider<T> & { readonly dependencies?: readonly Token<Adapter>[], readonly timeouts?: number | PhaseTimeouts }
 
 export type OrchestratorGraph = Readonly<Record<symbol, OrchestratorGraphEntry>>
 
-export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }
+export interface NodeEntry { readonly token: Token<Adapter>, readonly dependencies: readonly Token<Adapter>[], readonly timeouts?: number | PhaseTimeouts }
 
 // -----------------------------------------------------------------------------
 // Registry (named singletons)

@@ -731,90 +731,161 @@ describe('Orchestrator suite', () => {
 	})
 
 	test('per-layer concurrency limit caps start parallelism', async () => {
-		class ConcurrencyProbe extends Adapter {
-			static activeStart = 0
-			static peakStart = 0
-			readonly #delayMs: number
-			constructor(delayMs: number) {
-				super({ logger })
-				this.#delayMs = delayMs
-			}
-
+		let activeStart = 0
+		let peakStart = 0
+		class Probe1 extends Adapter {
+			static instance?: Probe1
 			protected async onStart() {
-				ConcurrencyProbe.activeStart++
-				ConcurrencyProbe.peakStart = Math.max(ConcurrencyProbe.peakStart, ConcurrencyProbe.activeStart)
-				await new Promise(r => setTimeout(r, this.#delayMs))
-				ConcurrencyProbe.activeStart--
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
 			}
 		}
-		ConcurrencyProbe.activeStart = 0
-		ConcurrencyProbe.peakStart = 0
-		const T1 = createToken<ConcurrencyProbe>('CC1')
-		const T2 = createToken<ConcurrencyProbe>('CC2')
-		const T3 = createToken<ConcurrencyProbe>('CC3')
-		const T4 = createToken<ConcurrencyProbe>('CC4')
+		class Probe2 extends Adapter {
+			static instance?: Probe2
+			protected async onStart() {
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
+			}
+		}
+		class Probe3 extends Adapter {
+			static instance?: Probe3
+			protected async onStart() {
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
+			}
+		}
+		class Probe4 extends Adapter {
+			static instance?: Probe4
+			protected async onStart() {
+				activeStart++
+				peakStart = Math.max(peakStart, activeStart)
+				await new Promise(r => setTimeout(r, 20))
+				activeStart--
+			}
+		}
+		
+		const T1 = createToken<Probe1>('CC1')
+		const T2 = createToken<Probe2>('CC2')
+		const T3 = createToken<Probe3>('CC3')
+		const T4 = createToken<Probe4>('CC4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
-		await app.start({
-			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
+		app.register({
+			[T1]: { adapter: Probe1 },
+			[T2]: { adapter: Probe2 },
+			[T3]: { adapter: Probe3 },
+			[T4]: { adapter: Probe4 },
 		})
-		assert.ok(ConcurrencyProbe.peakStart <= 2)
+		await app.start()
+		assert.ok(peakStart <= 2)
 		await app.destroy()
+		await Probe1.destroy()
+		await Probe2.destroy()
+		await Probe3.destroy()
+		await Probe4.destroy()
 	})
 
 	test('per-layer concurrency limit caps stop and destroy parallelism', async () => {
-		class ConcurrencyProbe extends Adapter {
-			static activeStop = 0
-			static peakStop = 0
-			static activeDestroy = 0
-			static peakDestroy = 0
-			readonly #delayMs: number
-			constructor(delayMs: number) {
-				super({ logger })
-				this.#delayMs = delayMs
-			}
-
+		let activeStop = 0
+		let peakStop = 0
+		let activeDestroy = 0
+		let peakDestroy = 0
+		class Probe1 extends Adapter {
+			static instance?: Probe1
 			protected async onStop() {
-				ConcurrencyProbe.activeStop++
-				ConcurrencyProbe.peakStop = Math.max(ConcurrencyProbe.peakStop, ConcurrencyProbe.activeStop)
-				await new Promise(r => setTimeout(r, this.#delayMs))
-				ConcurrencyProbe.activeStop--
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
 			}
-
 			protected async onDestroy() {
-				ConcurrencyProbe.activeDestroy++
-				ConcurrencyProbe.peakDestroy = Math.max(ConcurrencyProbe.peakDestroy, ConcurrencyProbe.activeDestroy)
-				await new Promise(r => setTimeout(r, this.#delayMs))
-				ConcurrencyProbe.activeDestroy--
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
 			}
 		}
-		ConcurrencyProbe.activeStop = 0
-		ConcurrencyProbe.peakStop = 0
-		ConcurrencyProbe.activeDestroy = 0
-		ConcurrencyProbe.peakDestroy = 0
-		const T1 = createToken<ConcurrencyProbe>('CD1')
-		const T2 = createToken<ConcurrencyProbe>('CD2')
-		const T3 = createToken<ConcurrencyProbe>('CD3')
-		const T4 = createToken<ConcurrencyProbe>('CD4')
+		class Probe2 extends Adapter {
+			static instance?: Probe2
+			protected async onStop() {
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
+			}
+			protected async onDestroy() {
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
+			}
+		}
+		class Probe3 extends Adapter {
+			static instance?: Probe3
+			protected async onStop() {
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
+			}
+			protected async onDestroy() {
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
+			}
+		}
+		class Probe4 extends Adapter {
+			static instance?: Probe4
+			protected async onStop() {
+				activeStop++
+				peakStop = Math.max(peakStop, activeStop)
+				await new Promise(r => setTimeout(r, 20))
+				activeStop--
+			}
+			protected async onDestroy() {
+				activeDestroy++
+				peakDestroy = Math.max(peakDestroy, activeDestroy)
+				await new Promise(r => setTimeout(r, 20))
+				activeDestroy--
+			}
+		}
+		
+		const T1 = createToken<Probe1>('CD1')
+		const T2 = createToken<Probe2>('CD2')
+		const T3 = createToken<Probe3>('CD3')
+		const T4 = createToken<Probe4>('CD4')
 		const app = new Orchestrator(new Container({ logger }), { logger, queue: new QueueAdapter({ concurrency: 2 }) })
-		await app.start({
-			[T1]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T2]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T3]: { useFactory: () => new ConcurrencyProbe(20) },
-			[T4]: { useFactory: () => new ConcurrencyProbe(20) },
+		app.register({
+			[T1]: { adapter: Probe1 },
+			[T2]: { adapter: Probe2 },
+			[T3]: { adapter: Probe3 },
+			[T4]: { adapter: Probe4 },
 		})
+		await app.start()
 		await app.stop().catch(() => {})
-		assert.ok(ConcurrencyProbe.peakStop <= 2)
+		assert.ok(peakStop <= 2)
 		await app.start().catch(() => {})
 		await app.destroy().catch(() => {})
-		assert.ok(ConcurrencyProbe.peakDestroy <= 2)
+		assert.ok(peakDestroy <= 2)
+		await Probe1.destroy().catch(() => {})
+		await Probe2.destroy().catch(() => {})
+		await Probe3.destroy().catch(() => {})
+		await Probe4.destroy().catch(() => {})
 	})
 
 	test('tracer start outcomes include failures', async () => {
-		class Good extends Adapter { protected async onStart() {} }
+		class Good extends Adapter {
+			static instance?: Good
+			protected async onStart() {}
+		}
 		class Bad extends Adapter {
+			static instance?: Bad
 			protected async onStart() {
 				throw new Error('fail-start')
 			}
@@ -825,7 +896,7 @@ describe('Orchestrator suite', () => {
 		const app = new Orchestrator(new Container({ logger }), { logger, tracer: { onLayers: () => {}, onPhase: p => phases.push(p) } })
 		let err: unknown
 		try {
-			await app.start({
+			app.register({
 				[TG]: { useFactory: () => new Good({ logger }) },
 				[TB]: { useFactory: () => new Bad({ logger }), dependencies: [TG] },
 			})
@@ -956,53 +1027,17 @@ describe('Orchestrator suite', () => {
 		}
 	})
 
-	test('register helper supports useClass with tuple inject', async () => {
-		interface LPort { info(msg: string): void }
-		const TLOG = createToken<LPort>('Reg:LOG')
-		const TCFG = createToken<{ n: number }>('Reg:CFG')
-		class L implements LPort { info(_m: string) {} }
-		class WithDeps extends Adapter {
-			constructor(public readonly l: LPort, public readonly cfg: { n: number }) {
-				super({ logger })
-			}
-		}
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		const WITH_TOKEN = createToken<WithDeps>('Reg:WITH')
-		await app.start({
-			[TLOG]: { useClass: L },
-			[TCFG]: { useValue: { n: 1 } },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
-		})
-		await app.destroy()
+	test.skip('register helper supports useClass with tuple inject (REMOVED - no longer applicable with Adapter-only)', async () => {
+		// This feature has been removed - we no longer support useClass providers with inject patterns
+		// AdapterProvider is simpler and uses explicit dependencies
 	})
 
-	test('start accepts direct useClass with tuple inject in registration object', async () => {
-		interface LPort { info(msg: string): void }
-		const TLOG = createToken<LPort>('Start:LOG')
-		const TCFG = createToken<{ n: number }>('Start:CFG')
-		class L implements LPort { info(_m: string) {} }
-		class WithDeps extends Adapter {
-			constructor(public readonly l: LPort, public readonly cfg: { n: number }) {
-				super({ logger })
-			}
-
-			protected async onStart() {}
-		}
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		const WITH_TOKEN = createToken<WithDeps>('Start:WITH')
-		await app.start({
-			[TLOG]: { useClass: L },
-			[TCFG]: { useValue: { n: 2 } },
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[WITH_TOKEN]: { useClass: WithDeps, inject: [TLOG, TCFG], dependencies: [TLOG, TCFG] } as any,
-		})
-		await app.destroy()
+	test.skip('start accepts direct useClass with tuple inject in registration object (REMOVED - no longer applicable with Adapter-only)', async () => {
+		// This feature has been removed - we no longer support useClass providers with inject patterns
+		// AdapterProvider is simpler and uses explicit dependencies
 	})
 
-	test('infers dependencies from tuple inject for class provider when dependencies omitted', async () => {
+	test.skip('infers dependencies from tuple inject for class provider when dependencies omitted (REMOVED - no longer applicable with Adapter-only)', async () => {
 		let counter = 0
 		class Rec extends Adapter {
 			public startedAt: number | null = null
@@ -1040,41 +1075,9 @@ describe('Orchestrator suite', () => {
 		await app.destroy()
 	})
 
-	// NEW: inference from tuple inject without explicit dependencies (factory)
-	test('infers dependencies from tuple inject for factory provider when dependencies omitted', async () => {
-		let counter = 0
-		class Rec extends Adapter {
-			public startedAt: number | null = null
-			protected async onStart() {
-				this.startedAt = counter++
-			}
-		}
-		class UsesDeps extends Adapter {
-			public startedAt: number | null = null
-			constructor(public readonly a: Rec, public readonly b: Rec) { super({ logger }) }
-			protected async onStart() { this.startedAt = counter++ }
-		}
-		const TA = createToken<Rec>('InferF:TA')
-		const TB = createToken<Rec>('InferF:TB')
-		const TD = createToken<UsesDeps>('InferF:TD')
-		const c = new Container({ logger })
-		const app = new Orchestrator(c, { logger })
-		await app.start({
-			[TA]: { useFactory: () => new Rec({ logger }) },
-			[TB]: { useFactory: () => new Rec({ logger }) },
-			// dependencies omitted; should be inferred from inject tuple
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			[TD]: { useFactory: (a: Rec, b: Rec) => new UsesDeps(a, b), inject: [TA, TB] } as any,
-		})
-		const a = c.get(TA) as Rec
-		const b = c.get(TB) as Rec
-		const dep = c.get(TD) as UsesDeps
-		assert.ok(a && b && dep)
-		assert.equal(dep.a, a)
-		assert.equal(dep.b, b)
-		assert.ok((a.startedAt as number) < (dep.startedAt as number))
-		assert.ok((b.startedAt as number) < (dep.startedAt as number))
-		await app.destroy()
+	test.skip('infers dependencies from tuple inject for factory provider when dependencies omitted (REMOVED - no longer applicable with Adapter-only)', async () => {
+		// This feature has been removed - automatic dependency inference from inject patterns
+		// AdapterProvider uses explicit dependencies only
 	})
 
 	test('tracer start outcomes include failures', async () => {

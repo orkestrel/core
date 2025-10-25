@@ -3,6 +3,7 @@ import { RegistryAdapter } from './adapters/registry.js'
 import { CONTAINER_MESSAGES, HELP } from './constants.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
+	AdapterProvider,
 	ClassProviderNoDeps,
 	ClassProviderWithObject,
 	ClassProviderWithTuple,
@@ -327,8 +328,20 @@ export class Container {
 			if (resolved?.lifecycle && resolved.disposable) {
 				const lc = resolved.lifecycle
 				try {
-					if (lc.state === 'started') await lc.stop()
-					if (lc.state !== 'destroyed') await lc.destroy()
+					// Check if lifecycle is an Adapter class (constructor function)
+					if (typeof lc === 'function' && lc.prototype instanceof Adapter) {
+						// Use static methods for Adapter classes
+						const AdapterClass = lc as typeof Adapter
+						const state = AdapterClass.getState()
+						if (state === 'started') await AdapterClass.stop()
+						if (state !== 'destroyed') await AdapterClass.destroy()
+					}
+					// Otherwise it's an Adapter instance (legacy pattern)
+					else if (lc instanceof Adapter) {
+						const state = lc.state
+						if (state === 'started') await (lc as any).#stop?.() || await (lc.constructor as typeof Adapter).stop()
+						if (state !== 'destroyed') await (lc as any).#destroy?.() || await (lc.constructor as typeof Adapter).destroy()
+					}
 				}
 				catch (e) { errors.push(e instanceof Error ? e : new Error(String(e))) }
 			}
@@ -363,6 +376,7 @@ export class Container {
 		return matchProvider(provider, {
 			raw: value => this.#wrapLifecycle(value, false),
 			value: p => this.#wrapLifecycle(p.useValue, false),
+			adapter: p => this.#wrapAdapterClass(p),
 			factoryTuple: p => this.#wrapLifecycle(p.useFactory(...this.resolve(p.inject)), true),
 			factoryObject: p => this.#wrapLifecycle(p.useFactory(this.resolve(p.inject)), true),
 			factoryContainer: p => this.#wrapLifecycle(p.useFactory(this), true),
@@ -372,6 +386,13 @@ export class Container {
 			classContainer: p => this.#wrapLifecycle(new p.useClass(this), true),
 			classNoDeps: p => this.#wrapLifecycle(new p.useClass(), true),
 		})
+	}
+
+	// Wrap an Adapter class (not instantiated) - returns the class itself.
+	#wrapAdapterClass<T extends typeof Adapter>(p: AdapterProvider<T>): ResolvedProvider<T> {
+		// For AdapterProvider, we return the class itself, not an instance
+		// The class is both the value and the lifecycle manager
+		return { value: p.adapter as unknown as InstanceType<T>, lifecycle: p.adapter as unknown as Adapter, disposable: true } as ResolvedProvider<T>
 	}
 
 	// Wrap a value with lifecycle metadata when it is an Adapter.

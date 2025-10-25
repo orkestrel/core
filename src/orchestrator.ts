@@ -420,6 +420,7 @@ export class Orchestrator {
 				}
 				return p
 			},
+			adapter: p => p,  // AdapterProvider is always sync
 			factoryTuple: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
 			factoryObject: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
 			factoryContainer: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),

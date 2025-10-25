@@ -1,11 +1,11 @@
 import { describe, test, beforeEach } from 'vitest'
 import assert from 'node:assert/strict'
 import type { LifecycleState, QueuePort } from '@orkestrel/core'
-import { Lifecycle, NoopLogger } from '@orkestrel/core'
+import { Adapter, NoopLogger } from '@orkestrel/core'
 
 let logger: NoopLogger
 
-class TestLifecycle extends Lifecycle {
+class TestLifecycle extends Adapter {
 	public log: string[] = []
 	protected async onCreate(): Promise<void> {
 		this.log.push('create')
@@ -24,12 +24,12 @@ class TestLifecycle extends Lifecycle {
 	}
 }
 
-class FailingStart extends Lifecycle {
+class FailingStart extends Adapter {
 	protected async onStart(): Promise<void> {
 		throw new Error('boom')
 	}
 }
-class HangingStart extends Lifecycle {
+class HangingStart extends Adapter {
 	protected async onStart(): Promise<void> {
 		await new Promise(() => {})
 	}
@@ -106,7 +106,7 @@ describe('Lifecycle suite', () => {
 	})
 
 	test('onTransition runs between hook and state change (filterable in override)', async () => {
-		class Transitions extends Lifecycle {
+		class Transitions extends Adapter {
 			public transitions: string[] = []
 			protected async onStart(): Promise<void> {
 				// no-op
@@ -131,7 +131,7 @@ describe('Lifecycle suite', () => {
 	})
 
 	test('onTransition timeout surfaces as TimeoutError', async () => {
-		class SlowTransition extends Lifecycle {
+		class SlowTransition extends Adapter {
 			protected async onStart(): Promise<void> {
 				// ok
 			}
@@ -147,7 +147,7 @@ describe('Lifecycle suite', () => {
 
 	test('transition not emitted twice for created->created on create()', async () => {
 		const events: LifecycleState[] = []
-		class L extends Lifecycle {
+		class L extends Adapter {
 			protected async onCreate(): Promise<void> {
 				// no-op
 			}
@@ -165,7 +165,7 @@ describe('Lifecycle suite', () => {
 
 	test('emitInitial=false suppresses initial transition', async () => {
 		const events: LifecycleState[] = []
-		class L extends Lifecycle {
+		class L extends Adapter {
 			protected async onStart(): Promise<void> {
 				// no-op
 			}
@@ -195,7 +195,7 @@ describe('Lifecycle suite', () => {
 				return out
 			}
 		}
-		class QLife extends Lifecycle {
+		class QLife extends Adapter {
 			public ok = false
 			protected async onStart(): Promise<void> { this.ok = true }
 			protected async onTransition(): Promise<void> { /* no-op */ }

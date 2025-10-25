@@ -36,7 +36,7 @@ import {
 	isValueProvider,
 } from './helpers.js'
 import { Container, container } from './container.js'
-import { Lifecycle } from './lifecycle.js'
+import { Adapter } from './adapter.js'
 import { RegistryAdapter } from './adapters/registry.js'
 import { LayerAdapter } from './adapters/layer.js'
 import { QueueAdapter } from './adapters/queue.js'
@@ -259,23 +259,23 @@ export class Orchestrator {
 		}
 		// Start all components in dependency order (previously startAll)
 		const layers = this.#topoLayers()
-		const startedOrder: { token: Token<unknown>, lc: Lifecycle }[] = []
+		const startedOrder: { token: Token<unknown>, lc: Adapter }[] = []
 		for (let i = 0; i < layers.length; i++) {
 			const layer = layers[i]
 			const jobs: Array<Task<OrchestratorStartResult>> = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
-				if (inst instanceof Lifecycle && inst.state === 'created') {
+				if (inst instanceof Adapter && inst.state === 'created') {
 					const timeoutMs = this.#getTimeout(tk, 'start')
 					jobs.push(async () => ({ token: tk, lc: inst, result: await this.#runPhase(inst, 'start', timeoutMs) }))
 				}
-				else if (inst instanceof Lifecycle && inst.state === 'started') {
+				else if (inst instanceof Adapter && inst.state === 'started') {
 					startedOrder.push({ token: tk, lc: inst })
 				}
 			}
 			const results = await this.#runLayerWithTracing('start', i, jobs, ({ token: tkn, result: r }) => ({ token: tokenDescription(tkn), ok: r.ok, durationMs: r.durationMs, timedOut: r.ok ? undefined : r.timedOut }))
 			const failures: LifecycleErrorDetail[] = []
-			const successes: { token: Token<unknown>, lc: Lifecycle, durationMs: number }[] = []
+			const successes: { token: Token<unknown>, lc: Adapter, durationMs: number }[] = []
 			for (const { token: tkn, lc, result: r } of results) {
 				if (r.ok) {
 					successes.push({ token: tkn, lc, durationMs: r.durationMs })
@@ -298,7 +298,7 @@ export class Orchestrator {
 					const stopJobs: Array<Task<{ outcome: Outcome, error?: LifecycleErrorDetail }>> = []
 					for (const tk of batch) {
 						const lc2 = this.container.get(tk)
-						if (lc2 instanceof Lifecycle && lc2.state === 'started') {
+						if (lc2 instanceof Adapter && lc2.state === 'started') {
 							const timeoutMs = this.#getTimeout(tk, 'stop')
 							stopJobs.push(async () => this.#stopToken(tk, lc2, timeoutMs, 'rollback'))
 						}
@@ -334,7 +334,7 @@ export class Orchestrator {
 			const jobs: Array<Task<{ outcome: Outcome, error?: LifecycleErrorDetail }>> = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
-				if (inst instanceof Lifecycle && inst.state === 'started') {
+				if (inst instanceof Adapter && inst.state === 'started') {
 					const timeoutMs = this.#getTimeout(tk, 'stop')
 					jobs.push(async () => this.#stopToken(tk, inst, timeoutMs, 'normal'))
 				}
@@ -355,7 +355,7 @@ export class Orchestrator {
 	 *
 	 * @example
 	 * ```ts
-	 * await app.destroy() // ensures stop then destroy for all Lifecycle components
+	 * await app.destroy() // ensures stop then destroy for all Adapter components
 	 * ```
 	 */
 	async destroy(): Promise<void> {
@@ -369,7 +369,7 @@ export class Orchestrator {
 			const jobs: Array<Task<DestroyJobResult>> = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
-				if (!(inst instanceof Lifecycle)) continue
+				if (!(inst instanceof Adapter)) continue
 				if (inst.state === 'destroyed') continue
 				const stopTimeout = this.#getTimeout(tk, 'stop')
 				const destroyTimeout = this.#getTimeout(tk, 'destroy')
@@ -420,6 +420,7 @@ export class Orchestrator {
 				}
 				return p
 			},
+			adapter: p => p,  // AdapterProvider is always sync
 			factoryTuple: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
 			factoryObject: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc), inject: p.inject }),
 			factoryContainer: p => ({ useFactory: wrapFactory(this.#diagnostic, p.useFactory, desc) }),
@@ -490,11 +491,13 @@ export class Orchestrator {
 	}
 
 	// Phase runner used by stop/destroy helpers.
-	async #runPhase(lc: Lifecycle, phase: LifecyclePhase, timeoutMs: number | undefined): Promise<PhaseResult> {
+	async #runPhase(lc: Adapter, phase: LifecyclePhase, timeoutMs: number | undefined): Promise<PhaseResult> {
 		const t0 = this.#now()
 		let timedOut = false
 		try {
-			const p = phase === 'start' ? lc.start() : phase === 'stop' ? lc.stop() : lc.destroy()
+			// Use static methods on the Adapter class
+			const AdapterClass = lc.constructor as typeof Adapter
+			const p = phase === 'start' ? AdapterClass.start() : phase === 'stop' ? AdapterClass.stop() : AdapterClass.destroy()
 			if (typeof timeoutMs === 'number' && timeoutMs > 0) {
 				const timeoutPromise = new Promise<never>((_, reject) => {
 					const id = setTimeout(() => {
@@ -537,7 +540,7 @@ export class Orchestrator {
 	}
 
 	// Stop helper shared by stop() and rollback in start().
-	async #stopToken(tk: Token<unknown>, inst: Lifecycle, timeout: number | undefined, context: LifecycleContext): Promise<{ outcome: Outcome, error?: LifecycleErrorDetail }> {
+	async #stopToken(tk: Token<unknown>, inst: Adapter, timeout: number | undefined, context: LifecycleContext): Promise<{ outcome: Outcome, error?: LifecycleErrorDetail }> {
 		const r = await this.#runPhase(inst, 'stop', timeout)
 		if (r.ok) {
 			safeInvoke(this.#events?.onComponentStop, { token: tk, durationMs: r.durationMs })
@@ -551,7 +554,7 @@ export class Orchestrator {
 	}
 
 	// Destroy helper sits immediately before destroy().
-	async #destroyToken(tk: Token<unknown>, inst: Lifecycle, stopTimeout: number | undefined, destroyTimeout: number | undefined): Promise<DestroyJobResult> {
+	async #destroyToken(tk: Token<unknown>, inst: Adapter, stopTimeout: number | undefined, destroyTimeout: number | undefined): Promise<DestroyJobResult> {
 		const out: { stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] } = {}
 		const localErrors: LifecycleErrorDetail[] = []
 		if (inst.state === 'started') {

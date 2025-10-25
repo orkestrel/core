@@ -47,7 +47,20 @@ export type ClassProviderWithObject<T, O extends Record<string, unknown>> = {
 }
 export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithContainer<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
 
-export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T>
+/**
+ * Provider for Adapter subclasses using the singleton pattern.
+ * Registers an Adapter class directly; lifecycle managed via static methods.
+ * 
+ * @typeParam T - The Adapter subclass constructor type
+ */
+export type AdapterProvider<T extends typeof Adapter> = {
+	readonly adapter: T
+	readonly dependencies?: readonly Token<unknown>[]
+	readonly timeouts?: number
+	readonly inject?: InjectTuple<readonly unknown[]> | InjectObject<Record<string, unknown>>
+}
+
+export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | (T extends typeof Adapter ? AdapterProvider<T> : never)
 
 // -----------------------------------------------------------------------------
 // Provider matching
@@ -55,6 +68,7 @@ export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvi
 export type ProviderMatchHandlers<T> = {
 	raw: (value: T) => Provider<T>
 	value: (p: ValueProvider<T>) => Provider<T>
+	adapter: <A extends typeof Adapter>(p: AdapterProvider<A>) => AdapterProvider<A>
 	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => FactoryProviderWithTuple<T, A>
 	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => FactoryProviderWithObject<T, O>
 	factoryContainer: (p: FactoryProviderWithContainer<T>) => FactoryProviderWithContainer<T>
@@ -68,6 +82,7 @@ export type ProviderMatchHandlers<T> = {
 export type ProviderMatchReturnHandlers<T, R> = {
 	raw: (value: T) => R
 	value: (p: ValueProvider<T>) => R
+	adapter: <A extends typeof Adapter>(p: AdapterProvider<A>) => R
 	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => R
 	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => R
 	factoryContainer: (p: FactoryProviderWithContainer<T>) => R

@@ -9,6 +9,7 @@ import type {
 	FactoryProviderWithObject,
 	ClassProvider,
 	ClassProviderWithTuple,
+	AdapterProvider,
 	AggregateLifecycleError,
 	SchemaSpec,
 	FactoryProviderWithContainer,
@@ -18,6 +19,7 @@ import type {
 	ProviderMatchHandlers,
 	ProviderMatchReturnHandlers,
 } from './types.js'
+import type { Adapter } from './adapter.js'
 
 /**
  * Create a unique Token (a branded `symbol`) with a human‑friendly description.
@@ -150,6 +152,21 @@ export function isFactoryProvider<T>(p: Provider<T>): p is FactoryProvider<T> {
  */
 export function isClassProvider<T>(p: Provider<T>): p is ClassProvider<T> {
 	return isObject(p) && hasOwn(p, 'useClass')
+}
+
+/**
+ * Check if a provider is an AdapterProvider (`{ adapter }`).
+ *
+ * @param p - Provider input
+ * @returns True if `p` is an `AdapterProvider`
+ * @example
+ * ```ts
+ * class MyAdapter extends Adapter {}
+ * isAdapterProvider({ adapter: MyAdapter }) // true
+ * ```
+ */
+export function isAdapterProvider(p: Provider<unknown>): p is AdapterProvider<typeof Adapter> {
+	return isObject(p) && hasOwn(p, 'adapter')
 }
 
 /**
@@ -442,6 +459,9 @@ export function matchProvider<T, R>(provider: Provider<T>, h: ProviderMatchHandl
 
 	// Value provider
 	if (isValueProvider(provider)) return h.value(provider)
+
+	// Adapter provider
+	if (isAdapterProvider(provider)) return h.adapter(provider as AdapterProvider<typeof Adapter>)
 
 	// Factory providers
 	if (isFactoryProvider(provider)) {

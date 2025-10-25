@@ -91,5 +91,5 @@ Benefits of the dependency graph API:
 - More concise: providers and dependencies together
 - Better readability: clear visual structure
 - Type-safe: tokens as symbol keys provide type safety
-- Backwards compatible: original `register(token, provider, deps, timeouts)` still works
+- Breaking change: the original `register(token, provider, deps, timeouts)` method has been removed; use the new dependency graph API.
 

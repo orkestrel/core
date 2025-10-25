@@ -3,7 +3,7 @@ import type { Adapter } from './adapter.js'
 import type { Orchestrator } from './orchestrator.js'
 
 // -----------------------------------------------------------------------------
-// Tokens and provider model
+// Tokens
 // -----------------------------------------------------------------------------
 export type Token<T> = symbol & { readonly __t?: T }
 export type TokensOf<T extends Record<string, unknown>> = { [K in keyof T & string]: Token<T[K]> }
@@ -11,371 +11,180 @@ export type TokenRecord = Record<string, Token<unknown>>
 export type ResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
 export type OptionalResolvedMap<TMap extends TokenRecord> = { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
 
-export interface ValueProvider<T> { readonly useValue: T }
-
-export type InjectTuple<A extends readonly unknown[]> = { readonly [K in keyof A]: Token<A[K]> }
-export type InjectObject<O extends Record<string, unknown>> = Readonly<{ [K in keyof O]: Token<O[K]> }>
-
-export type FactoryProviderNoDeps<T> = { readonly useFactory: () => T }
-export type FactoryProviderWithContainer<T> = { readonly useFactory: (container: Container) => T }
-export type FactoryProviderWithTuple<T, A extends readonly unknown[]> = {
-	readonly useFactory: (...args: A) => T
-	readonly inject: InjectTuple<A>
-}
-export type FactoryProviderWithObject<T, O extends Record<string, unknown>> = {
-	readonly useFactory: (deps: O) => T
-	readonly inject: InjectObject<O>
-}
-export type FactoryProvider<T>
-	= | FactoryProviderNoDeps<T>
-		| FactoryProviderWithContainer<T>
-		| FactoryProviderWithTuple<T, readonly unknown[]>
-		| FactoryProviderWithObject<T, Record<string, unknown>>
-
-export type CtorNoDeps<T> = new () => T
-export type CtorWithContainer<T> = new (container: Container) => T
-
-export type ClassProviderNoDeps<T> = { readonly useClass: CtorNoDeps<T> }
-export type ClassProviderWithContainer<T> = { readonly useClass: CtorWithContainer<T> }
-export type ClassProviderWithTuple<T, A extends readonly unknown[]> = {
-	readonly useClass: new (...args: A) => T
-	readonly inject: InjectTuple<A>
-}
-export type ClassProviderWithObject<T, O extends Record<string, unknown>> = {
-	readonly useClass: new (deps: O) => T
-	readonly inject: InjectObject<O>
-}
-export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithContainer<T> | ClassProviderWithTuple<T, readonly unknown[]> | ClassProviderWithObject<T, Record<string, unknown>>
+// -----------------------------------------------------------------------------
+// Adapter Provider (only provider type)
+// -----------------------------------------------------------------------------
 
 /**
  * Provider for Adapter subclasses using the singleton pattern.
  * Registers an Adapter class directly; lifecycle managed via static methods.
+ * Container registers the class but resolves to the singleton instance.
  * 
- * @typeParam T - The Adapter subclass constructor type
+ * @typeParam T - The Adapter subclass type (instance type)
  */
-export type AdapterProvider<T extends typeof Adapter> = {
-	readonly adapter: T
-	readonly dependencies?: readonly Token<unknown>[]
-	readonly timeouts?: number
-	readonly inject?: InjectTuple<readonly unknown[]> | InjectObject<Record<string, unknown>>
+export type AdapterProvider<T extends Adapter> = {
+	readonly adapter: AdapterSubclass<T>
 }
 
-export type Provider<T> = T | ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | (T extends typeof Adapter ? AdapterProvider<T> : never)
+export type Provider<T> = T extends Adapter ? AdapterProvider<T> : never
 
 // -----------------------------------------------------------------------------
-// Provider matching
+// Adapter subclass type
 // -----------------------------------------------------------------------------
-export type ProviderMatchHandlers<T> = {
-	raw: (value: T) => Provider<T>
-	value: (p: ValueProvider<T>) => Provider<T>
-	adapter: <A extends typeof Adapter>(p: AdapterProvider<A>) => AdapterProvider<A>
-	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => FactoryProviderWithTuple<T, A>
-	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => FactoryProviderWithObject<T, O>
-	factoryContainer: (p: FactoryProviderWithContainer<T>) => FactoryProviderWithContainer<T>
-	factoryNoDeps: (p: FactoryProviderNoDeps<T>) => FactoryProviderNoDeps<T>
-	classTuple: <A extends readonly unknown[]>(p: ClassProviderWithTuple<T, A>) => ClassProviderWithTuple<T, A>
-	classObject: <O extends Record<string, unknown>>(p: ClassProviderWithObject<T, O>) => ClassProviderWithObject<T, O>
-	classContainer: (p: ClassProviderWithContainer<T>) => ClassProviderWithContainer<T>
-	classNoDeps: (p: ClassProviderNoDeps<T>) => ClassProviderNoDeps<T>
+
+/**
+ * Type representing an Adapter subclass constructor with static lifecycle methods.
+ * 
+ * @typeParam I - The instance type of the Adapter subclass
+ */
+export interface AdapterSubclass<I extends Adapter> {
+	new (): I
+	instance: I | undefined
+	getInstance(): I
+	getState(): 'created' | 'started' | 'stopped' | 'destroyed'
+	create(): Promise<I>
+	start(): Promise<I>
+	stop(): Promise<I>
+	destroy(): Promise<I>
+	on(event: string, fn: (state: string) => void): void
+	off(event: string, fn: (state: string) => void): void
 }
 
-export type ProviderMatchReturnHandlers<T, R> = {
-	raw: (value: T) => R
-	value: (p: ValueProvider<T>) => R
-	adapter: <A extends typeof Adapter>(p: AdapterProvider<A>) => R
-	factoryTuple: <A extends readonly unknown[]>(p: FactoryProviderWithTuple<T, A>) => R
-	factoryObject: <O extends Record<string, unknown>>(p: FactoryProviderWithObject<T, O>) => R
-	factoryContainer: (p: FactoryProviderWithContainer<T>) => R
-	factoryNoDeps: (p: FactoryProviderNoDeps<T>) => R
-	classTuple: <A extends readonly unknown[]>(p: ClassProviderWithTuple<T, A>) => R
-	classObject: <O extends Record<string, unknown>>(p: ClassProviderWithObject<T, O>) => R
-	classContainer: (p: ClassProviderWithContainer<T>) => R
-	classNoDeps: (p: ClassProviderNoDeps<T>) => R
+// -----------------------------------------------------------------------------
+// Container types
+// -----------------------------------------------------------------------------
+
+export type Registration<T> = {
+	readonly token: Token<T>
+	readonly provider: Provider<T>
+}
+
+export type ResolvedProvider<T> = {
+	readonly value: T
+	readonly lifecycle?: AdapterSubclass<Adapter>
+}
+
+export type ContainerGetter = <T>(token: Token<T>) => T
+
+export interface ContainerOptions {
+	readonly parent?: Container
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
+}
+
+// -----------------------------------------------------------------------------
+// Orchestrator types
+// -----------------------------------------------------------------------------
+
+export type Phase = 'created' | 'started' | 'stopped' | 'destroyed'
+
+export interface OrchestratorOptions {
+	readonly logger?: LoggerPort
+	readonly diagnostic?: DiagnosticPort
+	readonly timeouts?: Readonly<Record<Phase, number>>
+}
+
+export type LayerSpec<TMap extends TokenRecord> = {
+	readonly tokens: TMap
+	readonly timeouts?: Readonly<Record<Phase, number>>
+}
+
+export interface LayerInstance<TMap extends TokenRecord> {
+	readonly label: string
+	readonly values: ResolvedMap<TMap>
+	readonly lifecycles: ReadonlyArray<AdapterSubclass<Adapter>>
+}
+
+// -----------------------------------------------------------------------------
+// Port types (unchanged)
+// -----------------------------------------------------------------------------
+
+export interface LoggerPort {
+	log(message: string): void
+	warn(message: string): void
+	error(message: string): void
+	debug(message: string): void
+}
+
+export interface DiagnosticPort {
+	report(error: unknown): void
+	reportAll(errors: readonly unknown[]): void
+}
+
+export interface EmitterPort {
+	on(event: string, fn: (...args: readonly unknown[]) => void): this
+	off(event: string, fn: (...args: readonly unknown[]) => void): this
+	once(event: string, fn: (...args: readonly unknown[]) => void): this
+	emit(event: string, ...args: readonly unknown[]): boolean
+}
+
+export interface QueuePort {
+	size: number
+	add<T>(fn: () => Promise<T>): Promise<T>
+	pause(): void
+	resume(): void
+	clear(): void
+}
+
+export interface RegistryPort<T> {
+	readonly size: number
+	get(key: symbol): T | undefined
+	has(key: symbol): boolean
+	set(key: symbol, value: T, lock?: boolean): this
+	delete(key: symbol): boolean
+	clear(): void
+	keys(): IterableIterator<symbol>
+	values(): IterableIterator<T>
+	entries(): IterableIterator<[symbol, T]>
+}
+
+// -----------------------------------------------------------------------------
+// Aggregate error for lifecycle failures
+// -----------------------------------------------------------------------------
+
+export interface AggregateLifecycleError extends Error {
+	readonly errors: readonly Error[]
+	readonly code: string
 }
 
 // -----------------------------------------------------------------------------
 // Utility guards and schema inference
 // -----------------------------------------------------------------------------
+
 export type Guard<T> = (x: unknown) => x is T
 export type PrimitiveTag = 'string' | 'number' | 'boolean' | 'symbol' | 'bigint' | 'function' | 'object'
-export type SchemaSpec = Readonly<{ [k: string]: SchemaSpec | PrimitiveTag | Guard<unknown> }>
-export type ResolveRule<R>
-	= R extends 'string' ? string
-		: R extends 'number' ? number
-			: R extends 'boolean' ? boolean
-				: R extends 'symbol' ? symbol
-					: R extends 'bigint' ? bigint
-						: R extends 'function' ? (...args: unknown[]) => unknown
-							: R extends 'object' ? Record<string, unknown>
-								: R extends Guard<infer U> ? U
-									: R extends SchemaSpec ? FromSchema<R>
-										: never
-export type FromSchema<S extends SchemaSpec> = { [K in keyof S]: ResolveRule<S[K]> }
 
-// -----------------------------------------------------------------------------
-// Logging and diagnostics
-// -----------------------------------------------------------------------------
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+export type SchemaSpec = Readonly<
+	| { type: PrimitiveTag }
+	| { literal: string | number | boolean }
+	| { array: SchemaSpec }
+	| { object: Record<string, SchemaSpec> }
+	| { optional: SchemaSpec }
+	| { union: readonly SchemaSpec[] }
+>
 
-export interface LoggerPort {
-	debug(message: string, ...args: unknown[]): void
-	info(message: string, ...args: unknown[]): void
-	warn(message: string, ...args: unknown[]): void
-	error(message: string, ...args: unknown[]): void
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
-}
-
-export type DiagnosticScope = 'lifecycle' | 'orchestrator' | 'container' | 'registry' | 'internal'
-
-export type LifecyclePhase = 'start' | 'stop' | 'destroy'
-export type LifecycleHook = 'create' | 'start' | 'stop' | 'destroy'
-export type LifecycleContext = 'normal' | 'rollback' | 'container'
-
-export interface LifecycleErrorDetail {
-	tokenDescription: string
-	phase: LifecyclePhase
-	context: LifecycleContext
-	timedOut: boolean
-	durationMs: number
-	error: Error
-}
-
-export interface DiagnosticErrorContext {
-	readonly scope?: DiagnosticScope
-	readonly code?: string
-	readonly token?: string
-	readonly phase?: LifecyclePhase
-	readonly hook?: LifecycleHook
-	readonly timedOut?: boolean
-	readonly durationMs?: number
-	readonly extra?: Record<string, unknown>
-	readonly details?: ReadonlyArray<LifecycleErrorDetail>
-}
-
-export interface DiagnosticPort {
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void
-	error(err: unknown, context?: DiagnosticErrorContext): void
-	fail(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
-	aggregate(key: string, details: ReadonlyArray<LifecycleErrorDetail | Error>, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): never
-	help(key: string, context?: DiagnosticErrorContext & { message?: string, helpUrl?: string, name?: string }): Error
-	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void
-	trace(name: string, payload?: Record<string, unknown>): void
-	event(name: string, payload?: Record<string, unknown>): void
-}
-
-export type MessageMapEntry = Readonly<{ level?: LogLevel, message?: string }>
-export interface DiagnosticMessage extends MessageMapEntry { readonly key: string }
-export interface DiagnosticAdapterOptions { readonly logger?: LoggerPort, readonly messages?: ReadonlyArray<DiagnosticMessage> }
-
-export type AggregateLifecycleError = Error & Readonly<{ details: ReadonlyArray<LifecycleErrorDetail>, errors: ReadonlyArray<Error>, code?: string, helpUrl?: string }>
-
-// -----------------------------------------------------------------------------
-// Emitter and event bus
-// -----------------------------------------------------------------------------
-export type EventMap = Record<string, unknown[]>
-export type EmitterListener<EMap extends EventMap, E extends keyof EMap & string> = (...args: EMap[E]) => void
-
-export interface EmitterPort<EMap extends EventMap = EventMap> {
-	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
-	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this
-	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void
-	removeAllListeners(): void
-}
-
-export interface EmitterAdapterOptions { readonly logger?: LoggerPort, readonly diagnostic?: DiagnosticPort }
-
-export type EventHandler<T> = (payload: T) => void | Promise<void>
-
-export interface EventPort<EMap extends Record<string, unknown> = Record<string, unknown>> {
-	publish<E extends keyof EMap & string>(topic: E, payload: EMap[E]): Promise<void>
-	subscribe<E extends keyof EMap & string>(topic: E, handler: EventHandler<EMap[E]>): Promise<() => void | Promise<void>>
-	topics(): ReadonlyArray<string>
-}
-
-export interface EventAdapterOptions {
-	readonly onError?: (err: unknown, topic: string) => void
-	readonly sequential?: boolean
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-// -----------------------------------------------------------------------------
-// Queue
-// -----------------------------------------------------------------------------
-export interface QueueRunOptions {
-	readonly concurrency?: number
-	readonly timeout?: number
-	readonly deadline?: number
-	readonly signal?: AbortSignal
-}
-
-export interface QueuePort<T = unknown> {
-	enqueue(item: T): Promise<void>
-	dequeue(): Promise<T | undefined>
-	size(): Promise<number>
-	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: QueueRunOptions): Promise<ReadonlyArray<R>>
-}
-
-export interface QueueAdapterOptions extends QueueRunOptions { readonly capacity?: number, readonly logger?: LoggerPort, readonly diagnostic?: DiagnosticPort }
-
-// -----------------------------------------------------------------------------
-// Layering
-// -----------------------------------------------------------------------------
-export interface LayerNode<T = unknown> {
-	readonly token: Token<T>
-	readonly dependencies: readonly Token<unknown>[]
-}
-
-export interface LayerPort {
-	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Token<T>[][]
-	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Token<T>[][]
-}
-
-export interface LayerAdapterOptions { readonly logger?: LoggerPort, readonly diagnostic?: DiagnosticPort }
-
-// -----------------------------------------------------------------------------
-// Lifecycle and Adapter
-// -----------------------------------------------------------------------------
-export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
-
-/**
- * Type helper for Adapter subclass constructors.
- * @typeParam I - The Adapter subclass instance type
- */
-export type AdapterSubclass<I> = {
-	new (opts?: LifecycleOptions): I
-	instance?: I
-	getInstance(opts?: LifecycleOptions): I
-	getState(): LifecycleState
-	create(opts?: LifecycleOptions): Promise<void>
-	start(opts?: LifecycleOptions): Promise<void>
-	stop(): Promise<void>
-	destroy(): Promise<void>
-	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
-	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): AdapterSubclass<I>
-}
-
-export type LifecycleEventMap = {
-	transition: [LifecycleState]
-	create: []
-	start: []
-	stop: []
-	destroy: []
-	error: [Error]
-}
-
-export interface LifecycleOptions {
-	readonly timeouts?: number
-	readonly emitInitial?: boolean
-	readonly emitter?: EmitterPort<LifecycleEventMap>
-	readonly queue?: QueuePort
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-// -----------------------------------------------------------------------------
-// Container
-// -----------------------------------------------------------------------------
-export interface ContainerOptions { readonly parent?: Container, readonly diagnostic?: DiagnosticPort, readonly logger?: LoggerPort }
-
-export interface ResolvedProvider<T> { value: T, lifecycle?: Adapter, disposable: boolean }
-export interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: ResolvedProvider<T> }
-
-export type ContainerGetter = {
-	(name?: string | symbol): Container
-	set(name: string | symbol, c: Container, lock?: boolean): void
-	clear(name: string | symbol, force?: boolean): boolean
-	list(): (string | symbol)[]
-	resolve<T>(token: Token<T>, name?: string | symbol): T
-	resolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never }
-	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O
-	resolve<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): A
-	get<T>(token: Token<T>, name?: string | symbol): T | undefined
-	get<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U | undefined : never }
-	get<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): { [K in keyof O]: O[K] | undefined }
-	get<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): { [K in keyof A]: A[K] | undefined }
-	using(fn: (c: Container) => void | Promise<void>, name?: string | symbol): Promise<void>
-	using<T>(fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
-	using<T>(apply: (c: Container) => void | Promise<void>, fn: (c: Container) => T | Promise<T>, name?: string | symbol): Promise<T>
-}
-
-// -----------------------------------------------------------------------------
-// Orchestrator
-// -----------------------------------------------------------------------------
-export type PhaseTimeouts = Readonly<{ onStart?: number, onStop?: number, onDestroy?: number }>
-
-export type Task<T> = () => Promise<T>
-
-export type PhaseResultOk = Readonly<{ ok: true, durationMs: number }>
-export type PhaseResultErr = Readonly<{ ok: false, durationMs: number, error: Error, timedOut: boolean }>
-export type PhaseResult = PhaseResultOk | PhaseResultErr
-
-export type Outcome = Readonly<{ token: string, ok: boolean, durationMs: number, timedOut?: boolean }>
-
-export type DestroyJobResult = Readonly<{ stopOutcome?: Outcome, destroyOutcome?: Outcome, errors?: LifecycleErrorDetail[] }>
-
-export type OrchestratorStartResult = Readonly<{ token: Token<unknown>, lc: Adapter, result: PhaseResult }>
-
-export interface OrchestratorRegistration<T> {
-	readonly token: Token<T>
-	readonly provider: Provider<T>
-	readonly dependencies?: readonly Token<unknown>[]
-	readonly timeouts?: number | PhaseTimeouts
-}
-
-export interface OrchestratorOptions {
-	readonly timeouts?: number | PhaseTimeouts
-	readonly events?: {
-		onComponentStart?: (info: { token: Token<unknown>, durationMs: number }) => void
-		onComponentStop?: (info: { token: Token<unknown>, durationMs: number }) => void
-		onComponentDestroy?: (info: { token: Token<unknown>, durationMs: number }) => void
-		onComponentError?: (detail: LifecycleErrorDetail) => void
-	}
-	readonly tracer?: {
-		onLayers?: (payload: { layers: string[][] }) => void
-		onPhase?: (payload: { phase: LifecyclePhase, layer: number, outcomes: Outcome[] }) => void
-	}
-	readonly layer?: LayerPort
-	readonly queue?: QueuePort
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
-
-export type OrchestratorGetter = {
-	(name?: string | symbol): Orchestrator
-	set(name: string | symbol, o: Orchestrator, lock?: boolean): void
-	clear(name: string | symbol, force?: boolean): boolean
-	list(): (string | symbol)[]
-}
-
-export interface RegisterOptions {
-	dependencies?: Token<unknown>[] | Record<string, Token<unknown>>
-	timeouts?: number | PhaseTimeouts
-}
-
-export type OrchestratorGraphEntry<T = unknown>
-	= | (ValueProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
-		| (FactoryProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
-		| (ClassProvider<T> & { readonly dependencies?: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts })
-
-export type OrchestratorGraph = Readonly<Record<symbol, OrchestratorGraphEntry>>
-
-export interface NodeEntry { readonly token: Token<unknown>, readonly dependencies: readonly Token<unknown>[], readonly timeouts?: number | PhaseTimeouts }
-
-// -----------------------------------------------------------------------------
-// Registry (named singletons)
-// -----------------------------------------------------------------------------
-export interface RegistryPort<T> {
-	get(name?: string | symbol): T | undefined
-	resolve(name?: string | symbol): T
-	set(name: string | symbol, value: T, lock?: boolean): void
-	clear(name?: string | symbol, force?: boolean): boolean
-	list(): ReadonlyArray<string | symbol>
-}
-
-export interface RegistryAdapterOptions<T> {
-	readonly label?: string
-	readonly default?: { readonly key?: symbol, readonly value: T }
-	readonly logger?: LoggerPort
-	readonly diagnostic?: DiagnosticPort
-}
+export type InferSchema<S extends SchemaSpec> = S extends { type: 'string' }
+	? string
+	: S extends { type: 'number' }
+		? number
+		: S extends { type: 'boolean' }
+			? boolean
+			: S extends { type: 'symbol' }
+				? symbol
+				: S extends { type: 'bigint' }
+					? bigint
+					: S extends { type: 'function' }
+						? (...args: readonly unknown[]) => unknown
+						: S extends { type: 'object' }
+							? Record<string, unknown>
+							: S extends { literal: infer L }
+								? L
+								: S extends { array: infer A extends SchemaSpec }
+									? ReadonlyArray<InferSchema<A>>
+									: S extends { object: infer O extends Record<string, SchemaSpec> }
+										? { readonly [K in keyof O]: InferSchema<O[K]> }
+										: S extends { optional: infer U extends SchemaSpec }
+											? InferSchema<U> | undefined
+											: S extends { union: readonly (infer U extends SchemaSpec)[] }
+												? InferSchema<U>
+												: never

@@ -4,75 +4,55 @@ import { CONTAINER_MESSAGES, HELP } from './constants.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
 	AdapterProvider,
-	ClassProviderNoDeps,
-	ClassProviderWithObject,
-	ClassProviderWithTuple,
-	ContainerOptions,
+	AdapterSubclass,
 	DiagnosticPort,
-	FactoryProviderNoDeps,
-	FactoryProviderWithObject,
-	FactoryProviderWithTuple,
-	InjectObject,
-	InjectTuple,
 	LoggerPort,
-	OptionalResolvedMap,
 	Provider,
 	Registration,
-	ResolvedMap,
 	ResolvedProvider,
 	Token,
 	TokenRecord,
-	ValueProvider,
+	ContainerOptions,
 	ContainerGetter,
 } from './types.js'
 import {
 	isToken,
-	isTokenArray,
-	isTokenRecord,
 	tokenDescription,
-	matchProvider,
+	isAdapterProvider,
 } from './helpers.js'
 import { LoggerAdapter } from './adapters/logger'
 
 /**
- * Minimal, strongly-typed DI container for tokens and providers.
+ * Minimal, strongly-typed DI container for Adapter classes.
  *
  * Features
- * - Register value, factory, or class providers under token keys.
- * - Resolve single tokens or maps strictly (throws on missing) or optionally (returns undefined).
+ * - Register Adapter classes under token keys.
+ * - Resolve tokens to Adapter singleton instances.
  * - Create child scopes that inherit providers; use using() to run scoped work with auto cleanup.
- * - Destroy lifecycle-owning instances deterministically.
+ * - Destroy lifecycle-owning instances deterministically via static methods.
  *
  * @example
  * ```ts
  * import { Container, createToken } from '@orkestrel/core'
  *
- * const A = createToken<number>('A')
- * const B = createToken<string>('B')
- * const C = createToken<{ a: number, b: string }>('C')
+ * class HttpServer extends Adapter {
+ *   protected async onStart() { /* start server */ }
+ *   protected async onStop() { /* stop server */ }
+ * }
  *
+ * const ServerToken = createToken<HttpServer>('Server')
  * const c = new Container()
- * c.set(A, 1)
- * c.set(B, 'two')
- * c.register(C, { useFactory: (a, b) => ({ a, b }), inject: [A, B] })
+ * c.register(ServerToken, { adapter: HttpServer })
  *
- * const merged = c.resolve(C) // { a: 1, b: 'two' }
- * const { a, b } = c.resolve({ a: A, b: B })
+ * const server = c.resolve(ServerToken) // HttpServer instance (singleton)
  *
- * await c.using(async (scope) => {
- *   // scoped overrides
- *   scope.set(A, 99)
- *   const { a: scopedA } = scope.resolve({ a: A }) // 99
- *   // scope destroyed automatically afterwards
- * })
- *
- * await c.destroy() // stops and destroys owned Adapter instances
+ * await c.destroy() // calls HttpServer.stop(), HttpServer.destroy()
  * ```
  */
 export class Container {
 	#destroyed = false
 
-	readonly #registry: RegistryAdapter<Registration<unknown>>
+	readonly #registry: RegistryAdapter<Registration<Adapter>>
 	readonly #parent?: Container
 	readonly #diagnostic: DiagnosticPort
 	readonly #logger: LoggerPort
@@ -90,7 +70,7 @@ export class Container {
 		this.#parent = opts.parent
 		this.#logger = opts.logger ?? new LoggerAdapter()
 		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: CONTAINER_MESSAGES })
-		this.#registry = new RegistryAdapter<Registration<unknown>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
+		this.#registry = new RegistryAdapter<Registration<Adapter>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
 	/**
@@ -107,148 +87,81 @@ export class Container {
 	 */
 	get logger(): LoggerPort { return this.#logger }
 
-	// Overload: register with tuple-injected factory/class providers.
-	register<T, A extends readonly unknown[]>(token: Token<T>, provider: FactoryProviderWithTuple<T, A> | ClassProviderWithTuple<T, A>, lock?: boolean): this
-	// Overload: register with object-injected factory/class providers.
-	register<T, O extends Record<string, unknown>>(token: Token<T>, provider: FactoryProviderWithObject<T, O> | ClassProviderWithObject<T, O>, lock?: boolean): this
-	// Overload: register with no-deps/class-or-factory-or-value providers.
-	register<T>(token: Token<T>, provider: T | ValueProvider<T> | FactoryProviderNoDeps<T> | ClassProviderNoDeps<T>, lock?: boolean): this
 	/**
-	 * Register a provider under a token.
+	 * Register an Adapter class under a token.
 	 *
-	 * Supported shapes
-	 * - Value: `{ useValue }`
-	 * - Factory: `{ useFactory }` with optional inject tuple/object or container arg
-	 * - Class: `{ useClass }` with optional inject tuple/object or container arg
-	 *
-	 * @typeParam T - Token value type.
-	 * @param token - The unique token to associate with the provider.
-	 * @param provider - The provider object or raw value.
+	 * @typeParam T - Adapter instance type.
+	 * @param token - The unique token to associate with the Adapter class.
+	 * @param provider - The AdapterProvider containing the Adapter class.
 	 * @param lock - When true, prevents re-registration for the same token.
 	 * @returns This container for chaining.
 	 *
 	 * @example
 	 * ```ts
-	 * // value
-	 * container.register(Port, { useValue: impl })
-	 * // factory with tuple inject
-	 * container.register(Port, { useFactory: (a, b) => make(a, b), inject: [A, B] })
-	 * // class with object inject
-	 * container.register(Port, { useClass: Impl, inject: { a: A, b: B } })
-	 * // lock to prevent override
-	 * container.register(Port, { useValue: impl }, true)
+	 * class MyAdapter extends Adapter {}
+	 * container.register(AdapterToken, { adapter: MyAdapter })
 	 * ```
 	 */
-	register<T>(token: Token<T>, provider: Provider<T>, lock?: boolean): this {
+	register<T extends Adapter>(token: Token<T>, provider: AdapterProvider<T>, lock?: boolean): this {
 		this.#assertNotDestroyed()
+		if (!isAdapterProvider(provider)) {
+			this.#diagnostic.fail('ORK1007', { scope: 'container', message: `Provider for ${tokenDescription(token)} must be an AdapterProvider ({ adapter: AdapterClass })`, helpUrl: HELP.providers })
+		}
 		this.#registry.set(token, { token, provider }, lock)
 		return this
 	}
 
 	/**
-	 * Shorthand for registering a value provider.
-	 *
-	 * @typeParam T - Token value type
-	 * @param token - The token to register the value under
-	 * @param value - The value to register
-	 * @param lock - When true, prevents re-registration for this token (default: false)
-     * @returns void
-	 *
-	 * @example
-	 * ```ts
-	 * container.set(ConfigToken, { apiUrl: 'https://api.example.com' })
-	 * ```
-	 */
-	set<T>(token: Token<T>, value: T, lock?: boolean): void { this.register(token, { useValue: value }, lock) }
-
-	/**
 	 * Check if a provider is available for the token (searches parent containers).
 	 *
-	 * @typeParam T - Token value type
+	 * @typeParam T - Adapter type
 	 * @param token - The token to check
 	 * @returns True if a provider is registered for the token, false otherwise
 	 *
 	 * @example
 	 * ```ts
-	 * if (container.has(ConfigToken)) {
-	 *   const config = container.resolve(ConfigToken)
+	 * if (container.has(AdapterToken)) {
+	 *   const adapter = container.resolve(AdapterToken)
 	 * }
 	 * ```
 	 */
-	has<T>(token: Token<T>): boolean {
+	has<T extends Adapter>(token: Token<T>): boolean {
 		return !!this.#registry.get(token) || (this.#parent?.has(token) ?? false)
 	}
 
-	// Overload: resolve a single token strictly.
-	resolve<T>(token: Token<T>): T
-	// Overload: resolve an inject object to a plain object.
-	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>): O
-	// Overload: resolve an inject tuple to a tuple of values.
-	resolve<A extends readonly unknown[]>(tokens: InjectTuple<A>): A
-	// Overload: resolve a token map to a map of values.
-	resolve<TMap extends TokenRecord>(tokens: TMap): ResolvedMap<TMap>
 	/**
-	 * Strictly resolve a single token or a token map. Missing tokens cause ORK1006 failures.
+	 * Strictly resolve a token to its Adapter singleton instance. Missing tokens cause ORK1006 failures.
 	 *
-	 * @param tokenOrMap - Token to resolve, or a record of tokens to resolve into a map.
-	 * @returns The resolved value for a token, or a map/tuple of resolved values when given a record/tuple.
+	 * @param token - Token to resolve
+	 * @returns The Adapter singleton instance for the registered Adapter class
 	 *
 	 * @example
 	 * ```ts
-	 * const { a, b } = container.resolve({ a: A, b: B })
-	 * const [a, b] = container.resolve([A, B] as const)
+	 * const server = container.resolve(ServerToken) // HttpServer instance
 	 * ```
 	 */
-	resolve(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>): unknown {
-		if (isToken(tokenOrMap)) {
-			const reg = this.#lookup(tokenOrMap)
-			if (!reg) {
-				this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tokenOrMap)}`, helpUrl: HELP.providers })
-			}
-			return this.#materialize(reg).value
+	resolve<T extends Adapter>(token: Token<T>): T {
+		const reg = this.#lookup(token)
+		if (!reg) {
+			this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(token)}`, helpUrl: HELP.providers })
 		}
-		if (isTokenRecord(tokenOrMap)) {
-			return this.#retrievalMap(tokenOrMap, true)
-		}
-		if (isTokenArray(tokenOrMap)) {
-			return this.#retrievalTuple(tokenOrMap, true)
-		}
-		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: resolve() called with invalid argument' })
+		return this.#materialize(reg).value
 	}
 
-	// Overload: optionally get a single token.
-	get<T>(token: Token<T>): T | undefined
-	// Overload: optionally get an inject tuple to a tuple of optional values.
-	get<A extends readonly unknown[]>(tokens: InjectTuple<A>): { [K in keyof A]: A[K] | undefined }
-	// Overload: optionally get an inject object to a plain object of optional values.
-	get<O extends Record<string, unknown>>(tokens: InjectObject<O>): { [K in keyof O]: O[K] | undefined }
-	// Overload: optionally get a map of tokens.
-	get<TMap extends TokenRecord>(tokens: TMap): OptionalResolvedMap<TMap>
 	/**
-	 * Optionally resolve a single token or a map of tokens; missing entries return undefined.
+	 * Optionally resolve a token to its Adapter singleton instance; missing tokens return undefined.
 	 *
-	 * @param tokenOrMap - Token to get, or a record/tuple of tokens to get into a map/tuple
-	 * @returns The value for a token or undefined, or a map/tuple of values (possibly undefined)
+	 * @param token - Token to get
+	 * @returns The Adapter singleton instance or undefined
 	 *
 	 * @example
 	 * ```ts
-	 * const maybeCfg = container.get(ConfigToken) // T | undefined
-	 * const { a, b } = container.get({ a: A, b: B }) // { a?: A, b?: B }
-	 * const [a, b] = container.get([A, B] as const) // [A | undefined, B | undefined]
+	 * const maybeServer = container.get(ServerToken) // HttpServer | undefined
 	 * ```
 	 */
-	get(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>): unknown {
-		if (isToken(tokenOrMap)) {
-			const reg = this.#lookup(tokenOrMap)
-			return reg ? this.#materialize(reg).value : undefined
-		}
-		if (isTokenRecord(tokenOrMap)) {
-			return this.#retrievalMap(tokenOrMap, false)
-		}
-		if (isTokenArray(tokenOrMap)) {
-			return this.#retrievalTuple(tokenOrMap, false)
-		}
-		this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: get() called with invalid argument' })
+	get<T extends Adapter>(token: Token<T>): T | undefined {
+		const reg = this.#lookup(token)
+		return reg ? this.#materialize(reg).value : undefined
 	}
 
 	/**
@@ -259,7 +172,7 @@ export class Container {
 	 * @example
 	 * ```ts
 	 * const child = container.createChild()
-	 * child.set(OverrideToken, newValue)
+	 * child.register(OverrideToken, { adapter: OverrideAdapter })
 	 * ```
 	 */
 	createChild(): Container { return new Container({ parent: this, diagnostic: this.diagnostic, logger: this.logger }) }
@@ -283,10 +196,10 @@ export class Container {
 	 *
 	 * @example
 	 * ```ts
-	 * const out = await container.using(async (scope) => {
-	 *   scope.set(A, 41)
-	 *   return scope.resolve(A) + 1
-	 * }) // => 42
+	 * await container.using(async (scope) => {
+	 *   scope.register(TestAdapter, { adapter: TestAdapter })
+	 *   // child scope destroyed automatically
+	 * })
 	 * ```
 	 */
 	async using(
@@ -305,10 +218,10 @@ export class Container {
 	}
 
 	/**
-	 * Destroy owned Adapter instances (stop if needed, then destroy).
+	 * Destroy owned Adapter instances via static methods (stop if needed, then destroy).
 	 *
-	 * Idempotent - safe to call multiple times. Iterates through all registered instances,
-	 * stops any that are started, and destroys all that are disposable.
+	 * Idempotent - safe to call multiple times. Iterates through all registered Adapter classes,
+	 * calls their static stop() and destroy() methods as needed.
 	 *
 	 * @throws AggregateLifecycleError with code ORK1016 if errors occur during destruction
 	 *
@@ -325,25 +238,12 @@ export class Container {
 			const reg = this.#registry.get(key)
 			if (!reg) continue
 			const resolved = reg.resolved
-			if (resolved?.lifecycle && resolved.disposable) {
-				const lc = resolved.lifecycle
+			if (resolved?.lifecycle) {
+				const AdapterClass = resolved.lifecycle
 				try {
-					// Check if lifecycle is an Adapter class (constructor function)
-					if (typeof lc === 'function' && 'getState' in lc) {
-						// Use static methods for Adapter classes
-						const AdapterClass = lc as typeof Adapter
-						const state = AdapterClass.getState()
-						if (state === 'started') await AdapterClass.stop()
-						if (state !== 'destroyed') await AdapterClass.destroy()
-					}
-					// Otherwise it's an Adapter instance
-					else if (lc instanceof Adapter) {
-						// Get the constructor and use its static methods
-						const AdapterClass = lc.constructor as typeof Adapter
-						const state = AdapterClass.getState()
-						if (state === 'started') await AdapterClass.stop()
-						if (state !== 'destroyed') await AdapterClass.destroy()
-					}
+					const state = AdapterClass.getState()
+					if (state === 'started') await AdapterClass.stop()
+					if (state !== 'destroyed') await AdapterClass.destroy()
 				}
 				catch (e) { errors.push(e instanceof Error ? e : new Error(String(e))) }
 			}
@@ -354,53 +254,32 @@ export class Container {
 	}
 
 	// Lookup a registration by token, searching parent containers as needed.
-	#lookup<T>(token: Token<T>): Registration<T> | undefined {
+	#lookup<T extends Adapter>(token: Token<T>): Registration<T> | undefined {
 		const here = this.#registry.get(token)
 		if (here && this.#isRegistrationOf(here, token)) return here
 		return this.#parent ? this.#parent.#lookup(token) : undefined
 	}
 
 	// Narrow a registration to its token type by identity.
-	#isRegistrationOf<T>(reg: Registration<unknown>, token: Token<T>): reg is Registration<T> {
+	#isRegistrationOf<T extends Adapter>(reg: Registration<Adapter>, token: Token<T>): reg is Registration<T> {
 		return reg.token === token
 	}
 
 	// Resolve or instantiate a provider tied to a registration (memoized).
-	#materialize<T>(reg: Registration<T>): ResolvedProvider<T> {
+	#materialize<T extends Adapter>(reg: Registration<T>): ResolvedProvider<T> {
 		if (reg.resolved) return reg.resolved
-		const resolved = this.#instantiate(reg.provider)
+		const provider = reg.provider
+		if (!isAdapterProvider(provider)) {
+			this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: provider is not an AdapterProvider' })
+		}
+		// Get the singleton instance from the Adapter class
+		const instance = provider.adapter.getInstance() as T
+		const resolved: ResolvedProvider<T> = { 
+			value: instance, 
+			lifecycle: provider.adapter as AdapterSubclass<Adapter>
+		}
 		reg.resolved = resolved
 		return resolved
-	}
-
-	// Instantiate a provider (value/factory/class) and wrap lifecycle if present.
-	#instantiate<T>(provider: Provider<T>): ResolvedProvider<T> {
-		return matchProvider(provider, {
-			raw: value => this.#wrapLifecycle(value, false),
-			value: p => this.#wrapLifecycle(p.useValue, false),
-			adapter: p => this.#wrapAdapterClass(p) as any,  // AdapterProvider returns instance type
-			factoryTuple: p => this.#wrapLifecycle(p.useFactory(...this.resolve(p.inject)), true),
-			factoryObject: p => this.#wrapLifecycle(p.useFactory(this.resolve(p.inject)), true),
-			factoryContainer: p => this.#wrapLifecycle(p.useFactory(this), true),
-			factoryNoDeps: p => this.#wrapLifecycle(p.useFactory(), true),
-			classTuple: p => this.#wrapLifecycle(new p.useClass(...this.resolve(p.inject)), true),
-			classObject: p => this.#wrapLifecycle(new p.useClass(this.resolve(p.inject)), true),
-			classContainer: p => this.#wrapLifecycle(new p.useClass(this), true),
-			classNoDeps: p => this.#wrapLifecycle(new p.useClass(), true),
-		})
-	}
-
-	// Wrap an Adapter class - returns the singleton instance, tracks the class for lifecycle.
-	#wrapAdapterClass<T extends typeof Adapter>(p: AdapterProvider<T>): ResolvedProvider<InstanceType<T>> {
-		// Register the Adapter class, but resolve to its singleton instance
-		// The class manages its own singleton via static methods
-		const instance = p.adapter.getInstance()
-		return { value: instance as InstanceType<T>, lifecycle: p.adapter as unknown as Adapter, disposable: true }
-	}
-
-	// Wrap a value with lifecycle metadata when it is an Adapter.
-	#wrapLifecycle<T>(value: T, disposable: boolean): ResolvedProvider<T> {
-		return value instanceof Adapter ? { value, lifecycle: value, disposable } : { value, disposable }
 	}
 
 	// Ensure the container hasn't been destroyed before mutating state.
@@ -409,68 +288,18 @@ export class Container {
 			this.#diagnostic.fail('ORK1005', { scope: 'container', message: 'Container already destroyed', helpUrl: HELP.container })
 		}
 	}
-
-	// Consolidated map retrieval for resolve()/get() (strict toggles error behavior).
-	#retrievalMap(tokens: TokenRecord, strict: boolean): Record<string, unknown> {
-		const out: Record<string, unknown> = {}
-		for (const key of Object.keys(tokens)) {
-			const tk = tokens[key]
-			const reg = this.#lookup(tk)
-			if (!reg) {
-				if (strict) {
-					this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tk)}`, helpUrl: HELP.providers })
-				}
-				out[key] = undefined
-				continue
-			}
-			out[key] = this.#materialize(reg).value
-		}
-		return out
-	}
-
-	// Consolidated tuple retrieval for resolve()/get() when given an array of tokens.
-	#retrievalTuple(tokens: ReadonlyArray<Token<unknown>>, strict: boolean): ReadonlyArray<unknown> {
-		const out: unknown[] = new Array(tokens.length)
-		for (let i = 0; i < tokens.length; i++) {
-			const tk = tokens[i]
-			const reg = this.#lookup(tk)
-			if (!reg) {
-				if (strict) {
-					this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(tk)}`, helpUrl: HELP.providers })
-				}
-				out[i] = undefined
-				continue
-			}
-			out[i] = this.#materialize(reg).value
-		}
-		return out
-	}
 }
 
 const containerRegistry = new RegistryAdapter<Container>({ label: 'container', default: { value: new Container() } })
 
-function containerResolve<T>(token: Token<T>, name?: string | symbol): T
-function containerResolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O
-function containerResolve<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): A
-function containerResolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): ResolvedMap<TMap>
-function containerResolve(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>, name?: string | symbol): unknown {
+function containerResolve<T extends Adapter>(token: Token<T>, name?: string | symbol): T {
 	const c = containerRegistry.resolve(name)
-	if (isToken(tokenOrMap)) return c.resolve(tokenOrMap)
-	if (isTokenRecord(tokenOrMap)) return c.resolve(tokenOrMap)
-	if (isTokenArray(tokenOrMap)) return c.resolve(tokenOrMap)
-	containerRegistry.diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: container.resolve called with invalid argument' })
+	return c.resolve(token)
 }
 
-function containerGet<T>(token: Token<T>, name?: string | symbol): T | undefined
-function containerGet<A extends readonly unknown[]>(tokens: InjectTuple<A>, name?: string | symbol): { [K in keyof A]: A[K] | undefined }
-function containerGet<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): { [K in keyof O]: O[K] | undefined }
-function containerGet<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): OptionalResolvedMap<TMap>
-function containerGet(tokenOrMap: Token<unknown> | TokenRecord | ReadonlyArray<Token<unknown>>, name?: string | symbol): unknown {
+function containerGet<T extends Adapter>(token: Token<T>, name?: string | symbol): T | undefined {
 	const c = containerRegistry.resolve(name)
-	if (isTokenArray(tokenOrMap)) return c.get(tokenOrMap)
-	if (isTokenRecord(tokenOrMap)) return c.get(tokenOrMap)
-	if (isToken(tokenOrMap)) return c.get(tokenOrMap)
-	containerRegistry.diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: container.get called with invalid argument' })
+	return c.get(token)
 }
 
 function containerUsing(fn: (c: Container) => void | Promise<void>, name?: string | symbol): Promise<void>
@@ -498,12 +327,13 @@ function containerUsing(
  * ```ts
  * import { container, createToken } from '@orkestrel/core'
  *
- * const A = createToken<number>('A')
- * container().set(A, 7)
- * const v = container.resolve(A) // 7
+ * class MyAdapter extends Adapter {}
+ * const A = createToken<MyAdapter>('A')
+ * container().register(A, { adapter: MyAdapter })
+ * const adapter = container.resolve(A)
  *
  * await container.using(async (scope) => {
- *   scope.set(A, 1)
+ *   scope.register(A, { adapter: AnotherAdapter })
  *   // scoped registration does not leak
  * })
  * ```

@@ -288,58 +288,6 @@ this.#emitter.on(evt, fn)
 this.#emitter.off(evt, fn)
 }
 
-/* Public Instance Methods - For direct instantiation (tests) */
-
-/**
- * Transition this instance to 'created' state (idempotent).
- * Note: Prefer static methods for production use.
- */
-async create(): Promise<void> {
-	await this.#create()
-}
-
-/**
- * Transition this instance to 'started' state.
- * Note: Prefer static methods for production use.
- */
-async start(): Promise<void> {
-	await this.#start()
-}
-
-/**
- * Transition this instance to 'stopped' state.
- * Note: Prefer static methods for production use.
- */
-async stop(): Promise<void> {
-	await this.#stop()
-}
-
-/**
- * Transition this instance to 'destroyed' state.
- * Note: Prefer static methods for production use.
- */
-async destroy(): Promise<void> {
-	await this.#destroy()
-}
-
-/**
- * Subscribe to a lifecycle event on this instance.
- * Note: Prefer static methods for production use.
- */
-on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
-	this.#on(evt, fn)
-	return this
-}
-
-/**
- * Unsubscribe from a lifecycle event on this instance.
- * Note: Prefer static methods for production use.
- */
-off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): this {
-	this.#off(evt, fn)
-	return this
-}
-
 /* Protected Hook Methods - Override in subclasses */
 
 /**

@@ -36,8 +36,8 @@ import { LoggerAdapter } from './adapters/logger'
  * import { Container, createToken } from '@orkestrel/core'
  *
  * class HttpServer extends Adapter {
- *   protected async onStart() { /* start server */ }
- *   protected async onStop() { /* stop server */ }
+ *   protected async onStart() { }
+ *   protected async onStop() { }
  * }
  *
  * const ServerToken = createToken<HttpServer>('Server')

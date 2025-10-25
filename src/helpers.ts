@@ -1,9 +1,8 @@
-import { arrayOf, hasSchema, isBoolean, isError, isNumber, isObject, isString, literalOf, hasOwn } from '@orkestrel/validator'
+import { arrayOf, isBoolean, isError, isNumber, isObject, isString, literalOf } from '@orkestrel/validator'
 import type {
 	Token,
 	AdapterProvider,
 	AggregateLifecycleError,
-	SchemaSpec,
 } from './types.js'
 import type { Adapter } from './adapter.js'
 
@@ -106,7 +105,7 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
  * ```
  */
 export function isAdapterProvider<T extends Adapter>(p: unknown): p is AdapterProvider<T> {
-	return isObject(p) && hasOwn(p, 'adapter')
+	return isObject(p) && Object.hasOwn(p, 'adapter')
 }
 
 /**
@@ -171,15 +170,16 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 	durationMs: number
 	error: Error
 } {
-	const schema = {
-		tokenDescription: isString,
-		phase: literalOf('start', 'stop', 'destroy'),
-		context: literalOf('normal', 'rollback', 'container'),
-		timedOut: isBoolean,
-		durationMs: isNumber,
-		error: (e: unknown): e is Error => isError(e),
-	} satisfies SchemaSpec
-	return hasSchema(x, schema)
+	if (!isObject(x)) return false
+	const obj = x as Record<string, unknown>
+	return (
+		isString(obj.tokenDescription)
+		&& literalOf('start', 'stop', 'destroy')(obj.phase)
+		&& literalOf('normal', 'rollback', 'container')(obj.context)
+		&& isBoolean(obj.timedOut)
+		&& isNumber(obj.durationMs)
+		&& isError(obj.error)
+	)
 }
 
 /**
@@ -194,9 +194,10 @@ export function isLifecycleErrorDetail(x: unknown): x is {
  * ```
  */
 export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
-	const schema = {
-		details: arrayOf(isLifecycleErrorDetail),
-		errors: arrayOf((e: unknown): e is Error => isError(e)),
-	} satisfies SchemaSpec
-	return hasSchema(x, schema)
+	if (!isObject(x)) return false
+	const obj = x as Record<string, unknown>
+	return (
+		arrayOf(isLifecycleErrorDetail)(obj.details)
+		&& arrayOf((e: unknown): e is Error => isError(e))(obj.errors)
+	)
 }

@@ -77,14 +77,14 @@ describe('Container suite', () => {
 		const TOK = createToken<TestAdapter>('lifecycle')
 		const c = new Container({ logger })
 		c.register(TOK, { adapter: TestAdapter })
-		
+
 		const instance = c.resolve(TOK)
 		assert.equal(instance.started, 0)
-		
+
 		await TestAdapter.start()
 		assert.equal(TestAdapter.getState(), 'started')
 		assert.equal(instance.started, 1)
-		
+
 		await c.destroy()
 		assert.equal(TestAdapter.getState(), 'created') // destroy clears singleton
 	})
@@ -95,15 +95,15 @@ describe('Container suite', () => {
 		const c = new Container({ logger })
 		c.register(A, { adapter: FailingOnDestroy })
 		c.register(B, { adapter: AnotherFailingOnDestroy })
-		
+
 		// Resolve to create instances
 		c.resolve(A)
 		c.resolve(B)
-		
+
 		// Start them so they need to be stopped
 		await FailingOnDestroy.start()
 		await AnotherFailingOnDestroy.start()
-		
+
 		// Destroy should aggregate errors
 		await assert.rejects(() => c.destroy(), (err: unknown) => {
 			if (isAggregateLifecycleError(err)) {
@@ -115,7 +115,7 @@ describe('Container suite', () => {
 			}
 			return false
 		})
-		
+
 		// Idempotent - second destroy is safe
 		await c.destroy()
 	})
@@ -124,7 +124,7 @@ describe('Container suite', () => {
 		const TOK = createToken<TestAdapter>('inherit')
 		const parent = new Container({ logger })
 		parent.register(TOK, { adapter: TestAdapter })
-		
+
 		const child = parent.createChild()
 		assert.equal(child.has(TOK), true)
 		const instance = child.resolve(TOK)
@@ -134,13 +134,13 @@ describe('Container suite', () => {
 	test('using(fn) runs in a child scope and destroys it after', async () => {
 		const TOK = createToken<TestAdapter>('scoped')
 		const c = new Container({ logger })
-		
+
 		await c.using((scope) => {
 			scope.register(TOK, { adapter: TestAdapter })
 			const instance = scope.resolve(TOK)
 			assert.equal(instance.value, 42)
 		})
-		
+
 		// After using, the scoped registration is gone
 		assert.equal(c.has(TOK), false)
 	})
@@ -150,11 +150,11 @@ describe('Container suite', () => {
 			static instance?: Override
 			value = 100
 		}
-		
+
 		const TOK = createToken<Adapter>('override')
 		const c = new Container({ logger })
 		c.register(TOK, { adapter: TestAdapter })
-		
+
 		await c.using(
 			(scope) => {
 				scope.register(TOK, { adapter: Override })
@@ -162,13 +162,13 @@ describe('Container suite', () => {
 			(scope) => {
 				const instance = scope.resolve(TOK) as Override
 				assert.equal(instance.value, 100)
-			}
+			},
 		)
-		
+
 		// Parent still has original
 		const instance = c.resolve(TOK) as TestAdapter
 		assert.equal(instance.value, 42)
-		
+
 		await Override.destroy().catch(() => {})
 	})
 
@@ -176,7 +176,7 @@ describe('Container suite', () => {
 		const TOK = createToken<TestAdapter>('locked')
 		const c = new Container({ logger })
 		c.register(TOK, { adapter: TestAdapter }, true)
-		
+
 		assert.throws(() => {
 			c.register(TOK, { adapter: TestAdapter })
 		}, /Cannot replace locked/)
@@ -185,14 +185,14 @@ describe('Container suite', () => {
 	test('using(fn) resolves promised return value', async () => {
 		const TOK = createToken<TestAdapter>('promised')
 		const c = new Container({ logger })
-		
+
 		const result = await c.using(async (scope) => {
 			scope.register(TOK, { adapter: TestAdapter })
 			const instance = scope.resolve(TOK)
 			await new Promise(r => setTimeout(r, 1))
 			return instance.value
 		})
-		
+
 		assert.equal(result, 42)
 	})
 
@@ -213,12 +213,12 @@ describe('Container suite', () => {
 		const TOK = createToken<TestAdapter>('named')
 		const c1 = new Container({ logger })
 		const c2 = new Container({ logger })
-		
+
 		container.set('named1', c1)
 		container.set('named2', c2)
-		
+
 		c1.register(TOK, { adapter: TestAdapter })
-		
+
 		assert.equal(container('named1').has(TOK), true)
 		assert.equal(container('named2').has(TOK), false)
 	})
@@ -227,12 +227,12 @@ describe('Container suite', () => {
 		const TOK = createToken<TestAdapter>('named-using')
 		const c = new Container({ logger })
 		container.set('test', c)
-		
+
 		await container.using((scope) => {
 			scope.register(TOK, { adapter: TestAdapter })
 			assert.equal(scope.has(TOK), true)
 		}, 'test')
-		
+
 		// After using, registration is gone from the child scope
 		assert.equal(c.has(TOK), false)
 	})

@@ -5,9 +5,9 @@ import { extendPorts, createPortToken, createPortTokens, Orchestrator, Adapter, 
 const logger = new NoopLogger()
 
 interface EmailPort { send(to: string, subject: string, body: string): Promise<void> }
-class InMemoryEmailAdapter extends Adapter implements EmailPort { 
+class InMemoryEmailAdapter extends Adapter implements EmailPort {
 	static instance?: InMemoryEmailAdapter
-	async send() { /* no-op */ } 
+	async send() { /* no-op */ }
 }
 
 interface FeatureFlagPort { isEnabled(flag: string): boolean }

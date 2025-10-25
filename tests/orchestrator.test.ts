@@ -1,11 +1,9 @@
 import { describe, test, beforeEach, afterEach } from 'vitest'
 import assert from 'node:assert/strict'
-import type { Token } from '@orkestrel/core'
 import { NoopLogger,
 	Orchestrator, orchestrator, createToken, Container, Adapter, tokenDescription, QueueAdapter,
 	isAggregateLifecycleError, isLifecycleErrorDetail,
 } from '@orkestrel/core'
-import { hasOwn } from '@orkestrel/validator'
 
 let logger: NoopLogger
 
@@ -28,129 +26,6 @@ class TestComponent extends Adapter {
 	}
 }
 
-class FailingStartComponent extends Adapter {
-	protected async onStart(): Promise<void> {
-		throw new Error('boom')
-	}
-}
-class FailingDestroyComponent extends Adapter {
-	protected async onDestroy(): Promise<void> {
-		throw new Error('bye')
-	}
-}
-
-class SlowStart extends Adapter {
-	readonly #delayMs: number
-	constructor(delayMs: number) {
-		super({ logger })
-		this.#delayMs = delayMs
-	}
-
-	protected async onStart(): Promise<void> {
-		await new Promise(r => setTimeout(r, this.#delayMs))
-	}
-}
-
-class FailingStopDestroyComponent extends Adapter {
-	protected async onStop() {
-		throw new Error('stop-bad')
-	}
-
-	protected async onDestroy() {
-		throw new Error('destroy-bad')
-	}
-}
-
-class SlowStop extends Adapter {
-	readonly #delayMs: number
-	constructor(delayMs: number) {
-		super({ logger })
-		this.#delayMs = delayMs
-	}
-
-	protected async onStop(): Promise<void> {
-		await new Promise(r => setTimeout(r, this.#delayMs))
-	}
-}
-
-class Track extends Adapter {
-	public started = false
-	public stopped = false
-	protected async onStart(): Promise<void> {
-		this.started = true
-	}
-
-	protected async onStop(): Promise<void> {
-		this.stopped = true
-	}
-}
-
-// Tiny seeded PRNG (LCG) for deterministic runs without deps
-function makeRng(seed: number) {
-	let s = seed >>> 0
-	return {
-		nextU32() {
-			s = (s * 1664525 + 1013904223) >>> 0
-			return s
-		},
-		next() {
-			return (this.nextU32() & 0xffffffff) / 0x100000000
-		},
-		rangeInt(min: number, max: number) {
-			const r = this.next()
-			return Math.floor(min + r * (max - min + 1))
-		},
-		chance(p: number) {
-			return this.next() < p
-		},
-		shuffle<T>(arr: T[]): T[] {
-			for (let i = arr.length - 1; i > 0; i--) {
-				const j = this.rangeInt(0, i)
-				const t = arr[i]
-				arr[i] = arr[j]
-				arr[j] = t
-			}
-			return arr
-		},
-	}
-}
-
-// Build a random DAG with N nodes. We add edges i->j only for i<j to ensure acyclic.
-function buildRandomDag(rng: ReturnType<typeof makeRng>) {
-	const n = rng.rangeInt(3, 8)
-	const nodes = Array.from({ length: n }, (_, i) => i)
-	const edges: Array<[number, number]> = []
-	for (let i = 0; i < n; i++) {
-		for (let j = i + 1; j < n; j++) {
-			if (rng.chance(0.3)) edges.push([i, j])
-		}
-	}
-	const labels = rng.shuffle(nodes.slice())
-	return { n, edges, labels }
-}
-
-function makeRecorder() {
-	let counter = 0
-	class Recorder extends Adapter {
-		public startedAt: number | null = null
-		public stoppedAt: number | null = null
-		protected async onStart(): Promise<void> { this.startedAt = counter++ }
-		protected async onStop(): Promise<void> { this.stoppedAt = counter++ }
-	}
-	return { Recorder }
-}
-
-class FailingOnStart extends Adapter {
-	protected async onStart(): Promise<void> {
-		throw new Error('fail-start')
-	}
-}
-
-type HasOrder = { startedAt: number | null, stoppedAt: number | null }
-function hasOrder(x: unknown): x is HasOrder {
-	return hasOwn(x, 'startedAt', 'stoppedAt')
-}
-
 describe('Orchestrator suite', () => {
 	beforeEach(() => {
 		logger = new NoopLogger()
@@ -166,7 +41,7 @@ describe('Orchestrator suite', () => {
 
 	test('starts components in topological order', async () => {
 		TestComponent.counter = 0
-		
+
 		// Create separate adapter classes for each component
 		class ComponentA extends Adapter {
 			static instance?: ComponentA
@@ -175,6 +50,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -186,6 +62,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -197,11 +74,12 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
-		
+
 		const A = createToken<ComponentA>('A')
 		const B = createToken<ComponentB>('B')
 		const C = createToken<ComponentC>('C')
@@ -221,7 +99,7 @@ describe('Orchestrator suite', () => {
 		await orch.stop()
 		assert.ok((c.stoppedAt as number) < (b.stoppedAt as number))
 		assert.ok((b.stoppedAt as number) < (a.stoppedAt as number))
-		
+
 		// Cleanup
 		await ComponentA.destroy()
 		await ComponentB.destroy()
@@ -235,7 +113,7 @@ describe('Orchestrator suite', () => {
 		class CycleB extends Adapter {
 			static instance?: CycleB
 		}
-		
+
 		const A = createToken<CycleA>('A')
 		const B = createToken<CycleB>('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
@@ -265,6 +143,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -275,7 +154,7 @@ describe('Orchestrator suite', () => {
 				throw new Error('boom')
 			}
 		}
-		
+
 		TestComponent.counter = 0
 		const GOOD = createToken<GoodComponent>('GOOD')
 		const BAD = createToken<BadComponent>('BAD')
@@ -302,7 +181,7 @@ describe('Orchestrator suite', () => {
 		class ComponentA extends Adapter {
 			static instance?: ComponentA
 		}
-		
+
 		const A = createToken<ComponentA>('A')
 		const B = createToken<Adapter>('B')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
@@ -328,7 +207,7 @@ describe('Orchestrator suite', () => {
 				throw new Error('bye')
 			}
 		}
-		
+
 		const BAD = createToken<BadComp>('BAD')
 		const GOOD = createToken<GoodComp>('GOOD')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
@@ -375,6 +254,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.started = true
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stopped = true
 			}
@@ -386,6 +266,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.started = true
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stopped = true
 			}
@@ -396,7 +277,7 @@ describe('Orchestrator suite', () => {
 				throw new Error('boom')
 			}
 		}
-		
+
 		const A = createToken<TrackA>('A')
 		const B = createToken<TrackB>('B')
 		const X = createToken<FailingX>('X')
@@ -428,7 +309,7 @@ describe('Orchestrator suite', () => {
 				await new Promise(r => setTimeout(r, 30))
 			}
 		}
-		
+
 		const SLOW = createToken<SlowStartAdapter>('SLOW')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		let err: unknown
@@ -459,7 +340,7 @@ describe('Orchestrator suite', () => {
 				await new Promise(r => setTimeout(r, 30))
 			}
 		}
-		
+
 		const SLOW_STOP = createToken<SlowStopAdapter>('SLOW_STOP')
 		const orch = new Orchestrator(new Container({ logger }), { logger })
 		orch.register({
@@ -490,11 +371,12 @@ describe('Orchestrator suite', () => {
 			protected async onStop() {
 				throw new Error('stop-bad')
 			}
+
 			protected async onDestroy() {
 				throw new Error('destroy-bad')
 			}
 		}
-		
+
 		const FB = createToken<FailingBoth>('FB')
 		const app = new Orchestrator(new Container({ logger }), { logger })
 		app.register({
@@ -516,8 +398,6 @@ describe('Orchestrator suite', () => {
 		await app.destroy().catch(() => {})
 		await FailingBoth.destroy().catch(() => {})
 	})
-
-
 
 	test('dependency graph wires dependencies correctly', async () => {
 		class A extends Adapter {
@@ -761,7 +641,7 @@ describe('Orchestrator suite', () => {
 				activeStart--
 			}
 		}
-		
+
 		const T1 = createToken<Probe1>('CC1')
 		const T2 = createToken<Probe2>('CC2')
 		const T3 = createToken<Probe3>('CC3')
@@ -795,6 +675,7 @@ describe('Orchestrator suite', () => {
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
+
 			protected async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
@@ -810,6 +691,7 @@ describe('Orchestrator suite', () => {
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
+
 			protected async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
@@ -825,6 +707,7 @@ describe('Orchestrator suite', () => {
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
+
 			protected async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
@@ -840,6 +723,7 @@ describe('Orchestrator suite', () => {
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
+
 			protected async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
@@ -847,7 +731,7 @@ describe('Orchestrator suite', () => {
 				activeDestroy--
 			}
 		}
-		
+
 		const T1 = createToken<Probe1>('CD1')
 		const T2 = createToken<Probe2>('CD2')
 		const T3 = createToken<Probe3>('CD3')
@@ -913,7 +797,6 @@ describe('Orchestrator suite', () => {
 		await Bad.destroy()
 	})
 
-
 	test('destroy() stops then destroys in one pass', async () => {
 		class TA extends Adapter {
 			static instance?: TA
@@ -961,11 +844,6 @@ describe('Orchestrator suite', () => {
 		await TA.destroy()
 		await TB.destroy()
 	})
-
-
-
-
-
 
 	test('tracer start outcomes include failures', async () => {
 		class Good extends Adapter {
@@ -1108,8 +986,6 @@ describe('Orchestrator suite', () => {
 		assert.equal(value, 123)
 	})
 
-
-
 	test('register with dependency graph object', async () => {
 		TestComponent.counter = 0
 		class CompA extends Adapter {
@@ -1119,6 +995,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -1130,6 +1007,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -1141,6 +1019,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -1185,6 +1064,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -1196,6 +1076,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -1207,6 +1088,7 @@ describe('Orchestrator suite', () => {
 			protected async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
+
 			protected async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
@@ -1302,7 +1184,6 @@ describe('Orchestrator suite', () => {
 		await CycleB.destroy().catch(() => {})
 	})
 
-
 	test('dependency graph errors aggregate on start failure', async () => {
 		TestComponent.counter = 0
 		class GoodComp extends Adapter {
@@ -1326,7 +1207,7 @@ describe('Orchestrator suite', () => {
 			[GOOD]: { adapter: GoodComp },
 			[BAD]: { adapter: BadComp, dependencies: [GOOD] },
 		})
-		
+
 		await assert.rejects(async () => orch.start(), (err: unknown) => {
 			if (isAggregateLifecycleError(err)) {
 				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')

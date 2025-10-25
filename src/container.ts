@@ -1,22 +1,17 @@
-import { Adapter } from './adapter.js'
+import type { Adapter } from './adapter.js'
 import { RegistryAdapter } from './adapters/registry.js'
 import { CONTAINER_MESSAGES, HELP } from './constants.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
 	AdapterProvider,
-	AdapterSubclass,
 	DiagnosticPort,
 	LoggerPort,
-	Provider,
 	Registration,
 	ResolvedProvider,
 	Token,
-	TokenRecord,
 	ContainerOptions,
-	ContainerGetter,
 } from './types.js'
 import {
-	isToken,
 	tokenDescription,
 	isAdapterProvider,
 } from './helpers.js'
@@ -274,10 +269,11 @@ export class Container {
 		}
 		// Get the singleton instance from the Adapter class
 		const instance = provider.adapter.getInstance() as T
-		const resolved: ResolvedProvider<T> = { 
-			value: instance, 
+		const resolved: ResolvedProvider<T> = {
+			value: instance,
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			lifecycle: provider.adapter as any,
-			disposable: true
+			disposable: true,
 		}
 		reg.resolved = resolved
 		return resolved

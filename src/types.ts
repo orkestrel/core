@@ -50,7 +50,7 @@ export type ClassProvider<T> = ClassProviderNoDeps<T> | ClassProviderWithContain
 /**
  * Provider for Adapter subclasses using the singleton pattern.
  * Registers an Adapter class directly; lifecycle managed via static methods.
- * 
+ *
  * @typeParam T - The Adapter instance type
  */
 export type AdapterProvider<T extends Adapter> = {
@@ -248,7 +248,9 @@ export type AdapterSubclass<I> = {
 	start(opts?: LifecycleOptions): Promise<void>
 	stop(): Promise<void>
 	destroy(): Promise<void>
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): any
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): any
 }
 
@@ -275,10 +277,10 @@ export interface LifecycleOptions {
 // -----------------------------------------------------------------------------
 export interface ContainerOptions { readonly parent?: Container, readonly diagnostic?: DiagnosticPort, readonly logger?: LoggerPort }
 
-export interface ResolvedProvider<T> { 
+export interface ResolvedProvider<T> {
 	value: T
 	lifecycle?: T extends Adapter ? AdapterSubclass<T> : never
-	disposable: boolean 
+	disposable: boolean
 }
 export interface Registration<T> { token: Token<T>, provider: Provider<T>, resolved?: ResolvedProvider<T> }
 

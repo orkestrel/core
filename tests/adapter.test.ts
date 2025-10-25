@@ -23,7 +23,7 @@ describe('Adapter suite', () => {
 		assert.equal(MyAdapter.getState(), 'stopped')
 		await MyAdapter.destroy()
 		assert.equal(MyAdapter.getState(), 'created') // destroyed, no instance exists
-		
+
 		// Verify hooks were called by checking the singleton instance
 		await MyAdapter.start({ logger })
 		const instance = MyAdapter.getInstance() as MyAdapter

@@ -185,7 +185,19 @@ export class Orchestrator {
 		}
 	}
 
-	// Extract pure provider from ProviderWithDependencies (remove dependencies/timeouts fields)
+	/**
+	 * Extracts the pure provider from a provider-with-dependencies object by removing
+	 * any `dependencies` and `timeouts` fields. Supports multiple provider shapes:
+	 * raw value, `{ useValue }`, `{ useFactory }`, `{ useClass }`, with optional `inject`.
+	 *
+	 * @typeParam T - The type of the provided value.
+	 * @param providerWithDeps - The provider object, which may include dependencies and timeouts.
+	 * @returns The stripped provider suitable for registration in the container.
+	 *
+	 * @remarks
+	 * - If the provider includes an `inject` field, it is preserved.
+	 * - If the shape does not match known provider types, returns the input as-is for safety.
+	 */
 	#extractProvider<T>(providerWithDeps: unknown): Provider<T> {
 		// The provider shape is one of: raw value, { useValue }, { useFactory }, { useClass }
 		// We need to strip dependencies and timeouts if present

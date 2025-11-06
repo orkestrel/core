@@ -1,11 +1,8 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "./node_modules/@orkestrel/contribute/tsconfig.build.json",
   "compilerOptions": {
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "outDir": "dist",
     "rootDir": "src",
-    "noEmit": false
+    "outDir": "dist"
   },
   "include": ["src"]
 }

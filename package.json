@@ -2,22 +2,6 @@
   "name": "@orkestrel/core",
   "version": "2.1.0",
   "description": "Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire implementations via a tiny DI container, and drive lifecycles deterministically with an orchestrator.",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
-  "sideEffects": false,
   "keywords": [
     "injection",
     "ioc",
@@ -30,42 +14,53 @@
     "adapters",
     "typescript"
   ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/orkestrel/core.git"
   },
+  "homepage": "https://github.com/orkestrel/core#readme",
   "bugs": {
     "url": "https://github.com/orkestrel/core/issues"
   },
-  "homepage": "https://github.com/orkestrel/core#readme",
-  "license": "MIT",
-  "engines": {
-    "node": ">=18"
+  "author": "Orkestrel",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "publishConfig": {
-    "access": "public"
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=20"
   },
   "scripts": {
-    "clear": "node -e \"try{require('fs').rmSync(process.argv[1],{recursive:true,force:true})}catch(e){}\"",
-    "build": "npm run clear dist && vite build && tsc -p tsconfig.build.json",
-    "test": "vitest run",
-    "check": "tsc -p tsconfig.json",
+    "clean": "node -e \"try{require('fs').rmSync(process.argv[1],{recursive:true,force:true})}catch(e){}\"",
+    "build": "npm run clean dist && vite build && tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
     "format": "eslint . --fix",
+    "test": "vitest run",
     "prepublishOnly": "npm run check && npm run format && npm run test && npm run build"
   },
   "devDependencies": {
-    "@nuxt/eslint-config": "^1.9.0",
-    "@orkestrel/docs": "^0.1.0",
-    "@types/node": "^24.7.2",
-    "eslint": "^9.37.0",
-    "eslint-plugin-jsdoc": "^61.1.2",
-    "eslint-plugin-tsdoc": "^0.4.0",
-    "tsx": "^4.20.6",
+    "@orkestrel/contribute": "^1.2.0",
+    "@types/node": "^24.10.0",
+    "eslint": "^9.39.0",
+    "jiti": "^2.6.1",
     "typescript": "^5.9.3",
-    "vite": "^7.1.9",
-    "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "@orkestrel/validator": "^2.1.0"
+    "vite": "^7.1.12",
+    "vitest": "^4.0.6"
   }
 }

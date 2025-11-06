@@ -1,9 +1,9 @@
-import { defineConfig } from 'vitest/config'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { defineConfig } from 'vitest/config';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const __rootdir = resolve(__dirname)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const __rootdir = resolve(__dirname);
 
 export default defineConfig({
 	test: {
@@ -20,4 +20,4 @@ export default defineConfig({
 			'@orkestrel/core': resolve(__rootdir, 'src', 'index.ts'),
 		},
 	},
-})
+});

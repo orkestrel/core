@@ -1,32 +1,9 @@
 {
+  "extends": "./node_modules/@orkestrel/contribute/tsconfig.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "types": ["node"],
-    "lib": ["ESNext"],
     "baseUrl": ".",
-    "resolveJsonModule": true,
-    "noEmit": true,
     "paths": {
       "@orkestrel/core": ["./src/index.ts"]
     }
   },
-  "include": [
-    "src",
-    "tests",
-    "vite.config.ts",
-    "eslint.config.mjs"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "tmp",
-    "docs",
-    "site",
-    ".github"
-  ]
 }

@@ -1,100 +1,199 @@
 # Core
 
-This page covers the runtime building blocks that ship with Orkestrel Core. It focuses on concepts and usage, not API signatures. Refer to the Typedoc in docs/api for the full API surface.
+<!-- Template: Built-in adapters and runtime components -->
 
-What’s included
-- Logger: a minimal logging port and default adapters
-- Diagnostics: structured errors and telemetry helpers
-- Emitter: a tiny event emitter
-- Event bus: async publish/subscribe with backpressure options
-- Queue: run tasks with concurrency limits, deadlines, and per-task timeouts
-- Layering: compute dependency layers and group tokens by layer
-- Registry: named instance registry used for global container/orchestrator helpers
+This guide covers the built-in adapters that ship with @orkestrel/core.
 
-Logger
-- LoggerPort: `log(level, message, fields?)` with levels `debug|info|warn|error`.
-- Default adapters:
-  - LoggerAdapter: logs to console (or any target you adapt)
-  - NoopLogger: swallows logs; useful in tests
-- You can pass your logger via options to Container, Orchestrator, Lifecycle, and adapters.
+## Overview
 
-Example:
+| Adapter             | Purpose                              |
+|---------------------|--------------------------------------|
+| `LoggerAdapter`     | Console-like logging                 |
+| `NoopLogger`        | Silent logger for tests              |
+| `FakeLogger`        | In-memory logger for test assertions |
+| `DiagnosticAdapter` | Error reporting and telemetry        |
+| `EmitterAdapter`    | Typed event emitter                  |
+| `EventAdapter`      | Async pub/sub event bus              |
+| `QueueAdapter`      | Task queue with concurrency control  |
+| `LayerAdapter`      | Topological layering                 |
+| `RegistryAdapter`   | Named instance registry              |
+
+## Logger
+
+The `LoggerPort` interface provides level-based logging:
+
 ```ts
-import { LoggerAdapter, NoopLogger, Container } from '@orkestrel/core'
+import { LoggerAdapter, NoopLogger } from '@orkestrel/core'
 
 const logger = new LoggerAdapter()
-logger.log('info', 'App started', { version: '1.0.0' })
+logger.info('Application started', { version: '1.0.0' })
+logger.error('Something failed', { code: 500 })
 
-// Inject a custom logger into a container
-const container = new Container({ logger: new NoopLogger() })
-container.logger.log('debug', 'This will be discarded')
+// For tests, use NoopLogger to suppress output
+const silent = new NoopLogger()
 ```
 
-Diagnostics
-- DiagnosticPort adds higher-level telemetry:
-  - `error(err, context?)` — report an error with scope, code, token, phase, etc.
-  - `fail(key, context?)` — throw an Error prefilled with a code (e.g., ORK1006) and optional help URL
-  - `aggregate(key, details, context?)` — throw an aggregate Error with lifecycle detail entries
-  - `help(key, context?)` — create an Error with code and helpUrl without throwing
-  - `metric`, `trace`, `event` — send structured telemetry
-- DiagnosticAdapter turns message keys like `ORK1013` into named, stable errors and emits telemetry through the configured Logger.
-- Codes used across core include:
-  - Container: ORK1005, ORK1006, ORK1016
-  - Orchestrator: ORK1007–ORK1015 (duplicates, unknown deps, cycles, async provider guards, phase aggregates)
-  - Lifecycle: ORK1020–ORK1022 (invalid transitions, hook timeout/failure)
-  - Ports/Queue/Internal: ORK1040/ORK1050–ORK1053/ORK1099
+### FakeLogger for testing
 
-Emitter
-- A tiny type-safe emitter with `on`, `off`, `emit`, and `removeAllListeners`.
-- Used by Lifecycle to emit `transition`, `create`, `start`, `stop`, `destroy`, and `error`.
+```ts
+import { FakeLogger } from '@orkestrel/core'
 
-Event bus
-- A simple pub/sub interface (`publish`, `subscribe`, `topics`) with options:
-  - sequential delivery vs best-effort parallel
-  - error handling callback
-- Great for component-level messages that are not strict dependencies.
+const fake = new FakeLogger()
+fake.info('test message', { key: 'value' })
 
-Example:
+// Assert on captured entries
+console.log(fake.entries[0])
+// { level: 'info', message: 'test message', fields: { key: 'value' } }
+```
+
+## Diagnostics
+
+The `DiagnosticAdapter` provides structured error reporting:
+
+```ts
+import { DiagnosticAdapter, ORCHESTRATOR_MESSAGES } from '@orkestrel/core'
+
+const diag = new DiagnosticAdapter({ messages: ORCHESTRATOR_MESSAGES })
+
+// Log with level
+diag.log('info', 'orchestrator.phase', { phase: 'start' })
+
+// Report an error
+diag.error(new Error('failed'), { scope: 'orchestrator' })
+
+// Throw with a code
+diag.fail('ORK1006', { message: 'No provider' })
+
+// Create error without throwing
+const err = diag.help('ORK1021', { message: 'Hook timed out' })
+```
+
+## Emitter
+
+Type-safe synchronous event emitter:
+
+```ts
+import { EmitterAdapter } from '@orkestrel/core'
+
+type Events = {
+  start: []
+  data: [string]
+  error: [Error]
+}
+
+const emitter = new EmitterAdapter<Events>()
+
+emitter.on('data', (value) => console.log('Received:', value))
+emitter.emit('data', 'hello')
+emitter.off('data', handler)
+emitter.removeAllListeners()
+```
+
+## Event bus
+
+Async pub/sub with sequential or parallel delivery:
+
 ```ts
 import { EventAdapter } from '@orkestrel/core'
 
-type Events = { 'user:created': { id: string, name: string } }
+type Events = {
+  'user:created': { id: string; name: string }
+  'user:deleted': { id: string }
+}
+
 const bus = new EventAdapter<Events>({ sequential: true })
 
-const unsubscribe = await bus.subscribe('user:created', async (u) => {
-  console.log('Created:', u.id, u.name)
+const unsubscribe = await bus.subscribe('user:created', async (payload) => {
+  console.log('User created:', payload.name)
 })
 
 await bus.publish('user:created', { id: 'u1', name: 'Alice' })
 await unsubscribe()
 ```
 
-Queue
-- Run an array of tasks with options: `concurrency`, `timeout`, `deadline`, and `signal`.
-- The default QueueAdapter is used by Lifecycle to enforce one-at-a-time hooks with a shared deadline.
-- In the orchestrator, you can inject a queue to cap per-layer parallelism.
+## Queue
 
-Layering
-- Given nodes `{ token, dependencies }`, compute layers such that dependencies appear in earlier layers.
-- The orchestrator uses this to determine safe start/stop/destroy order.
+Task queue with concurrency, timeouts, and deadlines:
 
-Registry
-- A named-instance registry with `get`, `resolve`, `set`, `clear`, and `list`.
-- The global helpers `container()` and `orchestrator()` are built on registries to support named instances.
+```ts
+import { QueueAdapter } from '@orkestrel/core'
 
-Practical tips
-- Pass a `NoopLogger` and rely on codes in tests to keep output clean while asserting behaviors.
-- Consider injecting your own queue into Orchestrator to cap start/stop/destroy parallelism for IO-heavy components.
-- Use the `events` callbacks for user-facing notifications and the `tracer` for structured capture of layers and outcomes.
-- Keep adapter implementations small and focused; only override the Lifecycle hooks you actually need.
+const queue = new QueueAdapter({ concurrency: 2, timeout: 1000 })
 
-See also
-- Overview: mental model and navigation
-- Start: installation and a 5‑minute tour
-- Concepts: tokens, providers, lifecycle, orchestrator
-- Examples: copy‑pasteable snippets for common patterns
-- Tips: provider patterns, composition, and troubleshooting
-- Tests: fast, deterministic testing guidance
-- FAQ: quick answers from simple to advanced scenarios
+const results = await queue.run([
+  async () => { await delay(100); return 1 },
+  async () => { await delay(50); return 2 },
+  async () => { await delay(200); return 3 },
+])
+// Results in input order: [1, 2, 3]
+```
 
-API reference is generated separately; see docs/api/index.md (Typedoc).
+### Options
+
+| Option        | Description                        |
+|---------------|------------------------------------|
+| `concurrency` | Max parallel tasks                 |
+| `timeout`     | Per-task timeout (ms)              |
+| `deadline`    | Shared deadline for all tasks (ms) |
+| `signal`      | AbortSignal for cancellation       |
+
+## Layer
+
+Compute dependency layers using Kahn's algorithm:
+
+```ts
+import { LayerAdapter, createToken } from '@orkestrel/core'
+
+const A = createToken('A')
+const B = createToken('B')
+const C = createToken('C')
+
+const layer = new LayerAdapter()
+const layers = layer.compute([
+  { token: A, dependencies: [] },
+  { token: B, dependencies: [A] },
+  { token: C, dependencies: [A, B] },
+])
+// [[A], [B], [C]]
+```
+
+## Registry
+
+Named instance registry with locking:
+
+```ts
+import { RegistryAdapter } from '@orkestrel/core'
+
+const registry = new RegistryAdapter<number>({
+  label: 'config',
+  default: { value: 42 }
+})
+
+registry.set('alt', 100, true) // locked
+const value = registry.resolve()     // 42
+const alt = registry.resolve('alt')  // 100
+registry.clear('alt')                // false (locked)
+registry.clear('alt', true)          // true (forced)
+```
+
+## Injecting ports
+
+All adapters accept optional `logger` and `diagnostic` options:
+
+```ts
+import { ContainerAdapter, NoopLogger, DiagnosticAdapter } from '@orkestrel/core'
+
+const logger = new NoopLogger()
+const diagnostic = new DiagnosticAdapter({ logger })
+
+const container = new ContainerAdapter({ logger, diagnostic })
+```
+
+## Next steps
+
+| Guide                     | Description                  |
+|---------------------------|------------------------------|
+| [Examples](./examples.md) | Copy-pasteable patterns      |
+| [Tips](./tips.md)         | Patterns and troubleshooting |
+| [Tests](./tests.md)       | Testing guidance             |
+

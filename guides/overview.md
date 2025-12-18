@@ -1,41 +1,60 @@
-# Orkestrel Core overview
+# Overview
 
-Orkestrel Core is a minimal, strongly-typed toolkit for composing applications with ports and adapters in TypeScript. It gives you:
+<!-- Template: This guide provides the mental model for the package -->
 
-- Tokens and ports for decoupled contracts
-- A tiny dependency injection container for wiring
-- A deterministic Lifecycle to start/stop/destroy components
-- An Orchestrator that drives many components in dependency order
-- Small built-in adapters for registry, queue, emitter, events, layers, diagnostics, and logging
+@orkestrel/core is a minimal, strongly-typed toolkit for composing applications with ports and adapters in TypeScript.
 
-What it is not: a framework with hidden runtime magic. You assemble tokens and providers explicitly, keep providers synchronous, and move async work into lifecycle hooks.
+## What it provides
 
-Highlights
-- Strong typing end-to-end with token contracts
-- Synchronous provider model: factories/values must not be async (enforced)
-- Deterministic lifecycle with hook timeouts and rollback on failures
-- Topological start/stop/destroy with per-layer concurrency control
-- Global helpers for multi-tenant scenarios: `container()` and `orchestrator()`
+- **Tokens and ports** — Typed symbols for decoupled contracts
+- **Dependency injection** — Minimal container with singleton adapters
+- **Deterministic lifecycle** — Start, stop, destroy with timeouts and rollback
+- **Orchestration** — Topological ordering with dependency-aware phases
+- **Built-in adapters** — Logger, diagnostics, emitter, event bus, queue, registry
 
-Key building blocks
-- Tokens and ports: Create tokens with `createToken` or `createPortTokens`/`createPortToken` to model contracts.
-- Providers: Register values, factories, or classes. Inject dependencies as a tuple `[A, B]` or object `{ a: A, b: B }`, or accept the `Container` directly. Providers must be synchronous.
-- Lifecycle and Adapter: Extend `Lifecycle` or `Adapter` and override hooks (`onCreate`, `onStart`, `onStop`, `onDestroy`, `onTransition`).
-- Container: Register tokens to providers, resolve single tokens or maps/tuples, create child scopes, and deterministically destroy owned lifecycles.
-- Orchestrator: Register component providers with dependencies and optional timeouts, then `start`, `stop`, and `destroy` in dependency order with safe rollback.
-- Built-in adapters: lightweight defaults for logger, diagnostics, event emitters, event bus, layers (topological grouping), queue (concurrency/timeouts), and registries (named instances).
+## What it is not
 
-Diagnostics and telemetry
-- Failures carry stable codes like ORK1006 (missing provider), ORK1013/1014/1017 (phase aggregates), ORK1021/1022 (hook timeout/failure).
-- You can observe lifecycle transitions, orchestrator phases, and component events via callbacks, tracer hooks, and diagnostics events.
+This is not a framework with hidden runtime magic. You assemble tokens and providers explicitly, keep providers synchronous, and move async work into lifecycle hooks.
 
-Where to go next
-- Start: install and a 5-minute tour
-- Concepts: tokens, providers, lifecycle, and orchestration
-- Core: built-in adapters and runtime pieces without API minutiae
-- Examples: small, copy-pasteable snippets
-- Tips: provider patterns, testing guidance, and common gotchas
-- Tests: how to test components and orchestrations effectively
-- FAQ: quick answers from simple to advanced scenarios
+## Key principles
 
-API reference is generated separately; see docs/api/index.md (Typedoc).
+- **Strong typing** — End-to-end type safety with token contracts
+- **Synchronous providers** — Factories/values must not be async (enforced)
+- **Deterministic lifecycle** — Hook timeouts and rollback on failures
+- **Topological ordering** — Start/stop/destroy in dependency order
+
+## Building blocks
+
+| Component             | Purpose                                  |
+|-----------------------|------------------------------------------|
+| `createToken`         | Create typed token symbols               |
+| `Adapter`             | Base class for components with lifecycle |
+| `ContainerAdapter`    | DI container for registering adapters    |
+| `OrchestratorAdapter` | Lifecycle management in dependency order |
+
+## Diagnostics
+
+Failures carry stable codes for debugging:
+
+| Code              | Description                       |
+|-------------------|-----------------------------------|
+| ORK1006           | Missing provider                  |
+| ORK1007           | Duplicate registration            |
+| ORK1008           | Unknown dependency                |
+| ORK1009           | Cycle detected                    |
+| ORK1013/1014/1017 | Phase errors (start/stop/destroy) |
+| ORK1020/1021/1022 | Lifecycle errors                  |
+
+## Guide navigation
+
+| Guide                         | Description                                |
+|-------------------------------|--------------------------------------------|
+| [Start](./start.md)           | Installation and 5-minute tour             |
+| [Concepts](./concepts.md)     | Tokens, adapters, lifecycle, orchestration |
+| [Core](./core.md)             | Built-in adapters and runtime              |
+| [Examples](./examples.md)     | Copy-pasteable patterns                    |
+| [Tips](./tips.md)             | Patterns and troubleshooting               |
+| [Tests](./tests.md)           | Testing guidance                           |
+| [FAQ](./faq.md)               | Common questions                           |
+| [Contribute](./contribute.md) | Development workflow                       |
+

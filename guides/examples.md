@@ -1,106 +1,110 @@
 # Examples
 
-Lifecycle: simple adapter with singleton pattern
+<!-- Template: Copy-pasteable code patterns -->
+
+Practical examples for common use cases.
+
+## Basic adapter
+
 ```ts
-import { Adapter, createToken, Container } from '@orkestrel/core'
+import { Adapter, createToken, ContainerAdapter } from '@orkestrel/core'
 
 class Cache extends Adapter {
-  static instance?: Cache
-  ready = false
-  protected async onStart() { this.ready = true }
-  protected async onStop() { this.ready = false }
+  #ready = false
+  
+  protected async onStart() { this.#ready = true }
+  protected async onStop() { this.#ready = false }
+  
+  isReady() { return this.#ready }
 }
 
-const CacheTok = createToken<Cache>('Cache')
-const c = new Container()
-c.register(CacheTok, { adapter: Cache })
+const CacheToken = createToken<Cache>('Cache')
+const container = new ContainerAdapter()
+container.register(CacheToken, { adapter: Cache })
 
-// Using static methods
 await Cache.start()
-console.log(Cache.getState())  // 'started'
+const cache = container.resolve(CacheToken)
+console.log(cache.isReady()) // true
 
-// Or resolve from container
-const cache = c.resolve(CacheTok)
-console.log(cache.state)  // 'started'
-
-await Cache.stop()
-await c.destroy()
+await container.destroy()
 ```
 
-Orchestrator: registration and start order
+## Orchestrator with dependencies
+
 ```ts
-import { Orchestrator, Container, Adapter, createToken } from '@orkestrel/core'
+import { OrchestratorAdapter, ContainerAdapter, Adapter, createToken } from '@orkestrel/core'
 
-class A extends Adapter {
-  static instance?: A
+class Database extends Adapter {
+  protected async onStart() { console.log('DB connected') }
+  protected async onStop() { console.log('DB disconnected') }
 }
 
-class B extends Adapter {
-  static instance?: B
+class Server extends Adapter {
+  protected async onStart() { console.log('Server started') }
+  protected async onStop() { console.log('Server stopped') }
 }
 
-const TA = createToken<A>('A')
-const TB = createToken<B>('B')
+const DbToken = createToken<Database>('Database')
+const ServerToken = createToken<Server>('Server')
 
-const c = new Container()
-c.register(TA, { adapter: A })
-c.register(TB, { adapter: B, dependencies: [TA] })
+const app = new OrchestratorAdapter(new ContainerAdapter())
 
-const app = new Orchestrator(c)
-await app.start()  // Starts in dependency order: A then B
+await app.start({
+  [DbToken]: { adapter: Database },
+  [ServerToken]: { adapter: Server, dependencies: [DbToken] },
+})
+
+// Output:
+// DB connected
+// Server started
+
 await app.destroy()
+
+// Output:
+// Server stopped
+// DB disconnected
 ```
 
-Orchestrator: explicit dependencies
+## Per-component timeouts
+
 ```ts
-class ServiceA extends Adapter {
-  static instance?: ServiceA
-}
+import { OrchestratorAdapter, ContainerAdapter, Adapter, createToken } from '@orkestrel/core'
 
-class ServiceB extends Adapter {
-  static instance?: ServiceB
-  // ServiceB depends on ServiceA
-}
-
-const TA = createToken<ServiceA>('A')
-const TB = createToken<ServiceB>('B')
-
-const c = new Container()
-c.register(TA, { adapter: ServiceA })
-c.register(TB, { adapter: ServiceB, dependencies: [TA] })
-
-const app = new Orchestrator(c)
-await app.start()
-await app.destroy()
-```
-
-Orchestrator: per-registration timeouts
-```ts
-class SlowStart extends Adapter {
-  static instance?: SlowStart
-  protected async onStart() { 
+class SlowService extends Adapter {
+  protected async onStart() {
     await new Promise(r => setTimeout(r, 100))
   }
 }
 
-const SLOW = createToken<SlowStart>('SLOW')
-const c = new Container()
-c.register(SLOW, { adapter: SlowStart, timeouts: { onStart: 10 } })
+const SlowToken = createToken<SlowService>('SlowService')
 
-const app = new Orchestrator(c)
-await app.start().catch(() => {
-  // Aggregated error ORK1013 due to timeout
+const app = new OrchestratorAdapter(new ContainerAdapter())
+
+await app.start({
+  [SlowToken]: { 
+    adapter: SlowService, 
+    timeouts: { onStart: 10 } // Will timeout
+  },
+}).catch(err => {
+  console.log('Start failed:', err.code) // ORK1013
 })
+
+await app.destroy()
 ```
 
-Orchestrator: tracer hooks
-```ts
-import { Orchestrator, Container } from '@orkestrel/core'
+## Tracer hooks
 
-const phases = []
-const app = new Orchestrator(new Container(), {
+```ts
+import { OrchestratorAdapter, ContainerAdapter, Adapter, createToken } from '@orkestrel/core'
+
+class Service extends Adapter {}
+const Token = createToken<Service>('Service')
+
+const phases: unknown[] = []
+
+const app = new OrchestratorAdapter(new ContainerAdapter(), {
   tracer: {
-    onLayers: ({ layers }) => console.log('layers', layers),
+    onLayers: ({ layers }) => console.log('Layers:', layers),
     onPhase: (p) => phases.push({
       phase: p.phase,
       layer: p.layer,
@@ -108,77 +112,124 @@ const app = new Orchestrator(new Container(), {
     }),
   },
 })
-// ... register and start
+
+await app.start({ [Token]: { adapter: Service } })
+await app.destroy()
+
+console.log(phases)
 ```
 
-Ports: bulk and single tokens
-```ts
-import { createPortTokens, createPortToken, Container, Adapter } from '@orkestrel/core'
+## Port tokens
 
+```ts
+import { createPortTokens, createPortToken, ContainerAdapter, Adapter } from '@orkestrel/core'
+
+// Define multiple ports at once
+const ports = createPortTokens({
+  logger: undefined as { info(msg: string): void },
+  config: undefined as { port: number },
+})
+
+// Or create single ports
+const HttpPort = createPortToken<{ get(url: string): Promise<string> }>('http')
+
+// Usage
 class Logger extends Adapter {
-  static instance?: Logger
   info(msg: string) { console.log(msg) }
 }
 
-const ports = createPortTokens({ logger: undefined as Logger })
-const c = new Container()
-c.register(ports.logger, { adapter: Logger })
-c.resolve(ports.logger).info('hi')
-
-const Http = createPortToken<{ get(url: string): Promise<string> }>('http')
+const container = new ContainerAdapter()
+container.register(ports.logger, { adapter: Logger })
+container.resolve(ports.logger).info('hello')
 ```
 
-Global helpers
+## Global helpers
+
 ```ts
 import { container, orchestrator, createToken, Adapter } from '@orkestrel/core'
 
-class Service extends Adapter {
-  static instance?: Service
-}
+class Service extends Adapter {}
+const Token = createToken<Service>('Service')
 
-// containers
-const A = createToken<Service>('A')
-container().register(A, { adapter: Service })
-const v = container.resolve(A)  // Service singleton instance
-await container.using(async (scope) => { 
-  // Register scoped overrides
+// Register in default container
+container().register(Token, { adapter: Service })
+
+// Resolve from default container
+const svc = container.resolve(Token)
+
+// Scoped work
+await container.using(async (scope) => {
+  // Override in child scope
+  class Override extends Adapter {}
+  scope.register(Token, { adapter: Override })
+  const override = scope.resolve(Token)
 })
-
-// orchestrators
-const app = orchestrator()
-await app.container.using(scope => {/* register */})
+// Child destroyed, parent unchanged
 ```
 
-Container: scoped overrides with using
+## Scoped overrides
+
 ```ts
+import { ContainerAdapter, Adapter, createToken } from '@orkestrel/core'
+
 class Counter extends Adapter {
-  static instance?: Counter
   count = 0
 }
 
-const A = createToken<Counter>('A')
-const root = new Container()
-root.register(A, { adapter: Counter })
+const Token = createToken<Counter>('Counter')
+const root = new ContainerAdapter()
+root.register(Token, { adapter: Counter })
 
-const out = await root.using(async (scope) => {
-  // Scope inherits parent registrations but can override
-  class ScopedCounter extends Adapter {
-    static instance?: ScopedCounter
-    count = 41
+// Two-callback pattern: setup then run
+const result = await root.using(
+  (scope) => {
+    class MockCounter extends Adapter { count = 99 }
+    scope.register(Token, { adapter: MockCounter })
+  },
+  (scope) => {
+    return scope.resolve(Token).count
   }
-  scope.register(A, { adapter: ScopedCounter as any })
-  return scope.resolve(A).count + 1
-})
-// out === 42
-// after using(), the child scope is destroyed and root remains unchanged
+)
+
+console.log(result) // 99
+console.log(root.resolve(Token).count) // 0
 ```
 
-See also
-- Overview and Start for the mental model and installation
-- Concepts for tokens/adapters/lifecycle/orchestration
-- Core for built-in adapters
-- Tips for patterns and troubleshooting
-- Tests for fast, deterministic testing guidance
-- FAQ for quick answers from simple to advanced scenarios
+## Error handling
 
-API reference is generated separately; see docs/api/index.md (Typedoc).
+```ts
+import { OrchestratorAdapter, ContainerAdapter, Adapter, createToken, isAggregateLifecycleError } from '@orkestrel/core'
+
+class FailingService extends Adapter {
+  protected async onStart() {
+    throw new Error('failed')
+  }
+}
+
+const Token = createToken<FailingService>('Failing')
+const app = new OrchestratorAdapter(new ContainerAdapter())
+
+try {
+  await app.start({ [Token]: { adapter: FailingService } })
+} catch (err) {
+  if (isAggregateLifecycleError(err)) {
+    for (const detail of err.details) {
+      console.log(`${detail.tokenDescription} failed during ${detail.phase}`)
+      console.log(`  Timed out: ${detail.timedOut}`)
+      console.log(`  Duration: ${detail.durationMs}ms`)
+      console.log(`  Error: ${detail.error.message}`)
+    }
+  }
+}
+
+await app.destroy()
+```
+
+## Next steps
+
+| Guide               | Description                  |
+|---------------------|------------------------------|
+| [Tips](./tips.md)   | Patterns and troubleshooting |
+| [Tests](./tests.md) | Testing guidance             |
+| [FAQ](./faq.md)     | Common questions             |
+

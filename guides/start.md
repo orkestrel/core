@@ -1,172 +1,146 @@
 # Start
 
-This page helps you install Orkestrel Core and build a working mental model in minutes.
+<!-- Template: Quick installation and tour -->
 
-Prerequisites
-- Node.js 18 or newer
-- TypeScript 5+ recommended
+Get started with @orkestrel/core in minutes.
 
-Install
-```bat
+## Requirements
+
+- Node.js 20+
+- TypeScript 5.0+ (recommended)
+
+## Installation
+
+```sh
 npm install @orkestrel/core
 ```
 
-Quick try: single-file app
-- Save this as `quickstart.ts`:
-```ts
-import { Container, Orchestrator, Adapter, createToken } from '@orkestrel/core'
+## Quick example
 
-// A simple component with start/stop hooks
+Save as `app.ts`:
+
+```ts
+import { ContainerAdapter, OrchestratorAdapter, Adapter, createToken } from '@orkestrel/core'
+
+// Define a component with lifecycle hooks
 class Service extends Adapter {
-  static instance?: Service
-  protected async onStart() { console.log('Service -> started') }
-  protected async onStop() { console.log('Service -> stopped') }
+  protected async onStart() { console.log('Service started') }
+  protected async onStop() { console.log('Service stopped') }
 }
 
-// A typed contract
-const TService = createToken<Service>('service')
+// Create a typed token
+const ServiceToken = createToken<Service>('Service')
 
-// Wire things in a container and orchestrate
-const container = new Container()
-container.register(TService, { adapter: Service })
+// Wire and orchestrate
+const container = new ContainerAdapter()
+const app = new OrchestratorAdapter(container)
 
-const app = new Orchestrator(container)
-await app.start()
+await app.start({
+  [ServiceToken]: { adapter: Service },
+})
 
-const service = container.resolve(TService)
-console.log('Service state:', service.state)
+console.log('Service state:', Service.getState()) // 'started'
 
-await app.stop()
 await app.destroy()
 ```
-- Run it with Node + tsx:
-```bat
-npx tsx quickstart.ts
+
+Run with:
+
+```sh
+npx tsx app.ts
 ```
 
-Hello tokens and container with Adapters
-```ts
-import { Container, Adapter, createToken } from '@orkestrel/core'
+## Token basics
 
-// 1) Define components as Adapter subclasses
-class ServiceA extends Adapter {
-  static instance?: ServiceA
+Tokens are typed symbols that serve as keys for registration and resolution:
+
+```ts
+import { createToken, ContainerAdapter, Adapter } from '@orkestrel/core'
+
+class MyAdapter extends Adapter {
   getValue() { return 42 }
 }
 
-class ServiceB extends Adapter {
-  static instance?: ServiceB
-  getMessage() { return 'hello' }
-}
+const Token = createToken<MyAdapter>('MyAdapter')
 
-// 2) Define contracts as tokens
-const A = createToken<ServiceA>('A')
-const B = createToken<ServiceB>('B')
+const c = new ContainerAdapter()
+c.register(Token, { adapter: MyAdapter })
 
-// 3) Register adapters and resolve singletons
-const c = new Container()
-c.register(A, { adapter: ServiceA })
-c.register(B, { adapter: ServiceB })
-
-const a = c.resolve(A)  // Gets ServiceA singleton
-const b = c.resolve(B)  // Gets ServiceB singleton
-console.log(a.getValue(), b.getMessage())  // 42 hello
+const instance = c.resolve(Token)
+console.log(instance.getValue()) // 42
 ```
 
-Lifecycle and Adapter
+## Adapter lifecycle
+
+All components extend `Adapter` and use the singleton pattern:
+
 ```ts
-import { Adapter, createToken, Container } from '@orkestrel/core'
+import { Adapter } from '@orkestrel/core'
 
 class Cache extends Adapter {
-  static instance?: Cache
-  private map = new Map<string, string>()
+  #data = new Map<string, string>()
   
-  protected async onStart() { 
-    this.map.set('ready', 'ok')
-    console.log('Cache started')
+  protected async onStart() {
+    this.#data.set('status', 'ready')
   }
   
-  protected async onStop() { 
-    this.map.clear()
-    console.log('Cache stopped')
+  protected async onStop() {
+    this.#data.clear()
   }
+  
+  get(key: string) { return this.#data.get(key) }
 }
 
-const CacheTok = createToken<Cache>('Cache')
-const c = new Container()
-c.register(CacheTok, { adapter: Cache })
-
-// Adapter uses singleton pattern - static methods
+// Lifecycle via static methods
 await Cache.start()
-console.log(Cache.getState())  // 'started'
+console.log(Cache.getState()) // 'started'
 
-const cache = c.resolve(CacheTok)
-console.log(cache.state)  // 'started'
+const cache = Cache.getInstance()
+console.log(cache.get('status')) // 'ready'
 
-await Cache.stop()
-await c.destroy() // ensures components are stopped/destroyed deterministically
+await Cache.destroy()
 ```
 
-Orchestrator quickstart
+## Orchestrating dependencies
+
+Declare dependencies for proper ordering:
+
 ```ts
-import { Orchestrator, Container, Adapter, createToken } from '@orkestrel/core'
+import { OrchestratorAdapter, ContainerAdapter, Adapter, createToken } from '@orkestrel/core'
 
-class A extends Adapter {
-  static instance?: A
-}
+class Database extends Adapter {}
+class Server extends Adapter {}
 
-class B extends Adapter {
-  static instance?: B
-}
+const DbToken = createToken<Database>('Database')
+const ServerToken = createToken<Server>('Server')
 
-const TA = createToken<A>('A')
-const TB = createToken<B>('B')
+const app = new OrchestratorAdapter(new ContainerAdapter())
 
-const c = new Container()
-c.register(TA, { adapter: A })
-c.register(TB, { adapter: B, dependencies: [TA] })
+await app.start({
+  [DbToken]: { adapter: Database },
+  [ServerToken]: { adapter: Server, dependencies: [DbToken] },
+})
 
-const app = new Orchestrator(c)
-await app.start()  // Starts in dependency order: A then B
-await app.stop()   // Stops in reverse order: B then A
+// Database starts first, then Server
+// On destroy: Server stops first, then Database
+
 await app.destroy()
 ```
 
-Ports: naming common contracts
-```ts
-import { createPortTokens, createPortToken, Container, Adapter } from '@orkestrel/core'
+## Key rules
 
-// Define a logger adapter
-class LoggerAdapter extends Adapter {
-  static instance?: LoggerAdapter
-  info(msg: string) { console.log(msg) }
-}
+1. All components extend `Adapter`
+2. Each subclass maintains its own singleton via static methods
+3. Use `MyAdapter.start()`, `MyAdapter.stop()`, `MyAdapter.destroy()` for lifecycle
+4. Container registers Adapter classes: `{ adapter: MyAdapterClass }`
+5. Move async work into lifecycle hooks (`onStart`, `onStop`, `onDestroy`)
+6. Specify dependencies explicitly: `dependencies: [TokenA, TokenB]`
 
-// Bulk tokens
-const ports = createPortTokens({ 
-  logger: undefined as LoggerAdapter 
-})
+## Next steps
 
-const c = new Container()
-c.register(ports.logger, { adapter: LoggerAdapter })
-c.resolve(ports.logger).info('hello')
+| Guide                     | Description                                |
+|---------------------------|--------------------------------------------|
+| [Concepts](./concepts.md) | Deep dive into tokens, adapters, lifecycle |
+| [Core](./core.md)         | Built-in adapters                          |
+| [Examples](./examples.md) | More patterns                              |
 
-// Single token
-const HttpPort = createPortToken<{ get(url: string): Promise<string> }>('http')
-```
-
-Rules of the road
-- All components must extend `Adapter` and use the singleton pattern
-- Each Adapter subclass maintains its own singleton instance via `static instance`
-- Use static methods for lifecycle: `MyAdapter.start()`, `MyAdapter.stop()`, `MyAdapter.destroy()`
-- Container registers Adapter classes: `container.register(token, { adapter: MyAdapterClass })`
-- Move async work into lifecycle hooks (onStart/onStop/onDestroy)
-- Dependencies are specified explicitly via `dependencies: [TokenA, TokenB]`
-
-What next
-- Concepts: deeper dive into tokens, adapters, lifecycle, orchestrator
-- Core: built-in adapters and runtime bits you can swap out
-- Examples: more snippets and patterns
-- Tips: adapter patterns and gotchas
-- Tests: how to test components and flows
-- FAQ: quick answers from simple to advanced scenarios

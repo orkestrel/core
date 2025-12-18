@@ -1,10 +1,10 @@
-import { andOf, arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf, recordOf } from '@orkestrel/validator'
+import { andOf, arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf } from '@orkestrel/validator';
 import type {
 	Token,
 	AdapterProvider,
 	AggregateLifecycleError,
-} from './types.js'
-import type { Adapter } from './adapter.js'
+} from './types.js';
+import type { Adapter } from './adapter.js';
 
 /**
  * Create a unique Token (a branded `symbol`) with a human‑friendly description.
@@ -18,7 +18,7 @@ import type { Adapter } from './adapter.js'
  * ```
  */
 export function createToken<_T = unknown>(description: string): Token<_T> {
-	return Symbol(description)
+	return Symbol(description);
 }
 
 /**
@@ -38,11 +38,11 @@ export function createToken<_T = unknown>(description: string): Token<_T> {
  * // Ports.log:  Token<string>, description: "ports:log"
  * ```
  */
-export function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): Readonly<{ [K in keyof T & string]: Token<T[K]> }>
+export function createTokens<T extends Record<string, unknown>>(namespace: string, shape: T): Readonly<{ [K in keyof T & string]: Token<T[K]> }>;
 export function createTokens(namespace: string, shape: Record<string, unknown>) {
-	const out: Record<string, symbol> = {}
-	for (const key of Object.keys(shape)) out[key] = createToken(`${namespace}:${key}`)
-	return Object.freeze(out)
+	const out: Record<string, symbol> = {};
+	for (const key of Object.keys(shape)) out[key] = createToken(`${namespace}:${key}`);
+	return Object.freeze(out);
 }
 
 /**
@@ -56,7 +56,7 @@ export function createTokens(namespace: string, shape: Record<string, unknown>) 
  * ```
  */
 export function isToken(x: unknown): x is Token<unknown> {
-	return typeof x === 'symbol'
+	return typeof x === 'symbol';
 }
 
 /**
@@ -70,7 +70,7 @@ export function isToken(x: unknown): x is Token<unknown> {
  * ```
  */
 export function isTokenArray(x: unknown): x is ReadonlyArray<Token<unknown>> {
-	return Array.isArray(x) && x.every(isToken)
+	return Array.isArray(x) && x.every(isToken);
 }
 
 /**
@@ -85,7 +85,35 @@ export function isTokenArray(x: unknown): x is ReadonlyArray<Token<unknown>> {
  * ```
  */
 export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
-	return recordOf(isToken)(x)
+	if (!isRecord(x) || Array.isArray(x)) return false;
+	for (const key of Object.keys(x)) {
+		if (!isToken(x[key])) return false;
+	}
+	return true;
+}
+
+/**
+ * Check if a constructor is an AdapterSubclass with static lifecycle methods.
+ *
+ * @param ctor - Constructor to check
+ * @returns True if `ctor` has the static Adapter lifecycle methods
+ * @example
+ * ```ts
+ * class MyAdapter extends Adapter { static instance?: MyAdapter; }
+ * isAdapterSubclass(MyAdapter) // true
+ * isAdapterSubclass({}) // false
+ * ```
+ */
+export function isAdapterSubclass(ctor: unknown): ctor is typeof Adapter {
+	return (
+		typeof ctor === 'function' &&
+		'start' in ctor &&
+		typeof ctor.start === 'function' &&
+		'stop' in ctor &&
+		typeof ctor.stop === 'function' &&
+		'destroy' in ctor &&
+		typeof ctor.destroy === 'function'
+	);
 }
 
 /**
@@ -100,7 +128,7 @@ export function isTokenRecord(x: unknown): x is Record<string, Token<unknown>> {
  * ```
  */
 export function isAdapterProvider<T extends Adapter>(p: unknown): p is AdapterProvider<T> {
-	return isRecord(p) && Object.hasOwn(p, 'adapter')
+	return isRecord(p) && Object.hasOwn(p, 'adapter');
 }
 
 /**
@@ -119,9 +147,9 @@ export function isAdapterProvider<T extends Adapter>(p: unknown): p is AdapterPr
  * safeInvoke(undefined, 'ignored')
  * ```
  */
-export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unknown | Promise<unknown>) | undefined, ...args: TArgs): void {
+export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unknown) | undefined, ...args: TArgs): void {
 	try {
-		fn?.(...args)
+		fn?.(...args);
 	}
 	catch {
 		/* swallow */
@@ -141,7 +169,7 @@ export function safeInvoke<TArgs extends unknown[]>(fn: ((...args: TArgs) => unk
  * ```
  */
 export function tokenDescription(token: symbol): string {
-	return token.description ?? String(token)
+	return token.description ?? String(token);
 }
 
 /**
@@ -158,29 +186,29 @@ export function tokenDescription(token: symbol): string {
  * ```
  */
 export function isLifecycleErrorDetail(x: unknown): x is {
-	tokenDescription: string
-	phase: 'start' | 'stop' | 'destroy'
-	context: 'normal' | 'rollback' | 'container'
-	timedOut: boolean
-	durationMs: number
-	error: Error
+	tokenDescription: string;
+	phase: 'start' | 'stop' | 'destroy';
+	context: 'normal' | 'rollback' | 'container';
+	timedOut: boolean;
+	durationMs: number;
+	error: Error;
 } {
 	return andOf<Record<string, unknown>, {
-		tokenDescription: string
-		phase: 'start' | 'stop' | 'destroy'
-		context: 'normal' | 'rollback' | 'container'
-		timedOut: boolean
-		durationMs: number
-		error: Error
+		tokenDescription: string;
+		phase: 'start' | 'stop' | 'destroy';
+		context: 'normal' | 'rollback' | 'container';
+		timedOut: boolean;
+		durationMs: number;
+		error: Error;
 	}>(
 		isRecord,
 		(obj: Record<string, unknown>): obj is {
-			tokenDescription: string
-			phase: 'start' | 'stop' | 'destroy'
-			context: 'normal' | 'rollback' | 'container'
-			timedOut: boolean
-			durationMs: number
-			error: Error
+			tokenDescription: string;
+			phase: 'start' | 'stop' | 'destroy';
+			context: 'normal' | 'rollback' | 'container';
+			timedOut: boolean;
+			durationMs: number;
+			error: Error;
 		} => (
 			'tokenDescription' in obj
 			&& isString(obj.tokenDescription)
@@ -195,7 +223,7 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 			&& 'error' in obj
 			&& isError(obj.error)
 		),
-	)(x)
+	)(x);
 }
 
 /**
@@ -210,11 +238,11 @@ export function isLifecycleErrorDetail(x: unknown): x is {
  * ```
  */
 export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
-	if (!isRecord(x)) return false
+	if (!isRecord(x)) return false;
 	return (
 		'details' in x
 		&& arrayOf(isLifecycleErrorDetail)(x.details)
 		&& 'errors' in x
 		&& arrayOf(isError)(x.errors)
-	)
+	);
 }

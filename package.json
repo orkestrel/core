@@ -55,12 +55,12 @@
     "prepublishOnly": "npm run check && npm run format && npm run test && npm run build"
   },
   "devDependencies": {
-    "@orkestrel/contribute": "^1.2.0",
-    "@types/node": "^24.10.0",
-    "eslint": "^9.39.0",
+    "@orkestrel/contribute": "^1.2.1",
+    "@types/node": "^24.10.4",
+    "eslint": "^9.39.2",
     "jiti": "^2.6.1",
     "typescript": "^5.9.3",
-    "vite": "^7.1.12",
-    "vitest": "^4.0.6"
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16"
   }
 }

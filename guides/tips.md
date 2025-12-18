@@ -1,87 +1,243 @@
 # Tips
 
-A practical grab bag: provider patterns, lifetimes, typing conventions, composition patterns, and troubleshooting. For quick answers, see the standalone FAQ.
+<!-- Template: Patterns, best practices, and troubleshooting -->
 
-Provider shapes and injection
+Practical advice for common patterns and troubleshooting.
 
-- Value: `{ useValue }` — external ownership; container won’t destroy it automatically.
-- Factory: `{ useFactory }` — lazy singleton; container owns disposal for Lifecycle instances.
-- Class: `{ useClass }` — lazy singleton; container owns disposal for Lifecycle instances.
-- Injection styles:
-  - Tuple: `inject: [A, B]` → `(a, b)` or `new C(a, b)`
-  - Object: `inject: { a: A, b: B }` → `({ a, b })` or `new C({ a, b })`
-  - Container: no inject; factory/ctor receives `Container` as first parameter when applicable
-  - No deps: zero-arg factory/ctor
-- Synchronous only: `useValue` must not be a Promise; `useFactory` must not be async and must not return a Promise. Move IO to lifecycle hooks.
+## Adapter patterns
 
-Lifetimes and ownership
+### Keep hooks lightweight
 
-- Singleton by design per container; first resolve materializes and caches.
-- Scope per request/job with `createChild()` or `using(...)`, then `await scope.destroy()`.
-- `Container.destroy()`: stops started lifecycles and destroys owned lifecycles from factory/class providers; value-provided lifecycles are considered externally owned.
-- Many instances: use a Manager (an Adapter) that owns children internally and exposes a single lifecycle to the orchestrator.
+```ts
+class Good extends Adapter {
+  #data?: SomeData
+  
+  protected async onStart() {
+    this.#data = await fetchData() // OK: async work in hook
+  }
+}
+```
 
-Typing guidelines
+### Override only what you need
 
-- Create tokens via `createToken<T>(desc)` or groups via `createPortTokens(shape)` and extend with `extendPorts(base, ext)` (duplicate keys are rejected).
-- Prefer explicit types and `readonly` public shapes. Avoid `any` and non-null assertions.
-- Narrow using guards like `isFactoryProviderWithTuple/Object`, `isClassProviderWithTuple/Object`, `isToken`, and `isProviderObject` rather than casting.
-- Treat token maps as configuration; they’re frozen read-only objects.
+```ts
+class Minimal extends Adapter {
+  // Only override hooks you actually need
+  protected async onStart() { /* startup logic */ }
+  // No need to override onStop/onDestroy if empty
+}
+```
 
-Composition patterns
+### Use private fields
 
-- Startup with register helper:
+```ts
+class Secure extends Adapter {
+  #secret = 'hidden'  // Runtime-enforced privacy
+  
+  getSecret() { return this.#secret }
+}
+```
 
-  ```ts
-  await app.start([
-    register(TLogger, { useFactory: () => new Logger() }),
-    register(TEmail, { useFactory: () => new Email() }, { dependencies: [TLogger] }),
-  ])
-  ```
+## Container patterns
 
-- Explicit dependencies control lifecycle ordering; inject controls constructor/factory arguments. Use both when needed.
-- Use orchestrator defaults for timeouts; override per component when necessary.
-- Lock critical providers with `register(token, provider, true)` or `set(token, value, true)` to prevent accidental overrides.
-- Use `container.using(apply, fn)` to stage scoped overrides then run work; the scope auto-destroys.
+### Lock critical providers
 
-Tracing and events
+```ts
+const container = new ContainerAdapter()
 
-- Orchestrator `events` are convenient for logs and metrics; `tracer` gives structured insight into layers and phase outcomes.
-- Lifecycle `on('transition'|'start'|'stop'|'destroy'|'error')` lets you observe state changes; filter in `onTransition` when you only care about some hooks.
+// Prevent accidental overrides
+container.register(CriticalToken, { adapter: CriticalService }, true) // locked
 
-Troubleshooting (stable error codes)
+// This will throw
+container.register(CriticalToken, { adapter: Other }) // Error!
+```
 
-- ORK1006 Missing provider: ensure the token was registered or use `get` instead of `resolve` when optional.
-- ORK1007 Duplicate registration: don’t register the same token twice in one orchestrator.
-- ORK1008 Unknown dependency: declare all dependencies and register them before start.
-- ORK1009 Cycle detected: break cycles by splitting responsibilities or inverting a call.
-- ORK1010/1011/1012 Async provider guards: keep providers sync; move async to lifecycle hooks or pre-resolve values.
-- ORK1013/1014/1017 Aggregated start/stop/destroy errors: catch and inspect `.details` (array of per-component failures).
-- ORK1020 Invalid lifecycle transition: respect created → started → stopped → destroyed.
-- ORK1021 Hook timed out: reduce hook work or increase timeouts.
-- ORK1022 Hook failed: handle errors in hooks; they’ll be wrapped and propagated.
-- ORK1040 Duplicate port key in `extendPorts`: rename or split the shape.
+### Scoped testing
 
-Testing tips
+```ts
+const root = new ContainerAdapter()
+root.register(Token, { adapter: Production })
 
-- Keep hook timeouts small (10–50ms) for fast feedback.
-- Avoid mocks in core; use real adapters and assert observable behavior.
-- Use `container.using` for scoped tests and ensure cleanup.
-- For aggregated errors, use `isAggregateLifecycleError` and assert on `.details`.
+// Test with mock
+await root.using(
+  (scope) => scope.register(Token, { adapter: Mock }),
+  async (scope) => {
+    const mock = scope.resolve(Token)
+    // test assertions
+  }
+)
+// Scope destroyed, root unchanged
+```
 
-Quick references
+## Orchestrator patterns
 
-- Container: `register`, `set`, `resolve`, `get`, `createChild`, `using`, `destroy`
-- Lifecycle: override hooks; observe with `on`/`off`; default hook timeout 5000ms
-- Orchestrator: `register`, `start`, `stop`, `destroy`; dependencies and per-phase timeouts; `events` and `tracer`
-- Ports: `createPortTokens`, `createPortToken`, `extendPorts`
+### Default vs per-component timeouts
 
-See also
-- Overview and Start for the mental model and installation
-- Concepts for tokens/providers/lifecycle/orchestration
-- Core for built-in adapters
-- Examples for copy‑pasteable patterns
-- Tests for fast, deterministic testing guidance
-- FAQ for quick answers from simple to advanced scenarios
+```ts
+// Default for all components
+const app = new OrchestratorAdapter(container, { 
+  timeouts: 5000 
+})
 
-API reference is generated separately; see docs/api/index.md (Typedoc).
+// Override for slow components
+await app.start({
+  [FastToken]: { adapter: Fast },
+  [SlowToken]: { adapter: Slow, timeouts: { onStart: 30000 } },
+})
+```
+
+### Events for logging
+
+```ts
+const app = new OrchestratorAdapter(container, {
+  events: {
+    onComponentStart: ({ token, durationMs }) => {
+      console.log(`Started ${String(token)} in ${durationMs}ms`)
+    },
+    onComponentError: (detail) => {
+      console.error(`Failed: ${detail.tokenDescription}`)
+    },
+  },
+})
+```
+
+## Troubleshooting
+
+### ORK1006: Missing provider
+
+**Symptom**: `No provider for <token>`
+
+**Fix**: Register before resolving, or use `get()` for optional dependencies.
+
+```ts
+container.register(Token, { adapter: Service }) // Register first
+const svc = container.resolve(Token)            // Then resolve
+
+// Or for optional
+const maybe = container.get(OptionalToken)      // Returns undefined
+```
+
+### ORK1007: Duplicate registration
+
+**Symptom**: `Duplicate registration`
+
+**Fix**: Register each token only once per orchestrator start.
+
+```ts
+// Bad: same token twice
+await app.start({
+  [Token]: { adapter: A },
+  [Token]: { adapter: B }, // Error!
+})
+
+// Good: one registration per token
+await app.start({
+  [TokenA]: { adapter: A },
+  [TokenB]: { adapter: B },
+})
+```
+
+### ORK1008: Unknown dependency
+
+**Symptom**: `Unknown dependency X required by Y`
+
+**Fix**: Register all dependencies.
+
+```ts
+// Bad: missing DbToken registration
+await app.start({
+  [ServerToken]: { adapter: Server, dependencies: [DbToken] },
+})
+
+// Good: register dependency first
+await app.start({
+  [DbToken]: { adapter: Database },
+  [ServerToken]: { adapter: Server, dependencies: [DbToken] },
+})
+```
+
+### ORK1009: Cycle detected
+
+**Symptom**: `Cycle detected in dependency graph`
+
+**Fix**: Break circular dependencies by restructuring or using events.
+
+```ts
+// Bad: A depends on B, B depends on A
+{
+  [A]: { adapter: ServiceA, dependencies: [B] },
+  [B]: { adapter: ServiceB, dependencies: [A] },
+}
+
+// Good: use event bus for loose coupling
+class ServiceA extends Adapter {
+  protected async onStart() {
+    bus.subscribe('b:ready', this.handleBReady)
+  }
+}
+```
+
+### ORK1021: Hook timed out
+
+**Symptom**: `Hook 'onStart' timed out`
+
+**Fix**: Reduce hook work or increase timeout.
+
+```ts
+// Increase timeout for slow operations
+{
+  [SlowToken]: { 
+    adapter: SlowService, 
+    timeouts: { onStart: 60000 } 
+  }
+}
+```
+
+### ORK1022: Hook failed
+
+**Symptom**: `Hook 'onStart' failed`
+
+**Fix**: Handle errors in hooks or fix the underlying issue.
+
+```ts
+class Robust extends Adapter {
+  protected async onStart() {
+    try {
+      await riskyOperation()
+    } catch (err) {
+      // Handle or rethrow
+      console.error('Failed to start:', err)
+      throw err // Let orchestrator handle rollback
+    }
+  }
+}
+```
+
+## Testing tips
+
+- **Small timeouts**: Use 10-50ms in tests for fast feedback
+- **NoopLogger**: Suppress output in tests
+- **FakeLogger**: Assert on log entries
+- **Scoped containers**: Isolate tests with `using()`
+
+```ts
+import { NoopLogger, FakeLogger, ContainerAdapter } from '@orkestrel/core'
+
+const logger = new NoopLogger()
+const container = new ContainerAdapter({ logger })
+
+// Or capture logs
+const fake = new FakeLogger()
+const debug = new ContainerAdapter({ logger: fake })
+// ... run tests
+expect(fake.entries).toContain(...)
+```
+
+## Next steps
+
+| Guide                         | Description          |
+|-------------------------------|----------------------|
+| [Tests](./tests.md)           | Testing guidance     |
+| [FAQ](./faq.md)               | Common questions     |
+| [Contribute](./contribute.md) | Development workflow |
+

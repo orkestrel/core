@@ -1,46 +1,113 @@
-# Orkestrel Core
+# @orkestrel/core
 
+<!-- Package-specific section: Package name and tagline -->
 Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilities with tokens, wire Adapter classes via a tiny DI container, and drive lifecycles deterministically with an orchestrator.
 
-- Package: `@orkestrel/core`
-- TypeScript-first, ESM-only
-- Works in Node and the browser (Node 18+)
+<!-- Template section: Badges (customize URLs for each package) -->
+[![npm](https://img.shields.io/npm/v/@orkestrel/core)](https://www.npmjs.com/package/@orkestrel/core)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-## Install
+<!-- Template section: Key features (customize per package) -->
+## Features
+
+- **Tokens and ports** — Typed symbols for decoupled contracts
+- **Dependency injection** — Minimal container with singleton adapters
+- **Deterministic lifecycle** — Start, stop, destroy with timeouts and rollback
+- **Orchestration** — Topological ordering with per-layer concurrency
+- **Built-in adapters** — Logger, diagnostics, emitter, event bus, queue, registry
+
+<!-- Template section: Requirements -->
+## Requirements
+
+- Node.js 20+
+- TypeScript 5.0+ (recommended)
+- ESM-only (`"type": "module"`)
+
+<!-- Template section: Installation -->
+## Installation
+
 ```sh
 npm install @orkestrel/core
 ```
 
-## Documentation
-- Overview: https://github.com/orkestrel/core/blob/main/guides/overview.md
-- Start: https://github.com/orkestrel/core/blob/main/guides/start.md
-- Concepts: https://github.com/orkestrel/core/blob/main/guides/concepts.md
-- Core: https://github.com/orkestrel/core/blob/main/guides/core.md
-- Examples: https://github.com/orkestrel/core/blob/main/guides/examples.md
-- Tips: https://github.com/orkestrel/core/blob/main/guides/tips.md
-- Tests: https://github.com/orkestrel/core/blob/main/guides/tests.md
-- Contribute: https://github.com/orkestrel/core/blob/main/guides/contribute.md
-- FAQ: https://github.com/orkestrel/core/blob/main/guides/faq.md
+<!-- Package-specific section: Quick start example -->
+## Quick Start
 
-Notes
-- All components extend `Adapter` base class with singleton pattern
-- Adapter classes registered in Container: `{ adapter: AdapterClass }`
-- Lifecycle managed via static methods: `MyAdapter.start()`, `MyAdapter.stop()`, `MyAdapter.destroy()`
-- Dependencies specified explicitly: `{ adapter: MyClass, dependencies: [TokenA, TokenB] }`
-- Async work happens in lifecycle hooks (`onStart`, `onStop`, `onDestroy`) with timeouts
-- Deterministic start/stop/destroy order with rollback on failures
+```ts
+import { ContainerAdapter, OrchestratorAdapter, Adapter, createToken } from '@orkestrel/core'
 
-## Scripts
-```sh
-npm run check   # typecheck
-npm run test    # unit tests
-npm run docs    # generate API docs into docs/api
-npm run build   # build ESM + types into dist
+// Define components as Adapter subclasses
+class Database extends Adapter {
+  protected async onStart() { console.log('Database connected') }
+  protected async onStop() { console.log('Database disconnected') }
+}
+
+class Server extends Adapter {
+  protected async onStart() { console.log('Server started') }
+  protected async onStop() { console.log('Server stopped') }
+}
+
+// Create typed tokens
+const DbToken = createToken<Database>('Database')
+const ServerToken = createToken<Server>('Server')
+
+// Wire via container and orchestrate
+const container = new ContainerAdapter()
+const app = new OrchestratorAdapter(container)
+
+await app.start({
+  [DbToken]: { adapter: Database },
+  [ServerToken]: { adapter: Server, dependencies: [DbToken] },
+})
+
+// Server depends on Database - started in correct order
+await app.destroy() // Cleanup in reverse order
 ```
 
-Links
-- Issues: https://github.com/orkestrel/core/issues
+<!-- Package-specific section: Core concepts summary -->
+## Core Concepts
 
+| Concept          | Description                                              |
+|------------------|----------------------------------------------------------|
+| **Token**        | Typed symbol key for registration and resolution         |
+| **Adapter**      | Base class with singleton pattern and lifecycle hooks    |
+| **Container**    | DI container that registers and resolves Adapter classes |
+| **Orchestrator** | Manages start/stop/destroy in dependency order           |
+
+<!-- Template section: Documentation links (customize URLs) -->
+## Documentation
+
+| Guide                                | Description                                |
+|--------------------------------------|--------------------------------------------|
+| [Overview](./guides/overview.md)     | Mental model and architecture              |
+| [Start](./guides/start.md)           | Installation and 5-minute tour             |
+| [Concepts](./guides/concepts.md)     | Tokens, adapters, lifecycle, orchestration |
+| [Core](./guides/core.md)             | Built-in adapters and runtime              |
+| [Examples](./guides/examples.md)     | Copy-pasteable patterns                    |
+| [Tips](./guides/tips.md)             | Patterns and troubleshooting               |
+| [Tests](./guides/tests.md)           | Testing guidance                           |
+| [FAQ](./guides/faq.md)               | Common questions                           |
+| [Contribute](./guides/contribute.md) | Development workflow                       |
+
+<!-- Template section: Scripts -->
+## Development
+
+```sh
+npm run check   # Typecheck
+npm run test    # Run tests
+npm run format  # Lint and fix
+npm run build   # Build ESM + types
+```
+
+<!-- Template section: Links -->
+## Links
+
+- [Issues](https://github.com/orkestrel/core/issues)
+- [Changelog](https://github.com/orkestrel/core/releases)
+
+<!-- Template section: License -->
 ## License
 
 MIT © 2025 Orkestrel
+

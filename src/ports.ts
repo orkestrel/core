@@ -1,8 +1,8 @@
-import type { Token, TokensOf } from './types.js'
-import { createTokens, createToken } from './helpers.js'
-import { DiagnosticAdapter } from './adapters/diagnostic.js'
-import { NoopLogger } from './adapters/logger'
-import { PORTS_MESSAGES } from './constants.js'
+import type { Token, TokensOf } from './types.js';
+import { createTokens, createToken } from './helpers.js';
+import { DiagnosticAdapter } from './adapters/diagnostic.js';
+import { NoopLogger } from './adapters/logger';
+import { PORTS_MESSAGES } from './constants.js';
 
 /**
  * Create a read-only set of Port tokens from a shape object.
@@ -25,13 +25,13 @@ import { PORTS_MESSAGES } from './constants.js'
  * ```
  */
 export function createPortTokens<T extends Record<string, unknown>>(shape: T, namespace = 'ports'): TokensOf<T> {
-	return createTokens(namespace, shape)
+	return createTokens(namespace, shape);
 }
 
 /** Extend an existing set of Port tokens with additional ports or create a new one (overload). */
-export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): Readonly<TokensOf<Ext>>
+export function extendPorts<Ext extends Record<string, unknown>>(ext: Ext): Readonly<TokensOf<Ext>>;
 /** Extend a base token map with an extension shape (overload). */
-export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Readonly<Base & TokensOf<Ext>>
+export function extendPorts<Base extends Record<string, Token<unknown>>, Ext extends Record<string, unknown>>(base: Base, ext: Ext): Readonly<Base & TokensOf<Ext>>;
 /**
  * Extend an existing token map or create a new one from a shape.
  *
@@ -53,18 +53,18 @@ export function extendPorts(
 	...args: [Record<string, unknown>] | [Record<string, Token<unknown>>, Record<string, unknown>]
 ): unknown {
 	if (args.length === 1) {
-		const [ext] = args
-		const newTokens = createTokens('ports', ext)
-		return Object.freeze({ ...newTokens })
+		const [ext] = args;
+		const newTokens = createTokens('ports', ext);
+		return Object.freeze({ ...newTokens });
 	}
-	const [base, ext] = args
+	const [base, ext] = args;
 	for (const k of Object.keys(ext)) {
 		if (k in base) {
-			new DiagnosticAdapter({ logger: new NoopLogger(), messages: PORTS_MESSAGES }).fail('ORK1040', { scope: 'internal', message: `extendPorts: duplicate port key '${k}'` })
+			new DiagnosticAdapter({ logger: new NoopLogger(), messages: PORTS_MESSAGES }).fail('ORK1040', { scope: 'internal', message: `extendPorts: duplicate port key '${k}'` });
 		}
 	}
-	const newTokens = createTokens('ports', ext)
-	return Object.freeze({ ...base, ...newTokens })
+	const newTokens = createTokens('ports', ext);
+	return Object.freeze({ ...base, ...newTokens });
 }
 
 /**
@@ -79,5 +79,5 @@ export function extendPorts(
  * ```
  */
 export function createPortToken<T>(name: string): Token<T> {
-	return createToken<T>(`ports:${name}`)
+	return createToken<T>(`ports:${name}`);
 }

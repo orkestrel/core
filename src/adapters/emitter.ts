@@ -1,8 +1,8 @@
-import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, EmitterListener, EventMap, LoggerPort } from '../types.js'
-import { safeInvoke } from '../helpers.js'
-import { isFunction } from '@orkestrel/validator'
-import { LoggerAdapter } from './logger.js'
-import { DiagnosticAdapter } from './diagnostic.js'
+import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, EmitterListener, EventMap, LoggerPort } from '../types.js';
+import { safeInvoke } from '../helpers.js';
+import { isFunction } from '@orkestrel/validator';
+import { LoggerAdapter } from './logger.js';
+import { DiagnosticAdapter } from './diagnostic.js';
 
 /**
  * In-memory event emitter implementation with typed tuple-based events.
@@ -25,10 +25,10 @@ import { DiagnosticAdapter } from './diagnostic.js'
  */
 export class EmitterAdapter<EMap extends EventMap = EventMap> implements EmitterPort<EMap> {
 	// Internal registry of per-event listeners.
-	readonly #listeners = new Map<keyof EMap & string, Set<unknown>>()
+	readonly #listeners = new Map<keyof EMap & string, Set<unknown>>();
 
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #logger: LoggerPort;
+	readonly #diagnostic: DiagnosticPort;
 
 	/**
 	 * Construct an EmitterAdapter with optional logger and diagnostic ports.
@@ -39,8 +39,8 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
      *
 	 */
 	constructor(options: EmitterAdapterOptions = {}) {
-		this.#logger = options?.logger ?? new LoggerAdapter()
-		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger })
+		this.#logger = options?.logger ?? new LoggerAdapter();
+		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger });
 	}
 
 	/**
@@ -48,14 +48,14 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerPort { return this.#logger; }
 
 	/**
 	 * Access the diagnostic port used by this emitter.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticPort { return this.#diagnostic; }
 
 	/**
 	 * Register a listener function for a specific event.
@@ -70,13 +70,13 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * ```
 	 */
 	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this {
-		let set = this.#listeners.get(event)
+		let set = this.#listeners.get(event);
 		if (!set) {
-			set = new Set<unknown>()
-			this.#listeners.set(event, set)
+			set = new Set<unknown>();
+			this.#listeners.set(event, set);
 		}
-		set.add(fn)
-		return this
+		set.add(fn);
+		return this;
 	}
 
 	/**
@@ -94,12 +94,12 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * ```
 	 */
 	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this {
-		const set = this.#listeners.get(event)
+		const set = this.#listeners.get(event);
 		if (set) {
-			set.delete(fn)
-			if (set.size === 0) this.#listeners.delete(event)
+			set.delete(fn);
+			if (set.size === 0) this.#listeners.delete(event);
 		}
-		return this
+		return this;
 	}
 
 	/**
@@ -115,12 +115,12 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * ```
 	 */
 	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void {
-		const set = this.#listeners.get(event)
-		if (!set || set.size === 0) return
-		const snapshot = Array.from(set)
+		const set = this.#listeners.get(event);
+		if (!set || set.size === 0) return;
+		const snapshot = Array.from(set);
 		for (const v of snapshot) {
 			if (isFunction(v)) {
-				safeInvoke(v, ...args)
+				safeInvoke(v, ...args);
 			}
 		}
 	}
@@ -135,5 +135,5 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 * emitter.removeAllListeners()
 	 * ```
 	 */
-	removeAllListeners(): void { this.#listeners.clear() }
+	removeAllListeners(): void { this.#listeners.clear(); }
 }

@@ -1,115 +1,211 @@
 # Tests
 
-Guidelines to keep tests fast, deterministic, and representative of real-world usage without adding heavy tooling.
+<!-- Template: Testing guidance and patterns -->
 
-Principles
-- Prefer tiny, isolated scenarios that map directly to source behaviors.
-- Avoid mocks/fakes/spies in this core repo. Use real components and built-ins only. Consumers can use fakes/spies when testing their apps.
-- Keep timeouts small to make tests snappy and still representative. Favor deterministic assertions.
+Guidelines for fast, deterministic tests.
 
-Patterns
+## Principles
 
-Scoping with Container.using
-Run code within a child scope and ensure cleanup after execution.
+- **Isolated scenarios**: Map directly to source behaviors
+- **No mocks**: Use real components (mocks allowed in consumer apps)
+- **Small timeouts**: Fast tests with short timers
+- **Deterministic**: Avoid flaky timing dependencies
+
+## Patterns
+
+### Scoped testing
+
 ```ts
-import { Container } from '@orkestrel/core'
+import { ContainerAdapter, Adapter, createToken } from '@orkestrel/core'
 
-const root = new Container()
+const Token = createToken<Adapter>('test')
+const root = new ContainerAdapter()
+
+// Isolated test with cleanup
 const result = await root.using(async (scope) => {
-  // register overrides in the scoped container if needed
-  // use scope.resolve(...) inside the scope
-  return 42
+  class TestAdapter extends Adapter {}
+  scope.register(Token, { adapter: TestAdapter })
+  return scope.resolve(Token)
 })
-// scope is destroyed here
+// Scope destroyed after test
 ```
 
-Apply overrides via an apply callback before running work:
-```ts
-import { Container, createToken } from '@orkestrel/core'
+### Override pattern
 
-const T = createToken<string>('test:val')
-const root = new Container()
-const out = await root.using(
+```ts
+import { ContainerAdapter, createToken, Adapter } from '@orkestrel/core'
+
+class Production extends Adapter {
+  getValue() { return 'prod' }
+}
+
+class Mock extends Adapter {
+  getValue() { return 'mock' }
+}
+
+const Token = createToken<Production>('Test')
+const root = new ContainerAdapter()
+root.register(Token, { adapter: Production })
+
+// Test with override
+const result = await root.using(
   (scope) => {
-    scope.register(T, { useValue: 'scoped' })
+    scope.register(Token, { adapter: Mock })
   },
-  async (scope) => {
-    return scope.resolve(T)
-  },
+  (scope) => {
+    return scope.resolve(Token).getValue()
+  }
 )
-// out === 'scoped'; scope was destroyed after the function
+// result === 'mock'
+// root still has Production
 ```
 
-Lifecycle expectations
-Assert transitions and errors using real Lifecycle-derived classes.
+### Lifecycle assertions
+
 ```ts
-import { Lifecycle } from '@orkestrel/core'
+import { Adapter, NoopLogger } from '@orkestrel/core'
 import { strict as assert } from 'node:assert'
 
-class Svc extends Lifecycle {
-  protected async onStart() { /* lightweight */ }
-  protected async onStop() { /* lightweight */ }
+class TestService extends Adapter {
+  started = false
+  protected async onStart() { this.started = true }
+  protected async onStop() { this.started = false }
 }
 
-const s = new Svc({ timeouts: 50 })
-await s.start()
-assert.equal(s.state, 'started')
-await s.stop()
-assert.equal(s.state, 'stopped')
+// Test lifecycle
+await TestService.start({ timeouts: 50, logger: new NoopLogger() })
+assert.equal(TestService.getState(), 'started')
+assert.equal(TestService.getInstance().started, true)
+
+await TestService.stop()
+assert.equal(TestService.getState(), 'stopped')
+
+await TestService.destroy()
 ```
 
-Orchestrator flows
-Use the Orchestrator to exercise start/stop/destroy ordering with small graphs.
+### Orchestrator testing
+
 ```ts
-import { Orchestrator, Container, register, createToken, Lifecycle } from '@orkestrel/core'
+import { OrchestratorAdapter, ContainerAdapter, Adapter, createToken, NoopLogger } from '@orkestrel/core'
+import { strict as assert } from 'node:assert'
 
-interface Port { n(): number }
-const T = createToken<Port>('test:port')
+class ServiceA extends Adapter {}
+class ServiceB extends Adapter {}
 
-class Impl extends Lifecycle implements Port {
-  n() { return 1 }
-}
+const TokenA = createToken<ServiceA>('A')
+const TokenB = createToken<ServiceB>('B')
 
-const app = new Orchestrator(new Container())
-app.register(T, { useFactory: () => new Impl() })
-await app.start()
-await app.stop()
+const logger = new NoopLogger()
+const container = new ContainerAdapter({ logger })
+const app = new OrchestratorAdapter(container, { logger, timeouts: 50 })
+
+await app.start({
+  [TokenA]: { adapter: ServiceA },
+  [TokenB]: { adapter: ServiceB, dependencies: [TokenA] },
+})
+
+assert.equal(ServiceA.getState(), 'started')
+assert.equal(ServiceB.getState(), 'started')
+
 await app.destroy()
 ```
 
-Deterministic timeouts
-- Keep hook and orchestrator timeouts low (e.g., 10–50ms) in tests.
-- Avoid external timer-mocking libraries; structure code to be deterministic with short timers.
+### Error testing
 
-Aggregated errors
-Catch AggregateLifecycleError when testing error paths and inspect details for per-component context.
 ```ts
 import { isAggregateLifecycleError } from '@orkestrel/core'
+import { strict as assert } from 'node:assert'
 
 try {
   await app.stop()
-} catch (e) {
-  if (isAggregateLifecycleError(e)) {
-    for (const d of e.details) {
-      console.error(`${d.tokenDescription} failed during ${d.phase}${d.timedOut ? ' (timed out)' : ''} after ${d.durationMs}ms:`, d.error.message)
+} catch (err) {
+  if (isAggregateLifecycleError(err)) {
+    for (const detail of err.details) {
+      console.log(`${detail.tokenDescription} failed:`, detail.error.message)
     }
   } else {
-    throw e
+    throw err
   }
 }
 ```
 
-Policy for the core repo
-- No mocks, fakes, or spies in tests here; use only built-ins and actual code paths.
-- Keep tests short and focused. Add happy-path + 1–2 edge cases for public behavior.
-- Aim for fast runs (seconds, not minutes) with tsx --test and tsc --noEmit.
+## Timeout configuration
 
-See also
-- Overview and Start for the mental model and installation
-- Concepts for tokens/providers/lifecycle/orchestration
-- Core for built-in adapters
-- Examples for copy‑pasteable scenarios
-- Tips for composition patterns and troubleshooting
-- FAQ for quick answers from simple to advanced scenarios
+Keep timeouts small for fast tests:
 
-API reference is generated separately; see docs/api/index.md (Typedoc).
+```ts
+// Adapter level
+await MyAdapter.start({ timeouts: 50 })
+
+// Orchestrator level
+const app = new OrchestratorAdapter(container, { timeouts: 50 })
+
+// Per-component
+await app.start({
+  [Token]: { adapter: Service, timeouts: 10 }
+})
+```
+
+## Logger configuration
+
+Suppress output in tests:
+
+```ts
+import { NoopLogger, ContainerAdapter, OrchestratorAdapter } from '@orkestrel/core'
+
+const logger = new NoopLogger()
+const container = new ContainerAdapter({ logger })
+const app = new OrchestratorAdapter(container, { logger })
+```
+
+Or capture for assertions:
+
+```ts
+import { FakeLogger } from '@orkestrel/core'
+
+const logger = new FakeLogger()
+// ... run code
+assert.equal(logger.entries[0].message, 'expected message')
+```
+
+## Test structure
+
+```ts
+import { describe, test, beforeEach, afterEach } from 'vitest'
+import { NoopLogger, OrchestratorAdapter, ContainerAdapter } from '@orkestrel/core'
+
+describe('MyService', () => {
+  let logger: NoopLogger
+  let container: ContainerAdapter
+  let app: OrchestratorAdapter
+
+  beforeEach(() => {
+    logger = new NoopLogger()
+    container = new ContainerAdapter({ logger })
+    app = new OrchestratorAdapter(container, { logger, timeouts: 50 })
+  })
+
+  afterEach(async () => {
+    await app.destroy().catch(() => {})
+  })
+
+  test('starts successfully', async () => {
+    // test implementation
+  })
+})
+```
+
+## Guidelines for this repo
+
+- No mocks, fakes, or spies — use real adapters
+- Keep tests short and focused
+- Cover happy path + key edge cases
+- Fast runs (seconds, not minutes)
+
+## Next steps
+
+| Guide                         | Description          |
+|-------------------------------|----------------------|
+| [FAQ](./faq.md)               | Common questions     |
+| [Contribute](./contribute.md) | Development workflow |
+

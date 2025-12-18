@@ -1,139 +1,228 @@
 # Contribute
 
-A compact guide so humans and coding agents can ship high‑quality changes to @orkestrel/core with confidence.
+<!-- Template: Development workflow and guidelines -->
 
-## Principles (what we optimize for)
-- Determinism: same inputs, same outputs; preserve insertion and declared dependency order
-- Strong typing: strict types with zero `any`, no non‑null assertions, and honest boundaries
-- Small surface: minimal, composable APIs; real use cases drive growth
-- Portability: browser + Node compatible by default; in‑memory adapters in core
-- Predictable lifecycles: sync providers, async work in lifecycle hooks with timeouts
+A guide for contributing to @orkestrel/core with confidence.
 
-## Quick workflow (how to work)
-1) Edit source in `src/`
-2) Mirror tests in `tests/` (one test file per source file)
-3) Run locally:
-    - `npm run check` — typecheck everything
-    - `npm test` — run unit tests
-    - `npm run format` — lint + autofix
-    - `npm run build` — build types and ESM
-    - `npm run docs` — generate API reference to `docs/api/`
+## Quick start
 
-Node/browser targets
-- TypeScript‑first, ESM‑only (`"type": "module"`), moduleResolution: bundler
-- No Node‑only primitives in core adapters or public APIs
-
-## Typing ethos (strict, helpful, honest)
-- No `any`. No non‑null assertions (`!`). Avoid unsafe casts; prefer narrowing
-- Validate at the edges: accept `unknown` from the outside world, check, then type
-- Prefer `readonly` for public outputs; avoid mutating returned values
-- Keep helpers small and well‑typed; document invariants where helpful
-- Use provided guards from `src/helpers.ts` to narrow unions incrementally
-
-If you must widen or coerce, write a guard instead and cover it with tests.
-
-## TSDoc policy (what to document)
-- Public exported classes and their public methods: full TSDoc
-    - Include: description, `@param` and `@returns` with descriptions, an `@example`, and `@remarks` if helpful
-    - Examples must use fenced code blocks with the `ts` language tag (```ts) — be consistent across the codebase
-- Exported functions: full TSDoc as above
-- Simple getters and setters: do not include an `@example`. Provide a concise description and a meaningful `@returns` description.
-- Private methods, non‑exported classes/functions, and overload signatures: use a single‑line description comment only (no full TSDoc block)
-- Types and interfaces: no TSDoc — remove banner/header or note comments on types/interfaces
-- Remove header‑only banners and note style comments
-
-Documenting options objects (important)
-- TSDoc does not support dotted `@param` names (e.g., `@param opts.foo`). Using them triggers `tsdoc-param-tag-with-invalid-name`.
-- For options objects, document a single parameter for the object, and list its properties in the description (or under `@remarks`).
-- Do not include type annotations in JSDoc; rely on TypeScript types.
-
-Example pattern
+```sh
+npm install          # Install dependencies
+npm run check        # Typecheck
+npm run test         # Run tests
+npm run format       # Lint and fix
+npm run build        # Build ESM + types
 ```
+
+## Principles
+
+| Principle                 | Description                               |
+|---------------------------|-------------------------------------------|
+| **Determinism**           | Same inputs → same outputs                |
+| **Strong typing**         | No `any`, no `!`, honest types            |
+| **Small surface**         | Minimal APIs, real use cases drive growth |
+| **Portability**           | Browser + Node compatible                 |
+| **Predictable lifecycle** | Sync providers, async in hooks            |
+
+## Workflow
+
+1. Edit source in `src/`
+2. Mirror tests in `tests/` (one test file per source)
+3. Run validation:
+
+```sh
+npm run check   # Must pass
+npm run test    # Must pass
+npm run format  # Must pass
+npm run build   # Must succeed
+```
+
+## File structure
+
+```
+src/
+  index.ts         # Barrel exports (no logic)
+  types.ts         # Centralized types
+  helpers.ts       # Shared helpers
+  constants.ts     # Immutable constants
+  adapter.ts       # Base Adapter class
+  ports.ts         # Port token helpers
+  adapters/        # Built-in adapters
+tests/
+  [file].test.ts   # Mirrors src/[file].ts
+```
+
+## Coding standards
+
+### TypeScript
+
+- No `any`
+- No non-null assertions (`!`)
+- Avoid type assertions (`as`)
+- Validate at edges: accept `unknown`, narrow with guards
+- Prefer `readonly` for public outputs
+- ESM imports with `.js` extension
+
+### Naming
+
+- Clear words, avoid abbreviations
+- Public methods: 1-2 words
+- Private methods: 2-3 words allowed
+- Use `#` for private fields
+
+### Encapsulation
+
+- Use `#` private fields (runtime-enforced)
+- Public getters return copies or readonly views
+- No mutable state exposed
+
+## TSDoc policy
+
+### Public classes/functions
+
+Full TSDoc with description, params, returns, and example:
+
+```ts
 /**
- * Construct a Thing.
+ * Create a token.
  *
- * @param opts - Configuration options:
- * - parent: Optional parent container to inherit providers from
- * - logger: Optional logger port for diagnostics
- * - diagnostic: Optional diagnostic port for error reporting
+ * @param description - Token description
+ * @returns A new unique token
+ * @example
+ * ```ts
+ * const Token = createToken<number>('port')
+ * ```
  */
-constructor(opts: ThingOptions = {}) { /* ... */ }
 ```
 
-Consistency
-- Examples should be minimal, copy‑paste friendly, and reflect real usage
-- Prefer `readonly` in public shapes and return immutable views when sensible
-- Use existing diagnostic codes and helpers; don’t invent new ones casually
+### Options objects
 
-## API and change control
-- Do not expand the public API without a concrete, multi‑site use case
-- Prefer tiny extensions to existing shapes over new abstractions
-- Keep ports stable; evolve via narrowly scoped, additive methods with rationale
+List properties in description (TSDoc doesn't support dotted params):
 
-## Architecture and lifecycle (core constraints)
-- All components extend the `Adapter` base class
-- Each Adapter subclass uses the singleton pattern with `static instance?: AdapterClass`
-- Lifecycle is managed via static methods: `MyAdapter.start()`, `MyAdapter.stop()`, `MyAdapter.destroy()`
-- Container registers Adapter classes: `container.register(token, { adapter: AdapterClass })`
-- Dependencies are specified explicitly: `{ adapter: MyClass, dependencies: [TokenA, TokenB] }`
-- Async work happens in lifecycle hooks (`onStart`, `onStop`, `onDestroy`) with per‑phase timeouts
-- On start failure, rollback deterministically (stop previously started singletons in reverse order)
+```ts
+/**
+ * Construct a container.
+ *
+ * @param options - Configuration options:
+ * - parent: Optional parent container
+ * - logger: Optional logger port
+ */
+```
 
-Diagnostics (selected)
-- Unknown dependency → ORK1008
-- Cycle detected → ORK1009
-- Aggregates on start/stop/destroy → ORK1013/ORK1014/ORK1017
-- Invalid transition / Hook timeout → ORK1020 / ORK1021
+### Simple getters
 
-## Ports + adapters
-- Contracts: minimal, explicit, generic where useful; browser + Node friendly
-- Adapters: in‑memory, side‑effect free on import; deterministic order
-- Composition over inheritance; keep heavy logic in private helpers
-- Caching: invalidate deterministically on mutation
-- Use core diagnostics and isolate listener errors via `safeInvoke`
+Concise description only, no example:
 
-Determinism
-- Respect insertion order for initial frontiers/queues; respect declared input order
-- If tie‑breaking is required, make it stable and document it
+```ts
+/**
+ * Get the current state.
+ *
+ * @returns The lifecycle state
+ */
+get state(): LifecycleState { ... }
+```
 
-## Testing conventions and QA
-- Tests mirror source files: `tests/[file].test.ts`
-- Use real in‑memory adapters; no mocks/fakes/spies in core tests
-- Cover: success/failure/timeout, concurrency caps, ordering/determinism, aggregation
-- No CI workflows in this repo — enforce the same gates locally before pushing or publishing: typecheck clean, lint clean, tests green, docs build
+### Private/internal
 
-## Naming and tokens
-- Ports live behind tokens; use `tokenDescription` for diagnostics/tracing payloads
-- Prefer `createPortToken` / `createPortTokens` and `extendPorts` for stable, typed maps
+Single-line comment only:
 
-## Guidance for automated agents
-- Keep determinism; document any tie‑breaking
-- Follow the TSDoc policy above strictly (including ```ts examples and no type/interface TSDoc)
-- Omit `@example` for simple getters/setters; include only description and `@returns` unless a remark is essential
-- Do not add new public APIs without a compelling multi‑site need
-- All components must extend `Adapter` with singleton pattern
-- Use static methods for lifecycle management
-- Dependencies must be specified explicitly
-- Move async into lifecycle hooks with timeouts
-- Ports minimal, adapters in‑memory; avoid Node‑only APIs in core
-- Strict types: no `any`, no non‑null assertions; prefer `readonly` results
-- Update tests alongside code; add new cases to the existing file
-- Use the quick workflow commands before proposing changes
-- Do not add GitHub Workflows or external CI; stick to local gates and existing npm scripts
+```ts
+// Internal: validate transition edges
+#validateTransition(target: LifecycleState): void { ... }
+```
 
-## Documentation
-- API reference is generated by TypeDoc to `docs/api/` via `npm run docs`
-- TypeDoc landing page: `docs/api/index.md` (generated)
+## Architecture
 
-## Code of Conduct
+### Adapter pattern
+
+All components extend `Adapter`:
+
+```ts
+class MyService extends Adapter {
+  protected async onStart() { }
+  protected async onStop() { }
+}
+```
+
+### Singleton lifecycle
+
+Static methods manage singleton:
+
+```ts
+await MyService.start()
+await MyService.stop()
+await MyService.destroy()
+```
+
+### Container registration
+
+```ts
+container.register(Token, { adapter: MyService })
+```
+
+### Explicit dependencies
+
+```ts
+container.register(Token, { 
+  adapter: MyService, 
+  dependencies: [DependencyToken] 
+})
+```
+
+## Testing
+
+- Mirror source: `tests/[file].test.ts`
+- No mocks/fakes/spies in core
+- Small timeouts (10-50ms)
+- Cover: success, failure, timeout, ordering
+
+```ts
+import { describe, test, beforeEach, afterEach } from 'vitest'
+
+describe('MyAdapter', () => {
+  afterEach(async () => {
+    await MyAdapter.destroy().catch(() => {})
+  })
+
+  test('starts successfully', async () => {
+    await MyAdapter.start({ timeouts: 50 })
+    assert.equal(MyAdapter.getState(), 'started')
+  })
+})
+```
+
+## Error codes
+
+| Code              | Description            |
+|-------------------|------------------------|
+| ORK1006           | Missing provider       |
+| ORK1007           | Duplicate registration |
+| ORK1008           | Unknown dependency     |
+| ORK1009           | Cycle detected         |
+| ORK1013/1014/1017 | Phase errors           |
+| ORK1020/1021/1022 | Lifecycle errors       |
+
+## Guidelines for agents
+
+1. Follow existing patterns and structure
+2. Keep determinism — document any tie-breaking
+3. Follow TSDoc policy strictly
+4. No new public APIs without compelling use case
+5. All components extend `Adapter` with singleton pattern
+6. Dependencies must be explicit
+7. Async work in lifecycle hooks only
+8. Strict types: no `any`, no `!`, prefer `readonly`
+9. Update tests alongside code
+10. Run all validation commands before completing
+
+## Code of conduct
+
 Be kind. Assume good intent. Discuss ideas, not people.
 
-See also
-- Overview and Start for the project mental model and installation
-- Concepts for tokens/providers/lifecycle/orchestration
-- Core for built‑in adapters and runtime pieces
-- Examples and Tests for practical usage and verification patterns
-- Tips for composition patterns and troubleshooting
-- FAQ for quick answers from simple to advanced scenarios
+## Next steps
 
-API reference is generated separately; see docs/api/index.md (Typedoc).
+| Guide                     | Description      |
+|---------------------------|------------------|
+| [Overview](./overview.md) | Mental model     |
+| [Tests](./tests.md)       | Testing guidance |
+

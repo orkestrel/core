@@ -1,39 +1,160 @@
 # Ecosystem
 
-Orkestrel Core focuses on small, composable primitives instead of a big framework. It’s designed to slot into your stack with minimal friction.
+<!-- Template: Integration and interoperability -->
 
-Where it fits
-- Libraries and services that need explicit startup/shutdown with timeouts
-- Apps that value compile-time contracts (tokens and ports) and clear wiring
-- Multi-tenant or plugin-style apps that benefit from scoped containers
+How @orkestrel/core fits into your stack.
 
-Interoperability
-- Logging: implement `LoggerPort` to bridge to your logger (Winston/Pino/console) and pass it to Container/Orchestrator/Lifecycle.
-- Metrics/Tracing: implement a `DiagnosticPort` or adapt the default `DiagnosticAdapter` to forward metrics/traces/events to your observability backend.
-- Eventing: the event emitter and event bus ports are intentionally tiny; you can wrap other bus clients behind the same port shape.
-- Tasking: plug in a custom `QueuePort` to drive hooks and orchestrator phases with your preferred scheduler.
+## Design philosophy
 
-Typical integrations
-- Web servers: model servers as `Adapter` subclasses; register them in the container and start via the orchestrator. Use timeouts to guarantee bounded shutdown.
-- Workers/daemons: group independent workers into layers and cap per-layer concurrency via a queue.
-- Modular apps: publish shared contracts as port tokens and swap implementations per environment or tenant.
+Orkestrel Core provides small, composable primitives — not a monolithic framework. It slots into existing stacks with minimal friction.
 
-Out of scope
-- HTTP routing, database clients, and other domain-specific features are intentionally out of Orkestrel Core. Treat those as adapters you wire in.
+## Use cases
 
-Versioning and stability
-- Error codes and core semantics are intended to be stable within a major version. See the changelog and Typedoc for details.
+| Scenario                  | How it helps                                         |
+|---------------------------|------------------------------------------------------|
+| **Service orchestration** | Explicit startup/shutdown with timeouts and rollback |
+| **Type-safe contracts**   | Compile-time safety with tokens and ports            |
+| **Multi-tenant apps**     | Scoped containers for isolated contexts              |
+| **Plugin systems**        | Dynamic registration and lifecycle management        |
 
-If you publish community adapters or examples, consider using token-friendly shapes so others can adopt them without coupling to runtime details.
+## Integrations
 
-See also
-- Overview: mental model and navigation
-- Start: installation and a 5‑minute tour
-- Concepts: tokens, providers, lifecycle, orchestrator
-- Core: built-in adapters and runtime pieces
-- Examples: copy‑pasteable snippets for common patterns
-- Tips: provider patterns, composition, and troubleshooting
-- Tests: fast, deterministic testing guidance
-- FAQ: quick answers from simple to advanced scenarios
+### Logging
 
-API reference is generated separately; see docs/api/index.md (Typedoc).
+Implement `LoggerPort` to bridge to your logger:
+
+```ts
+import { LoggerPort, ContainerAdapter } from '@orkestrel/core'
+
+class PinoLogger implements LoggerPort {
+  // Delegate to Pino
+  debug(msg: string, ...args: unknown[]) { pino.debug(msg, ...args) }
+  info(msg: string, ...args: unknown[]) { pino.info(msg, ...args) }
+  warn(msg: string, ...args: unknown[]) { pino.warn(msg, ...args) }
+  error(msg: string, ...args: unknown[]) { pino.error(msg, ...args) }
+  log(level: LogLevel, msg: string, fields?: Record<string, unknown>) { ... }
+}
+
+const container = new ContainerAdapter({ logger: new PinoLogger() })
+```
+
+### Metrics and tracing
+
+Use `DiagnosticPort` to forward telemetry:
+
+```ts
+import { DiagnosticAdapter } from '@orkestrel/core'
+
+const diag = new DiagnosticAdapter({
+  logger: myLogger,
+  messages: ORCHESTRATOR_MESSAGES,
+})
+
+// Use tracer hooks for structured data
+const app = new OrchestratorAdapter(container, {
+  tracer: {
+    onPhase: (phase) => metrics.record('orchestrator.phase', phase),
+  },
+})
+```
+
+### Task scheduling
+
+Plug in a custom `QueuePort`:
+
+```ts
+import { QueuePort, OrchestratorAdapter } from '@orkestrel/core'
+
+class BullQueueAdapter implements QueuePort<unknown> {
+  // Delegate to Bull
+}
+
+const app = new OrchestratorAdapter(container, { queue: new BullQueueAdapter() })
+```
+
+## Typical patterns
+
+### Web servers
+
+Model servers as Adapter subclasses:
+
+```ts
+class HttpServer extends Adapter {
+  #server?: Server
+
+  protected async onStart() {
+    this.#server = createServer(handler)
+    await new Promise(resolve => this.#server!.listen(3000, resolve))
+  }
+
+  protected async onStop() {
+    await new Promise(resolve => this.#server?.close(resolve))
+  }
+}
+```
+
+### Workers and daemons
+
+Group workers into layers and control concurrency:
+
+```ts
+const queue = new QueueAdapter({ concurrency: 3 })
+const app = new OrchestratorAdapter(container, { queue })
+
+await app.start({
+  [Worker1]: { adapter: WorkerAdapter },
+  [Worker2]: { adapter: WorkerAdapter },
+  [Worker3]: { adapter: WorkerAdapter },
+})
+```
+
+### Modular apps
+
+Publish shared contracts as port tokens:
+
+```ts
+// shared-contracts package
+export const ports = createPortTokens({
+  logger: undefined as LoggerPort,
+  config: undefined as ConfigPort,
+})
+
+// implementation package
+container.register(ports.logger, { adapter: ConsoleLogger })
+container.register(ports.config, { adapter: EnvConfig })
+```
+
+## Out of scope
+
+Intentionally not included:
+
+- HTTP routing
+- Database clients
+- ORM integrations
+- Domain-specific features
+
+These should be implemented as adapters you wire in.
+
+## Stability
+
+- Error codes are stable within major versions
+- Core semantics follow SemVer
+- See changelog for details
+
+## Community
+
+When publishing community adapters:
+
+- Use token-friendly shapes
+- Document dependencies
+- Follow the Adapter pattern
+- Include lifecycle hooks
+
+## Next steps
+
+| Guide                         | Description          |
+|-------------------------------|----------------------|
+| [Core](./core.md)             | Built-in adapters    |
+| [Examples](./examples.md)     | More patterns        |
+| [Contribute](./contribute.md) | Development workflow |
+

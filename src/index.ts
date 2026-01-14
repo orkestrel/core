@@ -8,10 +8,12 @@
  */
 
 export * from './constants.js'
+export * from './errors.js'
+export * from './factories.js'
 export * from './helpers.js'
 export * from './adapter.js'
 export * from './ports.js'
-export * from './types.js'
+export type * from './types.js'
 export * from './adapters/registry.js'
 export * from './adapters/queue.js'
 export * from './adapters/emitter.js'

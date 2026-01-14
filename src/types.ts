@@ -3,6 +3,22 @@ import type { Adapter } from './adapter.js'
 import type { OrchestratorAdapter } from './adapters/orchestrator.js'
 
 // -----------------------------------------------------------------------------
+// Core utility types
+// -----------------------------------------------------------------------------
+
+/** Cleanup function returned by event subscriptions */
+export type Unsubscribe = () => void
+
+/**
+ * Converts subscription methods to hook callbacks for options.
+ * Takes methods like `onEvent(callback: (data: T) => void): Unsubscribe`
+ * and converts them to `onEvent?: (data: T) => void`
+ */
+export type SubscriptionToHook<T> = {
+	[K in keyof T]?: T[K] extends (callback: infer CB) => Unsubscribe ? CB : never
+}
+
+// -----------------------------------------------------------------------------
 // Tokens and provider model
 // -----------------------------------------------------------------------------
 export type Token<T> = symbol & { readonly __t?: T };
@@ -114,13 +130,17 @@ export type FromSchema<S extends SchemaSpec> = { [K in keyof S]: ResolveRule<S[K
 // -----------------------------------------------------------------------------
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-export interface LoggerPort {
-	debug(message: string, ...args: unknown[]): void;
-	info(message: string, ...args: unknown[]): void;
-	warn(message: string, ...args: unknown[]): void;
-	error(message: string, ...args: unknown[]): void;
+/** Behavioral interface for structured logging */
+export interface LoggerInterface {
+	debug(message: string, ...args: readonly unknown[]): void;
+	info(message: string, ...args: readonly unknown[]): void;
+	warn(message: string, ...args: readonly unknown[]): void;
+	error(message: string, ...args: readonly unknown[]): void;
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void;
 }
+
+/** @deprecated Use LoggerInterface instead */
+export type LoggerPort = LoggerInterface;
 
 export type DiagnosticScope = 'lifecycle' | 'orchestrator' | 'container' | 'registry' | 'internal';
 
@@ -149,16 +169,26 @@ export interface DiagnosticErrorContext {
 	readonly details?: readonly LifecycleErrorDetail[];
 }
 
-export interface DiagnosticPort {
+export interface DiagnosticFailContext extends DiagnosticErrorContext {
+	readonly message?: string;
+	readonly helpUrl?: string;
+	readonly name?: string;
+}
+
+/** Behavioral interface for diagnostics, error handling, metrics, and telemetry */
+export interface DiagnosticInterface {
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void;
 	error(err: unknown, context?: DiagnosticErrorContext): void;
-	fail(key: string, context?: DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }): never;
-	aggregate(key: string, details: readonly (LifecycleErrorDetail | Error)[], context?: DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }): never;
-	help(key: string, context?: DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }): Error;
+	fail(key: string, context?: DiagnosticFailContext): never;
+	aggregate(key: string, details: readonly (LifecycleErrorDetail | Error)[], context?: DiagnosticFailContext): never;
+	help(key: string, context?: DiagnosticFailContext): Error;
 	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void;
 	trace(name: string, payload?: Record<string, unknown>): void;
 	event(name: string, payload?: Record<string, unknown>): void;
 }
+
+/** @deprecated Use DiagnosticInterface instead */
+export type DiagnosticPort = DiagnosticInterface;
 
 export type MessageMapEntry = Readonly<{ level?: LogLevel; message?: string }>;
 export interface DiagnosticMessage extends MessageMapEntry { readonly key: string }
@@ -169,20 +199,41 @@ export type AggregateLifecycleError = Error & Readonly<{ details: readonly Lifec
 // -----------------------------------------------------------------------------
 // Emitter and event bus
 // -----------------------------------------------------------------------------
-export type EventMap = Record<string, unknown[]>;
-export type EmitterListener<EMap extends EventMap, E extends keyof EMap & string> = (...args: EMap[E]) => void;
+export type EventMap = Record<string, readonly unknown[]>;
 
-export interface EmitterPort<EMap extends EventMap = EventMap> {
-	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this;
-	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this;
+/** Event listener callback that returns unknown for flexibility */
+export type EventListener<EMap extends EventMap, E extends keyof EMap & string> = (...args: EMap[E]) => unknown;
+
+/** @deprecated Use EventListener instead */
+export type EmitterListener<EMap extends EventMap, E extends keyof EMap & string> = EventListener<EMap, E>;
+
+/** Behavioral interface for typed synchronous event emission */
+export interface EmitterInterface<EMap extends EventMap = EventMap> {
+	on<E extends keyof EMap & string>(event: E, fn: EventListener<EMap, E>): Unsubscribe;
 	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void;
 	removeAllListeners(): void;
 }
 
-export interface EmitterAdapterOptions { readonly logger?: LoggerPort; readonly diagnostic?: DiagnosticPort }
+/** @deprecated Use EmitterInterface instead */
+export interface EmitterPort<EMap extends EventMap = EventMap> {
+	on<E extends keyof EMap & string>(event: E, fn: EventListener<EMap, E>): this;
+	off<E extends keyof EMap & string>(event: E, fn: EventListener<EMap, E>): this;
+	emit<E extends keyof EMap & string>(event: E, ...args: EMap[E]): void;
+	removeAllListeners(): void;
+}
+
+export interface EmitterAdapterOptions { readonly logger?: LoggerInterface; readonly diagnostic?: DiagnosticInterface }
 
 export type EventHandler<T> = (payload: T) => void | Promise<void>;
 
+/** Behavioral interface for async topic-based pub/sub */
+export interface EventBusInterface<EMap extends Record<string, unknown> = Record<string, unknown>> {
+	publish<E extends keyof EMap & string>(topic: E, payload: EMap[E]): Promise<void>;
+	subscribe<E extends keyof EMap & string>(topic: E, handler: EventHandler<EMap[E]>): Promise<Unsubscribe>;
+	topics(): readonly string[];
+}
+
+/** @deprecated Use EventBusInterface instead */
 export interface EventPort<EMap extends Record<string, unknown> = Record<string, unknown>> {
 	publish<E extends keyof EMap & string>(topic: E, payload: EMap[E]): Promise<void>;
 	subscribe<E extends keyof EMap & string>(topic: E, handler: EventHandler<EMap[E]>): Promise<() => void | Promise<void>>;
@@ -192,8 +243,8 @@ export interface EventPort<EMap extends Record<string, unknown> = Record<string,
 export interface EventAdapterOptions {
 	readonly onError?: (err: unknown, topic: string) => void;
 	readonly sequential?: boolean;
-	readonly logger?: LoggerPort;
-	readonly diagnostic?: DiagnosticPort;
+	readonly logger?: LoggerInterface;
+	readonly diagnostic?: DiagnosticInterface;
 }
 
 // -----------------------------------------------------------------------------
@@ -206,14 +257,18 @@ export interface QueueRunOptions {
 	readonly signal?: AbortSignal;
 }
 
-export interface QueuePort<T = unknown> {
+/** Behavioral interface for task queue with concurrency control */
+export interface QueueInterface<T = unknown> {
 	enqueue(item: T): Promise<void>;
 	dequeue(): Promise<T | undefined>;
 	size(): Promise<number>;
 	run<R>(tasks: readonly (() => Promise<R> | R)[], options?: QueueRunOptions): Promise<readonly R[]>;
 }
 
-export interface QueueAdapterOptions extends QueueRunOptions { readonly capacity?: number; readonly logger?: LoggerPort; readonly diagnostic?: DiagnosticPort }
+/** @deprecated Use QueueInterface instead */
+export type QueuePort<T = unknown> = QueueInterface<T>;
+
+export interface QueueAdapterOptions extends QueueRunOptions { readonly capacity?: number; readonly logger?: LoggerInterface; readonly diagnostic?: DiagnosticInterface }
 
 // -----------------------------------------------------------------------------
 // Layering
@@ -223,17 +278,34 @@ export interface LayerNode<T = unknown> {
 	readonly dependencies: readonly Token<unknown>[];
 }
 
+/** Behavioral interface for topological layer computation */
+export interface LayerInterface {
+	compute<T>(nodes: readonly LayerNode<T>[]): readonly (readonly Token<T>[])[];
+	group<T>(tokens: readonly Token<T>[], layers: readonly (readonly Token<T>[])[]): readonly (readonly Token<T>[])[];
+}
+
+/** @deprecated Use LayerInterface instead */
 export interface LayerPort {
 	compute<T>(nodes: readonly LayerNode<T>[]): Token<T>[][];
 	group<T>(tokens: readonly Token<T>[], layers: readonly (readonly Token<T>[])[]): Token<T>[][];
 }
 
-export interface LayerAdapterOptions { readonly logger?: LoggerPort; readonly diagnostic?: DiagnosticPort }
+export interface LayerAdapterOptions { readonly logger?: LoggerInterface; readonly diagnostic?: DiagnosticInterface }
 
 // -----------------------------------------------------------------------------
 // Lifecycle and Adapter
 // -----------------------------------------------------------------------------
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed';
+
+/** Subscription interface for lifecycle events - all methods return Unsubscribe */
+export interface LifecycleSubscriptions {
+	onTransition(callback: (state: LifecycleState) => unknown): Unsubscribe;
+	onCreate(callback: () => unknown): Unsubscribe;
+	onStart(callback: () => unknown): Unsubscribe;
+	onStop(callback: () => unknown): Unsubscribe;
+	onDestroy(callback: () => unknown): Unsubscribe;
+	onError(callback: (error: Error) => unknown): Unsubscribe;
+}
 
 /**
  * Type helper for Adapter subclass constructors.
@@ -241,40 +313,44 @@ export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed';
  */
 export interface AdapterSubclass<I extends Adapter> {
 	new (opts?: LifecycleOptions): I;
-	instance?: I;
+	instance?: I | undefined;
 	getInstance(opts?: LifecycleOptions): I;
 	getState(): LifecycleState;
 	create(opts?: LifecycleOptions): Promise<void>;
 	start(opts?: LifecycleOptions): Promise<void>;
 	stop(): Promise<void>;
 	destroy(): Promise<void>;
-	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): unknown;
-	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): unknown;
+	on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => unknown): unknown;
+	off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => unknown): unknown;
 }
 
 export interface LifecycleEventMap {
-	[key: string]: unknown[];
-	transition: [LifecycleState];
-	create: [];
-	start: [];
-	stop: [];
-	destroy: [];
-	error: [Error];
+	[key: string]: readonly unknown[];
+	transition: readonly [LifecycleState];
+	create: readonly [];
+	start: readonly [];
+	stop: readonly [];
+	destroy: readonly [];
+	error: readonly [Error];
 }
 
-export interface LifecycleOptions {
+/** Options for adapter lifecycle configuration */
+export interface AdapterOptions {
 	readonly timeouts?: number;
 	readonly emitInitial?: boolean;
 	readonly emitter?: EmitterPort<LifecycleEventMap>;
-	readonly queue?: QueuePort;
-	readonly logger?: LoggerPort;
-	readonly diagnostic?: DiagnosticPort;
+	readonly queue?: QueueInterface;
+	readonly logger?: LoggerInterface;
+	readonly diagnostic?: DiagnosticInterface;
 }
+
+/** @deprecated Use AdapterOptions instead */
+export type LifecycleOptions = AdapterOptions;
 
 // -----------------------------------------------------------------------------
 // Container
 // -----------------------------------------------------------------------------
-export interface ContainerOptions { readonly parent?: ContainerAdapter; readonly diagnostic?: DiagnosticPort; readonly logger?: LoggerPort }
+export interface ContainerOptions { readonly parent?: ContainerAdapter; readonly diagnostic?: DiagnosticInterface; readonly logger?: LoggerInterface }
 
 export interface ResolvedProvider<T> {
 	value: T;
@@ -338,9 +414,9 @@ export interface OrchestratorOptions {
 		onPhase?: (payload: { phase: LifecyclePhase; layer: number; outcomes: Outcome[] }) => void;
 	};
 	readonly layer?: LayerPort;
-	readonly queue?: QueuePort;
-	readonly logger?: LoggerPort;
-	readonly diagnostic?: DiagnosticPort;
+	readonly queue?: QueueInterface;
+	readonly logger?: LoggerInterface;
+	readonly diagnostic?: DiagnosticInterface;
 }
 
 export interface OrchestratorGetter {
@@ -365,7 +441,9 @@ export interface NodeEntry { readonly token: Token<Adapter>; readonly dependenci
 // -----------------------------------------------------------------------------
 // Registry (named singletons)
 // -----------------------------------------------------------------------------
-export interface RegistryPort<T> {
+
+/** Behavioral interface for named singleton storage with locking */
+export interface RegistryInterface<T> {
 	get(name?: string | symbol): T | undefined;
 	resolve(name?: string | symbol): T;
 	set(name: string | symbol, value: T, lock?: boolean): void;
@@ -373,9 +451,12 @@ export interface RegistryPort<T> {
 	list(): readonly (string | symbol)[];
 }
 
+/** @deprecated Use RegistryInterface instead */
+export type RegistryPort<T> = RegistryInterface<T>;
+
 export interface RegistryAdapterOptions<T> {
 	readonly label?: string;
 	readonly default?: { readonly key?: symbol; readonly value: T };
-	readonly logger?: LoggerPort;
-	readonly diagnostic?: DiagnosticPort;
+	readonly logger?: LoggerInterface;
+	readonly diagnostic?: DiagnosticInterface;
 }

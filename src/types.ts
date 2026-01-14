@@ -186,8 +186,8 @@ export type MessageMapEntry = Readonly<{ level?: LogLevel; message?: string }>
 export interface DiagnosticMessage extends MessageMapEntry { readonly key: string }
 export interface DiagnosticAdapterOptions { readonly logger?: LoggerInterface; readonly messages?: readonly DiagnosticMessage[] }
 
-/** Type for aggregate lifecycle error shape used in type guards */
-export type AggregateLifecycleError = Error & Readonly<{ details: readonly LifecycleErrorDetail[]; errors: readonly Error[]; code?: string; helpUrl?: string }>
+/** Type shape for aggregate lifecycle errors used in type guards */
+export type AggregateLifecycleErrorLike = Error & Readonly<{ details: readonly LifecycleErrorDetail[]; errors: readonly Error[]; code?: string; helpUrl?: string }>
 
 // -----------------------------------------------------------------------------
 // Emitter and event bus
@@ -276,7 +276,7 @@ export interface LifecycleSubscriptions {
 /** Type helper for Adapter subclass constructors */
 export interface AdapterSubclass<I extends Adapter> {
 	new (opts?: AdapterOptions): I
-	instance?: I
+	instance: I | undefined
 	getInstance(opts?: AdapterOptions): I
 	getState(): LifecycleState
 	create(opts?: AdapterOptions): Promise<void>

@@ -25,8 +25,13 @@ import { isNumber } from '../helpers.js'
  */
 export class QueueAdapter<T = unknown> implements QueueInterface<T> {
 	readonly #items: T[] = []
-	readonly #capacity?: number
-	readonly #defaults: QueueRunOptions
+	readonly #capacity: number | undefined
+	readonly #defaults: {
+		concurrency: number | undefined
+		deadline: number | undefined
+		timeout: number | undefined
+		signal: AbortSignal | undefined
+	}
 	readonly #logger: LoggerInterface
 	readonly #diagnostic: DiagnosticInterface
 
@@ -145,7 +150,12 @@ export class QueueAdapter<T = unknown> implements QueueInterface<T> {
 	 * ```
 	 */
 	async run<R>(tasks: readonly (() => Promise<R> | R)[], options: QueueRunOptions = {}): Promise<readonly R[]> {
-		const opts: QueueRunOptions = { ...this.#defaults, ...options }
+		const opts = {
+			concurrency: options.concurrency ?? this.#defaults.concurrency,
+			deadline: options.deadline ?? this.#defaults.deadline,
+			timeout: options.timeout ?? this.#defaults.timeout,
+			signal: options.signal ?? this.#defaults.signal,
+		}
 		const n = tasks.length
 		if (n === 0) return []
 		const c0 = opts.concurrency
@@ -210,8 +220,10 @@ export class QueueAdapter<T = unknown> implements QueueInterface<T> {
 				}
 				const idx = nextIdx++
 				if (idx >= n) break
+				const task = tasks[idx]
+				if (!task) break
 				try {
-					results[idx] = await withTimeout(tasks[idx], idx)
+					results[idx] = await withTimeout(task, idx)
 				}
 				catch (err) {
 					abortError = err

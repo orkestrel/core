@@ -58,7 +58,7 @@ export abstract class Adapter {
 	/**
 	 * Singleton instance storage. Each subclass stores its own instance.
 	 */
-	static instance?: Adapter
+	static instance: Adapter | undefined
 
 	#state: LifecycleState = 'created'
 	#emitInitial = true

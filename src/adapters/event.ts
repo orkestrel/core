@@ -24,7 +24,7 @@ import { DiagnosticAdapter } from './diagnostic.js'
  */
 export class EventAdapter implements EventBusInterface {
 	readonly #map = new Map<string, Set<unknown>>()
-	readonly #onError?: (err: unknown, topic: string) => void
+	readonly #onError: ((err: unknown, topic: string) => void) | undefined
 	readonly #sequential: boolean
 
 	readonly #logger: LoggerInterface

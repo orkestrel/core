@@ -6,10 +6,10 @@ const logger = new NoopLogger()
 
 class MyAdapter extends Adapter {
 	public calls: string[] = []
-	protected async onCreate(): Promise<void> { this.calls.push('create') }
-	protected async onStart(): Promise<void> { this.calls.push('start') }
-	protected async onStop(): Promise<void> { this.calls.push('stop') }
-	protected async onDestroy(): Promise<void> { this.calls.push('destroy') }
+	protected override async onCreate(): Promise<void> { this.calls.push('create') }
+	protected override async onStart(): Promise<void> { this.calls.push('start') }
+	protected override async onStop(): Promise<void> { this.calls.push('stop') }
+	protected override async onDestroy(): Promise<void> { this.calls.push('destroy') }
 }
 
 describe('Adapter suite', () => {

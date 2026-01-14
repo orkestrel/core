@@ -6,8 +6,8 @@ import type { DiagnosticErrorContext, LifecycleErrorDetail } from './types.js'
  */
 export class OrkestrelError extends Error {
 	readonly code: string
-	readonly helpUrl?: string
-	readonly context?: DiagnosticErrorContext
+	readonly helpUrl: string | undefined
+	readonly context: DiagnosticErrorContext | undefined
 
 	constructor(
 		code: string,

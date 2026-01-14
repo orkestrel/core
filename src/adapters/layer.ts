@@ -160,7 +160,10 @@ export class LayerAdapter implements LayerInterface {
 	group<T>(tokens: readonly Token<T>[], layers: readonly (readonly Token<T>[])[]): Token<T>[][] {
 		// Build index of token -> layer number
 		const index = new Map<symbol, number>()
-		for (let i = 0; i < layers.length; i++) for (const tk of layers[i]) index.set(tk, i)
+		for (let i = 0; i < layers.length; i++) {
+			const layer = layers[i]
+			if (layer) for (const tk of layer) index.set(tk, i)
+		}
 		// Bucket tokens by their layer, preserving input order per bucket
 		const buckets = new Map<number, Token<T>[]>()
 		for (const tk of tokens) {

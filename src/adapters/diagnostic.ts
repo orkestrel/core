@@ -80,7 +80,12 @@ export class DiagnosticAdapter implements DiagnosticInterface {
 	constructor(options?: DiagnosticAdapterOptions) {
 		this.#logger = options?.logger ?? new LoggerAdapter()
 		const m = new Map<string, MessageMapEntry>()
-		for (const d of options?.messages ?? []) m.set(d.key, { level: d.level, message: d.message })
+		for (const d of options?.messages ?? []) {
+			const entry: MessageMapEntry = {}
+			if (d.level !== undefined) (entry as { level?: string }).level = d.level
+			if (d.message !== undefined) (entry as { message?: string }).message = d.message
+			m.set(d.key, entry)
+		}
 		this.#messages = m
 	}
 
@@ -145,7 +150,10 @@ export class DiagnosticAdapter implements DiagnosticInterface {
 		const entry = this.#messages.get(key)
 		const level = entry?.level ?? 'error'
 		const msg = overrideMsg ?? entry?.message ?? key
-		const e = this.#buildError(key, msg, { helpUrl, name, context: rest })
+		const buildOpts: { helpUrl?: string; name?: string; context?: DiagnosticErrorContext } = { context: rest }
+		if (helpUrl !== undefined) buildOpts.helpUrl = helpUrl
+		if (name !== undefined) buildOpts.name = name
+		const e = this.#buildError(key, msg, buildOpts)
 		this.#emit(level, msg, { err: this.#shapeErr(e), ...rest, ...(e.code ? { code: e.code } : {}) })
 		throw e
 	}
@@ -166,7 +174,10 @@ export class DiagnosticAdapter implements DiagnosticInterface {
 		const { message: overrideMsg, helpUrl, name, ...rest } = context
 		const entry = this.#messages.get(key)
 		const msg = overrideMsg ?? entry?.message ?? key
-		return this.#buildError(key, msg, { helpUrl, name, context: rest })
+		const buildOpts: { helpUrl?: string; name?: string; context?: DiagnosticErrorContext } = { context: rest }
+		if (helpUrl !== undefined) buildOpts.helpUrl = helpUrl
+		if (name !== undefined) buildOpts.name = name
+		return this.#buildError(key, msg, buildOpts)
 	}
 
 	/**
@@ -260,7 +271,13 @@ export class DiagnosticAdapter implements DiagnosticInterface {
 
 	#resolve(key: string, fallback: MessageMapEntry): MessageMapEntry {
 		const entry = this.#messages.get(key)
-		return entry ? { level: entry.level ?? fallback.level, message: entry.message ?? fallback.message } : fallback
+		if (!entry) return fallback
+		const result: MessageMapEntry = {}
+		const level = entry.level ?? fallback.level
+		const message = entry.message ?? fallback.message
+		if (level !== undefined) (result as { level?: string }).level = level
+		if (message !== undefined) (result as { message?: string }).message = message
+		return result
 	}
 
 	#buildError(key: string, message: string, opts: { helpUrl?: string; name?: string; context?: DiagnosticErrorContext }): BaseError {
@@ -285,6 +302,8 @@ export class DiagnosticAdapter implements DiagnosticInterface {
 	}
 
 	#shapeErr(e: Error): { name: string; message: string; stack?: string } {
-		return { name: e.name, message: e.message, stack: e.stack }
+		const result: { name: string; message: string; stack?: string } = { name: e.name, message: e.message }
+		if (e.stack !== undefined) result.stack = e.stack
+		return result
 	}
 }

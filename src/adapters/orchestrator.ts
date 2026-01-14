@@ -67,10 +67,10 @@ import { HELP, ORCHESTRATOR_MESSAGES, LIFECYCLE_MESSAGES, INTERNAL_MESSAGES } fr
 export class OrchestratorAdapter {
 	readonly #container: ContainerAdapter
 	readonly #nodes = new Map<Token<Adapter>, NodeEntry>()
-	#layers: Token<Adapter>[][] | null = null
+	#layers: readonly (readonly Token<Adapter>[])[] | null = null
 	readonly #timeouts: number | PhaseTimeouts
-	readonly #events?: OrchestratorOptions['events']
-	readonly #tracer?: OrchestratorOptions['tracer']
+	readonly #events: OrchestratorOptions['events'] | undefined
+	readonly #tracer: OrchestratorOptions['tracer'] | undefined
 	readonly #layer: LayerInterface
 	readonly #queue: QueueInterface
 	readonly #logger: LoggerInterface
@@ -166,6 +166,7 @@ export class OrchestratorAdapter {
 		for (const sym of Object.getOwnPropertySymbols(graph)) {
 			const token = sym
 			const entry = graph[token]
+			if (!entry) continue
 
 			if (this.#nodes.has(token)) {
 				this.#diagnostic.fail('ORK1007', { scope: 'orchestrator', message: `Duplicate registration for ${tokenDescription(token)}`, helpUrl: HELP.orchestrator })
@@ -174,7 +175,9 @@ export class OrchestratorAdapter {
 			const deps = entry.dependencies ?? []
 			const normalized = normalizeDependencies([...deps]).filter(d => d !== token)
 
-			this.#nodes.set(token, { token, dependencies: normalized, timeouts: entry.timeouts })
+			const nodeEntry: NodeEntry = { token, dependencies: normalized }
+			if (entry.timeouts !== undefined) (nodeEntry as { timeouts?: number | PhaseTimeouts }).timeouts = entry.timeouts
+			this.#nodes.set(token, nodeEntry)
 			this.container.register(token, { adapter: entry.adapter })
 			this.#layers = null
 		}
@@ -206,6 +209,7 @@ export class OrchestratorAdapter {
 		const startedOrder: { token: Token<Adapter>; lc: Adapter }[] = []
 		for (let i = 0; i < layers.length; i++) {
 			const layer = layers[i]
+			if (!layer) continue
 			const jobs: Task<OrchestratorStartResult>[] = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
@@ -217,7 +221,11 @@ export class OrchestratorAdapter {
 					startedOrder.push({ token: tk, lc: inst })
 				}
 			}
-			const results = await this.#runLayerWithTracing('start', i, jobs, ({ token: tkn, result: r }) => ({ token: tokenDescription(tkn), ok: r.ok, durationMs: r.durationMs, timedOut: r.ok ? undefined : r.timedOut }))
+			const results = await this.#runLayerWithTracing('start', i, jobs, ({ token: tkn, result: r }) => {
+				const outcome: Outcome = { token: tokenDescription(tkn), ok: r.ok, durationMs: r.durationMs }
+				if (!r.ok && r.timedOut !== undefined) (outcome as { timedOut?: boolean }).timedOut = r.timedOut
+				return outcome
+			})
 			const failures: LifecycleErrorDetail[] = []
 			const successes: { token: Token<Adapter>; lc: Adapter; durationMs: number }[] = []
 			for (const { token: tkn, lc, result: r } of results) {
@@ -273,6 +281,7 @@ export class OrchestratorAdapter {
 		const errors: LifecycleErrorDetail[] = []
 		for (let i = 0; i < layers.length; i++) {
 			const layer = layers[i]
+			if (!layer) continue
 			const jobs: Task<{ outcome: Outcome; error?: LifecycleErrorDetail }>[] = []
 			for (const tk of layer) {
 				const inst = this.container.get(tk)
@@ -306,6 +315,7 @@ export class OrchestratorAdapter {
 		const errors: LifecycleErrorDetail[] = []
 		for (let i = 0; i < layers.length; i++) {
 			const layer = layers[i]
+			if (!layer) continue
 			const stopOutcomes: Outcome[] = []
 			const destroyOutcomes: Outcome[] = []
 			const jobs: Task<DestroyJobResult>[] = []
@@ -345,7 +355,7 @@ export class OrchestratorAdapter {
 		}
 	}
 
-	#topoLayers(): Token<Adapter>[][] {
+	#topoLayers(): readonly (readonly Token<Adapter>[])[] {
 		if (this.#layers) return this.#layers
 		const nodes = Array.from(this.#nodes.values())
 		const layers = this.#layer.compute(nodes)
@@ -355,7 +365,7 @@ export class OrchestratorAdapter {
 		return layers
 	}
 
-	#groupByLayerOrder(tokens: readonly Token<Adapter>[]): Token<Adapter>[][] {
+	#groupByLayerOrder(tokens: readonly Token<Adapter>[]): readonly (readonly Token<Adapter>[])[] {
 		const layers = this.#topoLayers()
 		return this.#layer.group(tokens, layers)
 	}

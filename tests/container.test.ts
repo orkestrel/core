@@ -4,30 +4,30 @@ import { createToken, ContainerAdapter, container, Adapter, NoopLogger, isAggreg
 let logger: NoopLogger
 
 class TestAdapter extends Adapter {
-	static instance?: TestAdapter
+	static override instance: TestAdapter | undefined
 	started = 0
 	stopped = 0
 	value = 42
 
-	protected async onStart() { this.started++ }
-	protected async onStop() { this.stopped++ }
+	protected override async onStart() { this.started++ }
+	protected override async onStop() { this.stopped++ }
 }
 
 class DependentAdapter extends Adapter {
-	static instance?: DependentAdapter
+	static override instance: DependentAdapter | undefined
 	message = 'dependent'
 }
 
 class FailingOnDestroy extends Adapter {
-	static instance?: FailingOnDestroy
-	protected async onDestroy(): Promise<void> {
+	static override instance: FailingOnDestroy | undefined
+	protected override async onDestroy(): Promise<void> {
 		throw new Error('destroy-fail')
 	}
 }
 
 class AnotherFailingOnDestroy extends Adapter {
-	static instance?: AnotherFailingOnDestroy
-	protected async onDestroy(): Promise<void> {
+	static override instance: AnotherFailingOnDestroy | undefined
+	protected override async onDestroy(): Promise<void> {
 		throw new Error('another-destroy-fail')
 	}
 }

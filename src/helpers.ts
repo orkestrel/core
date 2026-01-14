@@ -1,7 +1,7 @@
 import type {
 	Token,
 	AdapterProvider,
-	AggregateLifecycleError,
+	AggregateLifecycleErrorLike,
 } from './types.js'
 import type { Adapter } from './adapter.js'
 
@@ -316,7 +316,7 @@ export function isLifecycleErrorDetail(x: unknown): x is {
  * isAggregateLifecycleError(agg) // true
  * ```
  */
-export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
+export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleErrorLike {
 	if (!isRecord(x)) return false
 	return (
 		'details' in x

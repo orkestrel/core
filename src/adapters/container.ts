@@ -48,7 +48,7 @@ export class ContainerAdapter {
 	#destroyed = false
 
 	readonly #registry: RegistryAdapter<Registration<Adapter>>
-	readonly #parent?: ContainerAdapter
+	readonly #parent: ContainerAdapter | undefined
 	readonly #diagnostic: DiagnosticInterface
 	readonly #logger: LoggerInterface
 

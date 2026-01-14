@@ -239,6 +239,12 @@ export class FakeLogger implements LoggerInterface {
 		return undefined
 	}
 
+	#pushEntry(level: LogLevel, message: string, fields: Record<string, unknown> | undefined): void {
+		const entry: { level: LogLevel; message: string; fields?: Record<string, unknown> } = { level, message }
+		if (fields !== undefined) entry.fields = fields
+		this.entries.push(entry)
+	}
+
 	/**
 	 * Capture a debug-level entry.
 	 *
@@ -251,7 +257,7 @@ export class FakeLogger implements LoggerInterface {
 	 * lg.debug('verbose', { key: 'value' })
 	 * ```
 	 */
-	debug(message: string, payload?: unknown): void { this.entries.push({ level: 'debug', message, fields: this.#extractFields(payload) }) }
+	debug(message: string, payload?: unknown): void { this.#pushEntry('debug', message, this.#extractFields(payload)) }
 
 	/**
 	 * Capture an info-level entry.
@@ -265,7 +271,7 @@ export class FakeLogger implements LoggerInterface {
 	 * lg.info('started', { env: 'test' })
 	 * ```
 	 */
-	info(message: string, payload?: unknown): void { this.entries.push({ level: 'info', message, fields: this.#extractFields(payload) }) }
+	info(message: string, payload?: unknown): void { this.#pushEntry('info', message, this.#extractFields(payload)) }
 
 	/**
 	 * Capture a warn-level entry.
@@ -279,7 +285,7 @@ export class FakeLogger implements LoggerInterface {
 	 * lg.warn('slow-response', { ms: 123 })
 	 * ```
 	 */
-	warn(message: string, payload?: unknown): void { this.entries.push({ level: 'warn', message, fields: this.#extractFields(payload) }) }
+	warn(message: string, payload?: unknown): void { this.#pushEntry('warn', message, this.#extractFields(payload)) }
 
 	/**
 	 * Capture an error-level entry.
@@ -293,7 +299,7 @@ export class FakeLogger implements LoggerInterface {
 	 * lg.error('failed', { err: new Error('boom') })
 	 * ```
 	 */
-	error(message: string, payload?: unknown): void { this.entries.push({ level: 'error', message, fields: this.#extractFields(payload) }) }
+	error(message: string, payload?: unknown): void { this.#pushEntry('error', message, this.#extractFields(payload)) }
 
 	/**
 	 * Compatibility log method.
@@ -308,5 +314,5 @@ export class FakeLogger implements LoggerInterface {
 	 * lg.log('info', 'app.started', { version: '1.0' })
 	 * ```
 	 */
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void { this.entries.push({ level, message, fields }) }
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void { this.#pushEntry(level, message, fields) }
 }

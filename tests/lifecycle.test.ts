@@ -66,7 +66,7 @@ describe('Lifecycle suite', () => {
 	})
 
 	test('failing start wraps error', async() => {
-		await expect(() => FailingStart.start({ timeouts: 50, logger })).rejects.toThrow(/Hook 'start' failed/)
+		await expect(FailingStart.start({ timeouts: 50, logger })).rejects.toThrow(/Hook 'start' failed/)
 		assert.equal(FailingStart.getState(), 'created')
 	})
 
@@ -84,7 +84,7 @@ describe('Lifecycle suite', () => {
 	})
 
 	test('hook timeout triggers TimeoutError', async() => {
-		await expect(() => HangingStart.start({ timeouts: 10, logger })).rejects.toThrow(/timed out/)
+		await expect(HangingStart.start({ timeouts: 10, logger })).rejects.toThrow(/timed out/)
 		assert.equal(HangingStart.getState(), 'created')
 	})
 
@@ -104,7 +104,7 @@ describe('Lifecycle suite', () => {
 
 	test('invalid transition throws', async() => {
 		await TestLifecycle.start({ logger })
-		await expect(() => TestLifecycle.create()).rejects.toThrow(/Invalid lifecycle transition/)
+		await expect(TestLifecycle.create()).rejects.toThrow(/Invalid lifecycle transition/)
 		await TestLifecycle.destroy()
 		// After destroy, instance is cleared, so start() will create a new instance
 		// This is expected behavior with singletons - destroy clears the singleton
@@ -148,7 +148,7 @@ describe('Lifecycle suite', () => {
 				await new Promise(() => {})
 			}
 		}
-		await expect(() => SlowTransition.start({ timeouts: 10, logger })).rejects.toThrow(/timed out/)
+		await expect(SlowTransition.start({ timeouts: 10, logger })).rejects.toThrow(/timed out/)
 		assert.equal(SlowTransition.getState(), 'created')
 		// Clean up manually without calling destroy which would also timeout
 		SlowTransition.instance = undefined

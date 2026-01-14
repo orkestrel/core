@@ -57,7 +57,7 @@ describe('Queue suite', () => {
 			},
 			async() => 3,
 		]
-		await expect(() => q.run(tasks, { concurrency: 2 })).rejects.toThrow('boom')
+		await expect(q.run(tasks, { concurrency: 2 })).rejects.toThrow('boom')
 	})
 
 	test('FIFO enqueue/dequeue preserves order', async() => {
@@ -99,7 +99,7 @@ describe('Queue suite', () => {
 	test('dequeue after capacity enforcement still works', async() => {
 		const q = new QueueAdapter<string>({ capacity: 1, logger })
 		await q.enqueue('a')
-		await expect(() => q.enqueue('b')).rejects.toThrow()
+		await expect(q.enqueue('b')).rejects.toThrow()
 		const v = await q.dequeue()
 		assert.equal(v, 'a')
 		assert.equal(await q.size(), 0)

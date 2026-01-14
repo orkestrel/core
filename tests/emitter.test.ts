@@ -1,4 +1,5 @@
 import { describe, test, assert } from 'vitest'
+import type { Unsubscribe } from '@orkestrel/core'
 import { EmitterAdapter, NoopLogger } from '@orkestrel/core'
 
 const logger = new NoopLogger()
@@ -19,7 +20,7 @@ describe('Emitter suite', () => {
 		assert.deepEqual(payload, [1, 'a'])
 	})
 
-	test('off removes a specific listener', () => {
+	test('unsubscribe removes a specific listener', () => {
 		const em = new EmitterAdapter({ logger })
 		let a = 0
 		let b = 0
@@ -29,10 +30,10 @@ describe('Emitter suite', () => {
 		function lb() {
 			b++
 		}
-		em.on('evt', la)
+		const unsubscribeLa = em.on('evt', la)
 		em.on('evt', lb)
 
-		em.off('evt', la)
+		unsubscribeLa()
 
 		em.emit('evt')
 		assert.equal(a, 0)
@@ -79,17 +80,18 @@ describe('Emitter suite', () => {
 	test('listener can unsubscribe itself during emit without skipping others', () => {
 		const em = new EmitterAdapter({ logger })
 		const seen: number[] = []
+		// Use a wrapper function to allow self-reference
 		const self = () => {
 			seen.push(1)
-			em.off('x', self)
+			unsub()
 		}
+		const unsub = em.on('x', self)
 		const l2 = () => {
 			seen.push(2)
 		}
 		const l3 = () => {
 			seen.push(3)
 		}
-		em.on('x', self)
 		em.on('x', l2)
 		em.on('x', l3)
 		em.emit('x')

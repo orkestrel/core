@@ -1,5 +1,4 @@
-import { describe, test } from 'vitest'
-import assert from 'node:assert/strict'
+import { describe, test, assert } from 'vitest'
 import { Adapter, NoopLogger } from '@orkestrel/core'
 
 const logger = new NoopLogger()
@@ -27,7 +26,7 @@ describe('Adapter suite', () => {
 		// Verify hooks were called by checking the singleton instance
 		await MyAdapter.start({ logger })
 		const instance = MyAdapter.getInstance()
-		assert.deepStrictEqual(instance.calls, ['start'])
+		assert.deepEqual(instance.calls, ['start'])
 		await MyAdapter.stop()
 		await MyAdapter.destroy()
 	})

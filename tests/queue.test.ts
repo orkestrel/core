@@ -1,4 +1,4 @@
-import { describe, test, assert } from 'vitest'
+import { describe, test, assert, expect } from 'vitest'
 
 import { QueueAdapter, NoopLogger } from '@orkestrel/core'
 
@@ -57,7 +57,7 @@ describe('Queue suite', () => {
 			},
 			async() => 3,
 		]
-		await assert.rejects(() => q.run(tasks, { concurrency: 2 }), { message: 'boom' })
+		await expect(() => q.run(tasks, { concurrency: 2 })).rejects.toThrow('boom')
 	})
 
 	test('FIFO enqueue/dequeue preserves order', async() => {
@@ -85,17 +85,21 @@ describe('Queue suite', () => {
 		const q = new QueueAdapter<number>({ capacity: 2, logger })
 		await q.enqueue(1)
 		await q.enqueue(2)
-		await assert.rejects(() => q.enqueue(3), (err: unknown) => {
+		try {
+			await q.enqueue(3)
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			const e = err as { message?: string; code?: string }
-			return typeof e?.message === 'string' && e.message.includes('capacity exceeded') && e.code === 'ORK1050'
-		})
+			assert.ok(typeof e?.message === 'string' && e.message.includes('capacity exceeded'))
+			assert.equal(e.code, 'ORK1050')
+		}
 		assert.equal(await q.size(), 2)
 	})
 
 	test('dequeue after capacity enforcement still works', async() => {
 		const q = new QueueAdapter<string>({ capacity: 1, logger })
 		await q.enqueue('a')
-		await assert.rejects(() => q.enqueue('b'))
+		await expect(() => q.enqueue('b')).rejects.toThrow()
 		const v = await q.dequeue()
 		assert.equal(v, 'a')
 		assert.equal(await q.size(), 0)
@@ -130,10 +134,14 @@ describe('Queue suite', () => {
 				return 'b'
 			},
 		]
-		await assert.rejects(() => q.run(tasks, { concurrency: 2, timeout: 10 }), (err: unknown) => {
+		try {
+			await q.run(tasks, { concurrency: 2, timeout: 10 })
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			const e = err as { message?: string; code?: string }
-			return typeof e?.message === 'string' && e.message.includes('timed out') && e.code === 'ORK1052'
-		})
+			assert.ok(typeof e?.message === 'string' && e.message.includes('timed out'))
+			assert.equal(e.code, 'ORK1052')
+		}
 	})
 
 	test('run with deadline enforces shared time budget across tasks', async() => {
@@ -152,10 +160,14 @@ describe('Queue suite', () => {
 				return 3
 			},
 		]
-		await assert.rejects(() => q.run(tasks, { concurrency: 1, deadline: 15 }), (err: unknown) => {
+		try {
+			await q.run(tasks, { concurrency: 1, deadline: 15 })
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			const e = err as { message?: string; code?: string }
-			return typeof e?.message === 'string' && e.message.includes('shared deadline exceeded') && e.code === 'ORK1053'
-		})
+			assert.ok(typeof e?.message === 'string' && e.message.includes('shared deadline exceeded'))
+			assert.equal(e.code, 'ORK1053')
+		}
 	})
 
 	test('run with abort signal stops scheduling and rejects', async() => {
@@ -170,10 +182,14 @@ describe('Queue suite', () => {
 		const tasks = [mk(50), mk(50), mk(50), mk(50)]
 		const p = q.run(tasks, { concurrency: 2, signal: controller.signal })
 		setTimeout(() => controller.abort(), 10)
-		await assert.rejects(() => p, (err: unknown) => {
+		try {
+			await p
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			const e = err as { message?: string; code?: string }
-			return typeof e?.message === 'string' && e.message.includes('aborted') && e.code === 'ORK1051'
-		})
+			assert.ok(typeof e?.message === 'string' && e.message.includes('aborted'))
+			assert.equal(e.code, 'ORK1051')
+		}
 		assert.ok(started >= 1)
 	})
 

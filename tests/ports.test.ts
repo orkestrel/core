@@ -5,7 +5,7 @@ const logger = new NoopLogger()
 
 interface EmailPort { send(to: string, subject: string, body: string): Promise<void> }
 class InMemoryEmailAdapter extends Adapter implements EmailPort {
-	static instance?: InMemoryEmailAdapter
+	static override instance: InMemoryEmailAdapter | undefined
 	async send() { /* no-op */ }
 }
 
@@ -35,12 +35,14 @@ describe('Ports suite', () => {
 
 	test('extendPorts duplicate key throws', () => {
 		const Base = createPortTokens({ email: {} as EmailPort })
-		assert.throws(() => extendPorts(Base, { email: {} as EmailPort }), (err: unknown) => {
+		try {
+			extendPorts(Base, { email: {} as EmailPort })
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			const e = err as { message?: string; code?: string }
-			if (typeof e?.message !== 'string') return false
-			if (!e.message.includes('duplicate port key')) return false
-			return e.code === 'ORK1040'
-		})
+			assert.ok(typeof e?.message === 'string' && e.message.includes('duplicate port key'))
+			assert.equal(e.code, 'ORK1040')
+		}
 	})
 
 	test('createPortToken produces unique token', () => {

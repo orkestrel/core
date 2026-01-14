@@ -1,36 +1,39 @@
-import { describe, test, beforeEach, afterEach, assert } from 'vitest'
+import { describe, test, beforeEach, afterEach, assert, expect } from 'vitest'
 
-import type { LifecycleState, QueuePort } from '@orkestrel/core'
+import type { LifecycleState, QueueInterface } from '@orkestrel/core'
 import { Adapter, NoopLogger } from '@orkestrel/core'
 
 let logger: NoopLogger
 
 class TestLifecycle extends Adapter {
+	static override instance: TestLifecycle | undefined
 	public log: string[] = []
-	protected async onCreate(): Promise<void> {
+	protected override async onCreate(): Promise<void> {
 		this.log.push('create')
 	}
 
-	protected async onStart(): Promise<void> {
+	protected override async onStart(): Promise<void> {
 		this.log.push('start')
 	}
 
-	protected async onStop(): Promise<void> {
+	protected override async onStop(): Promise<void> {
 		this.log.push('stop')
 	}
 
-	protected async onDestroy(): Promise<void> {
+	protected override async onDestroy(): Promise<void> {
 		this.log.push('destroy')
 	}
 }
 
 class FailingStart extends Adapter {
-	protected async onStart(): Promise<void> {
+	static override instance: FailingStart | undefined
+	protected override async onStart(): Promise<void> {
 		throw new Error('boom')
 	}
 }
 class HangingStart extends Adapter {
-	protected async onStart(): Promise<void> {
+	static override instance: HangingStart | undefined
+	protected override async onStart(): Promise<void> {
 		await new Promise(() => {})
 	}
 }
@@ -63,46 +66,45 @@ describe('Lifecycle suite', () => {
 	})
 
 	test('failing start wraps error', async() => {
-		await assert.rejects(() => FailingStart.start({ timeouts: 50, logger }), /Hook 'start' failed/)
+		await expect(() => FailingStart.start({ timeouts: 50, logger })).rejects.toThrow(/Hook 'start' failed/)
 		assert.equal(FailingStart.getState(), 'created')
 	})
 
 	// New test: ensure non-timeout hook failures expose ORK1022 code
 	test('failing start sets ORK1022 code', async() => {
-		await assert.rejects(() => FailingStart.start({ timeouts: 50, logger }), (err: unknown) => {
-			// Narrow incrementally and check for a code property safely
+		try {
+			await FailingStart.start({ timeouts: 50, logger })
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			if (typeof err === 'object' && err !== null && 'code' in err) {
 				const code = (err as { code?: unknown }).code
-				// Only assert when a string code is present
 				if (typeof code === 'string') assert.equal(code, 'ORK1022')
 			}
-			return true
-		})
+		}
 	})
 
 	test('hook timeout triggers TimeoutError', async() => {
-		await assert.rejects(() => HangingStart.start({ timeouts: 10, logger }), /timed out/)
+		await expect(() => HangingStart.start({ timeouts: 10, logger })).rejects.toThrow(/timed out/)
 		assert.equal(HangingStart.getState(), 'created')
 	})
 
 	// New test: ensure timeout failures expose ORK1021 code
 	test('hook timeout sets ORK1021 code', async() => {
-		await assert.rejects(() => HangingStart.start({ timeouts: 10, logger }), (err: unknown) => {
+		try {
+			await HangingStart.start({ timeouts: 10, logger })
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			if (typeof err === 'object' && err !== null && 'code' in err) {
 				const code = (err as { code?: unknown }).code
 				if (typeof code === 'string') assert.equal(code, 'ORK1021')
 			}
-			return true
-		})
+		}
 		assert.equal(HangingStart.getState(), 'created')
 	})
 
 	test('invalid transition throws', async() => {
 		await TestLifecycle.start({ logger })
-		await assert.rejects(async() => TestLifecycle.create(), (err: unknown) => {
-			assert.match((err as Error).message, /Invalid lifecycle transition/)
-			return true
-		})
+		await expect(() => TestLifecycle.create()).rejects.toThrow(/Invalid lifecycle transition/)
 		await TestLifecycle.destroy()
 		// After destroy, instance is cleared, so start() will create a new instance
 		// This is expected behavior with singletons - destroy clears the singleton
@@ -110,16 +112,17 @@ describe('Lifecycle suite', () => {
 
 	test('onTransition runs between hook and state change (filterable in override)', async() => {
 		class Transitions extends Adapter {
+			static override instance: Transitions | undefined
 			public transitions: string[] = []
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				// no-op
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				// no-op
 			}
 
-			protected async onTransition(from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy'): Promise<void> {
+			protected override async onTransition(from: LifecycleState, to: LifecycleState, hook: 'create' | 'start' | 'stop' | 'destroy'): Promise<void> {
 				// filter internally to only record 'start' transitions
 				if (hook === 'start') this.transitions.push(`${from}->${to}:${hook}`)
 			}
@@ -136,16 +139,16 @@ describe('Lifecycle suite', () => {
 
 	test('onTransition timeout surfaces as TimeoutError', async() => {
 		class SlowTransition extends Adapter {
-			static instance?: SlowTransition
-			protected async onStart(): Promise<void> {
+			static override instance: SlowTransition | undefined
+			protected override async onStart(): Promise<void> {
 				// ok
 			}
 
-			protected async onTransition(): Promise<void> {
+			protected override async onTransition(): Promise<void> {
 				await new Promise(() => {})
 			}
 		}
-		await assert.rejects(() => SlowTransition.start({ timeouts: 10, logger }), /timed out/)
+		await expect(() => SlowTransition.start({ timeouts: 10, logger })).rejects.toThrow(/timed out/)
 		assert.equal(SlowTransition.getState(), 'created')
 		// Clean up manually without calling destroy which would also timeout
 		SlowTransition.instance = undefined
@@ -154,7 +157,8 @@ describe('Lifecycle suite', () => {
 	test('transition not emitted twice for created->created on create()', async() => {
 		const events: LifecycleState[] = []
 		class L extends Adapter {
-			protected async onCreate(): Promise<void> {
+			static override instance: L | undefined
+			protected override async onCreate(): Promise<void> {
 				// no-op
 			}
 		}
@@ -172,8 +176,8 @@ describe('Lifecycle suite', () => {
 	test('emitInitial=false suppresses initial transition', async() => {
 		const events: LifecycleState[] = []
 		class L extends Adapter {
-			static instance?: L
-			protected async onStart(): Promise<void> {
+			static override instance: L | undefined
+			protected override async onStart(): Promise<void> {
 				// no-op
 			}
 		}
@@ -192,9 +196,9 @@ describe('Lifecycle suite', () => {
 	})
 
 	test('supports injected queue and enforces concurrency=1 with shared deadline', async() => {
-		interface Capture { calls: number; lastOptions?: { concurrency?: number; deadline?: number } }
+		interface Capture { calls: number; lastOptions?: { concurrency: number | undefined; deadline: number | undefined } }
 		const cap: Capture = { calls: 0 }
-		class FakeQueue implements QueuePort<unknown> {
+		class FakeQueue implements QueueInterface<unknown> {
 			async enqueue(_: unknown): Promise<void> { /* noop */ }
 			async dequeue(): Promise<unknown> { return undefined }
 			async size(): Promise<number> { return 0 }
@@ -207,9 +211,10 @@ describe('Lifecycle suite', () => {
 			}
 		}
 		class QLife extends Adapter {
+			static override instance: QLife | undefined
 			public ok = false
-			protected async onStart(): Promise<void> { this.ok = true }
-			protected async onTransition(): Promise<void> { /* no-op */ }
+			protected override async onStart(): Promise<void> { this.ok = true }
+			protected override async onTransition(): Promise<void> { /* no-op */ }
 		}
 		const timeouts = 25
 		const q = new FakeQueue()

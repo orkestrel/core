@@ -1,8 +1,8 @@
 # Project Plan: @orkestrel/core
 
-> **Status:** Phase 1 of 4 — Foundation
+> **Status:** Phase 2 of 4 — Core API
 > **Last Updated:** 2026-01-14
-> **Next Milestone:** Complete types. ts refactoring with Interface suffix convention
+> **Next Milestone:** Implement core adapter classes with new conventions
 
 ## Vision
 
@@ -73,8 +73,8 @@ Explicit boundaries.  What we are NOT building:
 
 | # | Phase | Status | Description |
 |---|-------|--------|-------------|
-| 1 | Foundation | 🔄 Active | Types, helpers, constants, errors, file structure |
-| 2 | Core API | ⏳ Pending | BaseAdapter, Emitter, Queue, Registry, Layer |
+| 1 | Foundation | ✅ Complete | Types, helpers, constants, errors, file structure |
+| 2 | Core API | 🔄 Active | BaseAdapter, Emitter, Queue, Registry, Layer |
 | 3 | Integration | ⏳ Pending | Container, Orchestrator, factories |
 | 4 | Polish | ⏳ Pending | Docs, examples, edge cases, migration guide |
 

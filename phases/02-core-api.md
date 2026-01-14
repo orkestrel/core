@@ -1,9 +1,9 @@
 # Phase 2: Core API
 
-> **Status:** ⏳ Pending
-> **Started:** —
+> **Status:** 🔄 Active
+> **Started:** 2026-01-14
 > **Target:** 2026-01-21
-> **Depends on:** Phase 1 (Foundation) ⏳ Pending
+> **Depends on:** Phase 1 (Foundation) ✅ Complete
 
 ## Objective
 

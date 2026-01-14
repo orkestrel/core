@@ -9,7 +9,7 @@
 | Variable | Value |
 |----------|-------|
 | `PROJECT_NAME` | `@orkestrel/core` |
-| `CURRENT_PHASE` | `01-foundation. md` |
+| `CURRENT_PHASE` | `02-core-api.md` |
 | `Primary Entities` | Adapter, Container, Orchestrator, Emitter, Queue, Layer, Registry, Logger, Diagnostic |
 
 ---

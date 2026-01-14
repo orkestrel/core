@@ -18,8 +18,10 @@ import type {
 	LoggerPort,
 	OrchestratorGraph,
 } from '../types.js'
-import { isFunction, isNumber, isRecord } from '@orkestrel/validator'
 import {
+	isFunction,
+	isNumber,
+	isRecord,
 	tokenDescription,
 	safeInvoke,
 	isAggregateLifecycleError,

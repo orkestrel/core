@@ -2,7 +2,7 @@ import type { DiagnosticPort, LoggerPort, QueueAdapterOptions, QueuePort, QueueR
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
-import { isNumber } from '@orkestrel/validator'
+import { isNumber } from '../helpers.js'
 
 /**
  * In-memory task queue with concurrency control, timeouts, and shared deadlines.

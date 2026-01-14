@@ -6,9 +6,9 @@ import type {
 	LogLevel,
 	LifecycleErrorDetail,
 	MessageMapEntry,
-} from '../types.js';
-import { safeInvoke } from '../helpers.js';
-import { LoggerAdapter } from './logger.js';
+} from '../types.js'
+import { safeInvoke } from '../helpers.js'
+import { LoggerAdapter } from './logger.js'
 
 // Base error enriched with optional diagnostic code and help URL.
 class BaseError extends Error {
@@ -16,7 +16,7 @@ class BaseError extends Error {
 		message: string,
 		public readonly code?: string,
 		public readonly helpUrl?: string,
-	) { super(message); }
+	) { super(message) }
 }
 
 // Aggregate error for lifecycle operations enriched with details and original errors.
@@ -27,7 +27,7 @@ class AggregateDiagnosticError extends Error {
 		public readonly errors: readonly Error[],
 		public readonly code?: string,
 		public readonly helpUrl?: string,
-	) { super(message); }
+	) { super(message) }
 }
 
 /**
@@ -66,8 +66,8 @@ class AggregateDiagnosticError extends Error {
  * ```
  */
 export class DiagnosticAdapter implements DiagnosticPort {
-	readonly #logger: LoggerPort;
-	readonly #messages: ReadonlyMap<string, MessageMapEntry>;
+	readonly #logger: LoggerPort
+	readonly #messages: ReadonlyMap<string, MessageMapEntry>
 
 	/**
 	 * Construct a DiagnosticAdapter with optional logger and message overrides.
@@ -78,10 +78,10 @@ export class DiagnosticAdapter implements DiagnosticPort {
      *
 	 */
 	constructor(options?: DiagnosticAdapterOptions) {
-		this.#logger = options?.logger ?? new LoggerAdapter();
-		const m = new Map<string, MessageMapEntry>();
-		for (const d of options?.messages ?? []) m.set(d.key, { level: d.level, message: d.message });
-		this.#messages = m;
+		this.#logger = options?.logger ?? new LoggerAdapter()
+		const m = new Map<string, MessageMapEntry>()
+		for (const d of options?.messages ?? []) m.set(d.key, { level: d.level, message: d.message })
+		this.#messages = m
 	}
 
 	/**
@@ -89,7 +89,7 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger; }
+	get logger(): LoggerPort { return this.#logger }
 
 	/**
 	 * Write a log entry with a level, message key, and optional structured fields.
@@ -105,8 +105,8 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * ```
 	 */
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void {
-		const resolved = this.#resolve(message, { level, message });
-		this.#emit(resolved.level ?? level, resolved.message ?? message, fields);
+		const resolved = this.#resolve(message, { level, message })
+		this.#emit(resolved.level ?? level, resolved.message ?? message, fields)
 	}
 
 	/**
@@ -122,10 +122,10 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * ```
 	 */
 	error(err: unknown, context: DiagnosticErrorContext = {}): void {
-		const e = err instanceof Error ? err : new Error(String(err));
-		const key = String(context.code ?? e.name ?? 'error');
-		const resolved = this.#resolve(key, { level: 'error', message: e.message });
-		this.#emit(resolved.level ?? 'error', resolved.message ?? e.message, { err: this.#shapeErr(e), ...context });
+		const e = err instanceof Error ? err : new Error(String(err))
+		const key = String(context.code ?? e.name ?? 'error')
+		const resolved = this.#resolve(key, { level: 'error', message: e.message })
+		this.#emit(resolved.level ?? 'error', resolved.message ?? e.message, { err: this.#shapeErr(e), ...context })
 	}
 
 	/**
@@ -141,13 +141,13 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * ```
 	 */
 	fail(key: string, context: (DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }) = {}): never {
-		const { message: overrideMsg, helpUrl, name, ...rest } = context;
-		const entry = this.#messages.get(key);
-		const level = entry?.level ?? 'error';
-		const msg = overrideMsg ?? entry?.message ?? key;
-		const e = this.#buildError(key, msg, { helpUrl, name, context: rest });
-		this.#emit(level, msg, { err: this.#shapeErr(e), ...rest, ...(e.code ? { code: e.code } : {}) });
-		throw e;
+		const { message: overrideMsg, helpUrl, name, ...rest } = context
+		const entry = this.#messages.get(key)
+		const level = entry?.level ?? 'error'
+		const msg = overrideMsg ?? entry?.message ?? key
+		const e = this.#buildError(key, msg, { helpUrl, name, context: rest })
+		this.#emit(level, msg, { err: this.#shapeErr(e), ...rest, ...(e.code ? { code: e.code } : {}) })
+		throw e
 	}
 
 	/**
@@ -163,10 +163,10 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * ```
 	 */
 	help(key: string, context: (DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }) = {}): Error {
-		const { message: overrideMsg, helpUrl, name, ...rest } = context;
-		const entry = this.#messages.get(key);
-		const msg = overrideMsg ?? entry?.message ?? key;
-		return this.#buildError(key, msg, { helpUrl, name, context: rest });
+		const { message: overrideMsg, helpUrl, name, ...rest } = context
+		const entry = this.#messages.get(key)
+		const msg = overrideMsg ?? entry?.message ?? key
+		return this.#buildError(key, msg, { helpUrl, name, context: rest })
 	}
 
 	/**
@@ -182,15 +182,15 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * diag.aggregate('ORK1017', errs, { scope: 'orchestrator' })
 	 * ```
 	 */
-	aggregate(key: string, errors: ReadonlyArray<LifecycleErrorDetail | Error>, context: (DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }) = {}): never {
-		const details = this.#normalizeAggregateDetails(errors);
-		const entry = this.#messages.get(key);
-		const level = entry?.level ?? 'error';
-		const msg = (context.message ?? entry?.message ?? key);
-		const code = context.code ?? (/^ORK\d{4}$/.test(key) ? key : key);
-		const agg = new AggregateDiagnosticError(msg, details, details.map(d => d.error), code, context.helpUrl);
-		this.#emit(level, msg, { err: this.#shapeErr(agg), ...context, details });
-		throw agg;
+	aggregate(key: string, errors: readonly (LifecycleErrorDetail | Error)[], context: (DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }) = {}): never {
+		const details = this.#normalizeAggregateDetails(errors)
+		const entry = this.#messages.get(key)
+		const level = entry?.level ?? 'error'
+		const msg = (context.message ?? entry?.message ?? key)
+		const code = context.code ?? (/^ORK\d{4}$/.test(key) ? key : key)
+		const agg = new AggregateDiagnosticError(msg, details, details.map(d => d.error), code, context.helpUrl)
+		this.#emit(level, msg, { err: this.#shapeErr(agg), ...context, details })
+		throw agg
 	}
 
 	/**
@@ -206,9 +206,9 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * ```
 	 */
 	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void {
-		const resolved = this.#resolve(name, { level: 'info', message: name });
-		const fields = { value, ...(tags ?? {}) };
-		this.#emit(resolved.level ?? 'info', resolved.message ?? name, fields);
+		const resolved = this.#resolve(name, { level: 'info', message: name })
+		const fields = { value, ...(tags ?? {}) }
+		this.#emit(resolved.level ?? 'info', resolved.message ?? name, fields)
 	}
 
 	/**
@@ -224,8 +224,8 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * ```
 	 */
 	trace(name: string, payload?: Record<string, unknown>): void {
-		const resolved = this.#resolve(name, { level: 'debug', message: name });
-		this.#emit(resolved.level ?? 'debug', resolved.message ?? name, payload);
+		const resolved = this.#resolve(name, { level: 'debug', message: name })
+		this.#emit(resolved.level ?? 'debug', resolved.message ?? name, payload)
 	}
 
 	/**
@@ -241,17 +241,17 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 * ```
 	 */
 	event(name: string, payload?: Record<string, unknown>): void {
-		const resolved = this.#resolve(name, { level: 'info', message: name });
-		this.#emit(resolved.level ?? 'info', resolved.message ?? name, payload);
+		const resolved = this.#resolve(name, { level: 'info', message: name })
+		this.#emit(resolved.level ?? 'info', resolved.message ?? name, payload)
 	}
 
 	// Emit to the underlying logger using level-specific methods.
 	#emit(level: LogLevel, message: string, payload?: unknown): void {
 		try {
-			if (level === 'debug') safeInvoke(this.#logger.debug.bind(this.#logger), message, payload);
-			else if (level === 'info') safeInvoke(this.#logger.info.bind(this.#logger), message, payload);
-			else if (level === 'warn') safeInvoke(this.#logger.warn.bind(this.#logger), message, payload);
-			else safeInvoke(this.#logger.error.bind(this.#logger), message, payload);
+			if (level === 'debug') safeInvoke(this.#logger.debug.bind(this.#logger), message, payload)
+			else if (level === 'info') safeInvoke(this.#logger.info.bind(this.#logger), message, payload)
+			else if (level === 'warn') safeInvoke(this.#logger.warn.bind(this.#logger), message, payload)
+			else safeInvoke(this.#logger.error.bind(this.#logger), message, payload)
 		}
 		catch {
 			// swallow - safeInvoke already swallows but be defensive
@@ -259,32 +259,32 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	}
 
 	#resolve(key: string, fallback: MessageMapEntry): MessageMapEntry {
-		const entry = this.#messages.get(key);
-		return entry ? { level: entry.level ?? fallback.level, message: entry.message ?? fallback.message } : fallback;
+		const entry = this.#messages.get(key)
+		return entry ? { level: entry.level ?? fallback.level, message: entry.message ?? fallback.message } : fallback
 	}
 
 	#buildError(key: string, message: string, opts: { helpUrl?: string; name?: string; context?: DiagnosticErrorContext }): BaseError {
-		const { helpUrl, name, context } = opts;
-		const code = context?.code ?? (/^ORK\d{4}$/.test(key) ? key : key);
-		const e = new BaseError(message, code, helpUrl);
-		if (name) e.name = name;
-		return e;
+		const { helpUrl, name, context } = opts
+		const code = context?.code ?? (/^ORK\d{4}$/.test(key) ? key : key)
+		const e = new BaseError(message, code, helpUrl)
+		if (name) e.name = name
+		return e
 	}
 
-	#normalizeAggregateDetails(items: ReadonlyArray<LifecycleErrorDetail | Error>): LifecycleErrorDetail[] {
-		const out: LifecycleErrorDetail[] = [];
+	#normalizeAggregateDetails(items: readonly (LifecycleErrorDetail | Error)[]): LifecycleErrorDetail[] {
+		const out: LifecycleErrorDetail[] = []
 		for (const it of items) {
 			if (it instanceof Error) {
-				out.push({ tokenDescription: 'unknown', phase: 'destroy', context: 'normal', timedOut: false, durationMs: 0, error: it });
+				out.push({ tokenDescription: 'unknown', phase: 'destroy', context: 'normal', timedOut: false, durationMs: 0, error: it })
 			}
 			else {
-				out.push(it);
+				out.push(it)
 			}
 		}
-		return out;
+		return out
 	}
 
 	#shapeErr(e: Error): { name: string; message: string; stack?: string } {
-		return { name: e.name, message: e.message, stack: e.stack };
+		return { name: e.name, message: e.message, stack: e.stack }
 	}
 }

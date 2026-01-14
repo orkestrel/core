@@ -1,7 +1,7 @@
-import type { Adapter } from '../adapter.js';
-import { RegistryAdapter } from './registry.js';
-import { CONTAINER_MESSAGES, HELP } from '../constants.js';
-import { DiagnosticAdapter } from './diagnostic.js';
+import type { Adapter } from '../adapter.js'
+import { RegistryAdapter } from './registry.js'
+import { CONTAINER_MESSAGES, HELP } from '../constants.js'
+import { DiagnosticAdapter } from './diagnostic.js'
 import type {
 	AdapterProvider,
 	DiagnosticPort,
@@ -10,12 +10,12 @@ import type {
 	ResolvedProvider,
 	Token,
 	ContainerOptions,
-} from '../types.js';
+} from '../types.js'
 import {
 	tokenDescription,
 	isAdapterProvider,
-} from '../helpers.js';
-import { LoggerAdapter } from './logger.js';
+} from '../helpers.js'
+import { LoggerAdapter } from './logger.js'
 
 /**
  * Minimal, strongly-typed DI container for Adapter classes.
@@ -45,12 +45,12 @@ import { LoggerAdapter } from './logger.js';
  * ```
  */
 export class ContainerAdapter {
-	#destroyed = false;
+	#destroyed = false
 
-	readonly #registry: RegistryAdapter<Registration<Adapter>>;
-	readonly #parent?: ContainerAdapter;
-	readonly #diagnostic: DiagnosticPort;
-	readonly #logger: LoggerPort;
+	readonly #registry: RegistryAdapter<Registration<Adapter>>
+	readonly #parent?: ContainerAdapter
+	readonly #diagnostic: DiagnosticPort
+	readonly #logger: LoggerPort
 
 	/**
 	 * Construct a ContainerAdapter with optional parent, logger, and diagnostic adapters.
@@ -62,10 +62,10 @@ export class ContainerAdapter {
 	 *
 	 */
 	constructor(opts: ContainerOptions = {}) {
-		this.#parent = opts.parent;
-		this.#logger = opts.logger ?? new LoggerAdapter();
-		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: CONTAINER_MESSAGES });
-		this.#registry = new RegistryAdapter<Registration<Adapter>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic });
+		this.#parent = opts.parent
+		this.#logger = opts.logger ?? new LoggerAdapter()
+		this.#diagnostic = opts.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: CONTAINER_MESSAGES })
+		this.#registry = new RegistryAdapter<Registration<Adapter>>({ label: 'provider', logger: this.#logger, diagnostic: this.#diagnostic })
 	}
 
 	/**
@@ -73,14 +73,14 @@ export class ContainerAdapter {
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic; }
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
 	 * Access the logger port used by this container.
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger; }
+	get logger(): LoggerPort { return this.#logger }
 
 	/**
 	 * Register an Adapter class under a token.
@@ -98,12 +98,12 @@ export class ContainerAdapter {
 	 * ```
 	 */
 	register<T extends Adapter>(token: Token<T>, provider: AdapterProvider<T>, lock?: boolean): this {
-		this.#assertNotDestroyed();
+		this.#assertNotDestroyed()
 		if (!isAdapterProvider(provider)) {
-			this.#diagnostic.fail('ORK1007', { scope: 'container', message: `Provider for ${tokenDescription(token)} must be an AdapterProvider ({ adapter: AdapterClass })`, helpUrl: HELP.providers });
+			this.#diagnostic.fail('ORK1007', { scope: 'container', message: `Provider for ${tokenDescription(token)} must be an AdapterProvider ({ adapter: AdapterClass })`, helpUrl: HELP.providers })
 		}
-		this.#registry.set(token, { token, provider }, lock);
-		return this;
+		this.#registry.set(token, { token, provider }, lock)
+		return this
 	}
 
 	/**
@@ -121,7 +121,7 @@ export class ContainerAdapter {
 	 * ```
 	 */
 	has<T extends Adapter>(token: Token<T>): boolean {
-		return !!this.#registry.get(token) || (this.#parent?.has(token) ?? false);
+		return !!this.#registry.get(token) || (this.#parent?.has(token) ?? false)
 	}
 
 	/**
@@ -136,11 +136,11 @@ export class ContainerAdapter {
 	 * ```
 	 */
 	resolve<T extends Adapter>(token: Token<T>): T {
-		const reg = this.#lookup(token);
+		const reg = this.#lookup(token)
 		if (!reg) {
-			this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(token)}`, helpUrl: HELP.providers });
+			this.#diagnostic.fail('ORK1006', { scope: 'container', message: `No provider for ${tokenDescription(token)}`, helpUrl: HELP.providers })
 		}
-		return this.#materialize(reg).value;
+		return this.#materialize(reg).value
 	}
 
 	/**
@@ -155,8 +155,8 @@ export class ContainerAdapter {
 	 * ```
 	 */
 	get<T extends Adapter>(token: Token<T>): T | undefined {
-		const reg = this.#lookup(token);
-		return reg ? this.#materialize(reg).value : undefined;
+		const reg = this.#lookup(token)
+		return reg ? this.#materialize(reg).value : undefined
 	}
 
 	/**
@@ -170,7 +170,7 @@ export class ContainerAdapter {
 	 * child.register(OverrideToken, { adapter: OverrideAdapter })
 	 * ```
 	 */
-	createChild(): ContainerAdapter { return new ContainerAdapter({ parent: this, diagnostic: this.diagnostic, logger: this.logger }); }
+	createChild(): ContainerAdapter { return new ContainerAdapter({ parent: this, diagnostic: this.diagnostic, logger: this.logger }) }
 
 	// Overload: using(fn) - run work in a child scope.
 	async using(fn: (scope: ContainerAdapter) => void | Promise<void>): Promise<void>;
@@ -201,15 +201,15 @@ export class ContainerAdapter {
 		arg1: ((scope: ContainerAdapter) => unknown) | ((scope: ContainerAdapter) => Promise<unknown>),
 		arg2?: ((scope: ContainerAdapter) => unknown) | ((scope: ContainerAdapter) => Promise<unknown>),
 	): Promise<unknown> {
-		const scope = this.createChild();
+		const scope = this.createChild()
 		try {
 			if (arg2) {
-				await Promise.resolve(arg1(scope));
-				return await arg2(scope);
+				await Promise.resolve(arg1(scope))
+				return await arg2(scope)
 			}
-			return await arg1(scope);
+			return await arg1(scope)
 		}
-		finally { await scope.destroy(); }
+		finally { await scope.destroy() }
 	}
 
 	/**
@@ -226,77 +226,77 @@ export class ContainerAdapter {
 	 * ```
 	 */
 	async destroy(): Promise<void> {
-		if (this.#destroyed) return;
-		this.#destroyed = true;
-		const errors: Error[] = [];
+		if (this.#destroyed) return
+		this.#destroyed = true
+		const errors: Error[] = []
 		for (const key of this.#registry.list()) {
-			const reg = this.#registry.get(key);
-			if (!reg) continue;
-			const resolved = reg.resolved;
+			const reg = this.#registry.get(key)
+			if (!reg) continue
+			const resolved = reg.resolved
 			if (resolved?.lifecycle) {
-				const AdapterClass = resolved.lifecycle;
+				const AdapterClass = resolved.lifecycle
 				try {
-					const state = AdapterClass.getState();
-					if (state === 'started') await AdapterClass.stop();
-					if (state !== 'destroyed') await AdapterClass.destroy();
+					const state = AdapterClass.getState()
+					if (state === 'started') await AdapterClass.stop()
+					if (state !== 'destroyed') await AdapterClass.destroy()
 				}
-				catch (e) { errors.push(e instanceof Error ? e : new Error(String(e))); }
+				catch (e) { errors.push(e instanceof Error ? e : new Error(String(e))) }
 			}
 		}
 		if (errors.length) {
-			this.diagnostic.aggregate('ORK1016', errors, { scope: 'container', message: 'Errors during container destroy', helpUrl: HELP.errors });
+			this.diagnostic.aggregate('ORK1016', errors, { scope: 'container', message: 'Errors during container destroy', helpUrl: HELP.errors })
 		}
 	}
 
 	// Lookup a registration by token, searching parent containers as needed.
 	#lookup<T extends Adapter>(token: Token<T>): Registration<T> | undefined {
-		const here = this.#registry.get(token);
-		if (here && this.#isRegistrationOf(here, token)) return here;
-		return this.#parent ? this.#parent.#lookup(token) : undefined;
+		const here = this.#registry.get(token)
+		if (here && this.#isRegistrationOf(here, token)) return here
+		return this.#parent ? this.#parent.#lookup(token) : undefined
 	}
 
 	// Narrow a registration to its token type by identity.
 	#isRegistrationOf<T extends Adapter>(reg: Registration<Adapter>, token: Token<T>): reg is Registration<T> {
-		return reg.token === token;
+		return reg.token === token
 	}
 
 	// Resolve or instantiate a provider tied to a registration (memoized).
 	#materialize<T extends Adapter>(reg: Registration<T>): ResolvedProvider<T> {
-		if (reg.resolved) return reg.resolved;
-		const provider = reg.provider;
+		if (reg.resolved) return reg.resolved
+		const provider = reg.provider
 		if (!isAdapterProvider(provider)) {
-			this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: provider is not an AdapterProvider' });
+			this.#diagnostic.fail('ORK1099', { scope: 'internal', message: 'Invariant: provider is not an AdapterProvider' })
 		}
 		// Get the singleton instance from the Adapter class
-		// eslint-disable-next-line no-restricted-syntax -- getInstance returns the correct type but TS can't infer it
-		const instance = provider.adapter.getInstance() as T;
+
+		const instance = provider.adapter.getInstance() as T
 		const resolved: ResolvedProvider<T> = {
 			value: instance,
 			lifecycle: provider.adapter,
 			disposable: true,
-		};
-		reg.resolved = resolved;
-		return resolved;
+		}
+		reg.resolved = resolved
+		return resolved
 	}
 
 	// Ensure the container hasn't been destroyed before mutating state.
 	#assertNotDestroyed(): void {
 		if (this.#destroyed) {
-			this.#diagnostic.fail('ORK1005', { scope: 'container', message: 'Container already destroyed', helpUrl: HELP.container });
+			this.#diagnostic.fail('ORK1005', { scope: 'container', message: 'Container already destroyed', helpUrl: HELP.container })
 		}
 	}
 }
 
-const containerRegistry = new RegistryAdapter<ContainerAdapter>({ label: 'container', default: { value: new ContainerAdapter() } });
+const containerRegistry = new RegistryAdapter<ContainerAdapter>({ label: 'container', default: { value: new ContainerAdapter() } })
 
 function containerResolve<T extends Adapter>(token: Token<T>, name?: string | symbol): T {
-	const c = containerRegistry.resolve(name);
-	return c.resolve(token);
+	const c = containerRegistry.resolve(name)
+	return c.resolve(token)
 }
 
 function containerGet<T extends Adapter>(token: Token<T>, name?: string | symbol): T | undefined {
-	const c = containerRegistry.resolve(name);
-	return c.get(token);
+	const c = containerRegistry.resolve(name)
+	return c.get(token)
 }
 
 function containerUsing(fn: (c: ContainerAdapter) => void | Promise<void>, name?: string | symbol): Promise<void>;
@@ -307,14 +307,14 @@ function containerUsing(
 	arg2?: ((c: ContainerAdapter) => unknown) | ((c: ContainerAdapter) => Promise<unknown>) | (string | symbol),
 	arg3?: string | symbol,
 ): Promise<unknown> {
-	const c = containerRegistry.resolve(typeof arg2 === 'function' ? arg3 : arg2);
+	const c = containerRegistry.resolve(typeof arg2 === 'function' ? arg3 : arg2)
 	if (typeof arg2 === 'function') {
 		return c.using(
-			async (scope) => { await arg1(scope); },
+			async(scope) => { await arg1(scope) },
 			scope => arg2(scope),
-		);
+		)
 	}
-	return c.using(scope => arg1(scope));
+	return c.using(scope => arg1(scope))
 }
 
 /**
@@ -338,13 +338,11 @@ function containerUsing(
 export const container = Object.assign(
 	(name?: string | symbol): ContainerAdapter => containerRegistry.resolve(name),
 	{
-		set(name: string | symbol, c: ContainerAdapter, lock?: boolean): void { containerRegistry.set(name, c, lock); },
-		clear(name?: string | symbol, force?: boolean): boolean { return containerRegistry.clear(name, force); },
-		list(): Array<string | symbol> { return [...containerRegistry.list()]; },
+		set(name: string | symbol, c: ContainerAdapter, lock?: boolean): void { containerRegistry.set(name, c, lock) },
+		clear(name?: string | symbol, force?: boolean): boolean { return containerRegistry.clear(name, force) },
+		list(): (string | symbol)[] { return [...containerRegistry.list()] },
 		resolve: containerResolve,
 		get: containerGet,
 		using: containerUsing,
 	},
-);
-
-
+)

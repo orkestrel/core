@@ -1,8 +1,0 @@
-{
-  "extends": "./node_modules/@orkestrel/contribute/tsconfig.build.json",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
-  },
-  "include": ["src"]
-}

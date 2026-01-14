@@ -1,23 +1,22 @@
-import { defineConfig } from 'vitest/config';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const __rootdir = resolve(__dirname);
+import { defineConfig } from 'vitest/config'
+import { resolve } from 'path'
+import { playwright } from '@vitest/browser-playwright'
 
 export default defineConfig({
 	test: {
-		globals: true,
-		environment: 'node',
-		// setupFiles: ['./tests/setup.ts'],
 		include: ['tests/**/*.test.ts'],
-		exclude: ['node_modules', 'dist'],
-		testTimeout: 10000,
-		hookTimeout: 10000,
+		browser: {
+			enabled: true,
+			provider: playwright(),
+			instances: [
+				{ browser: 'chromium' },
+			],
+		},
+		setupFiles: ['./tests/setup.ts'],
 	},
 	resolve: {
 		alias: {
-			'@orkestrel/core': resolve(__rootdir, 'src', 'index.ts'),
+			'@orkestrel/core': resolve(__dirname, 'src', 'index.ts'),
 		},
 	},
-});
+})

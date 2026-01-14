@@ -1,7 +1,6 @@
-import type { ContainerAdapter } from './adapters/container.js';
-import type { Adapter } from './adapter.js';
-import type { OrchestratorAdapter } from './adapters/orchestrator.js';
-
+import type { ContainerAdapter } from './adapters/container.js'
+import type { Adapter } from './adapter.js'
+import type { OrchestratorAdapter } from './adapters/orchestrator.js'
 
 // -----------------------------------------------------------------------------
 // Tokens and provider model
@@ -154,7 +153,7 @@ export interface DiagnosticPort {
 	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void;
 	error(err: unknown, context?: DiagnosticErrorContext): void;
 	fail(key: string, context?: DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }): never;
-	aggregate(key: string, details: ReadonlyArray<LifecycleErrorDetail | Error>, context?: DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }): never;
+	aggregate(key: string, details: readonly (LifecycleErrorDetail | Error)[], context?: DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }): never;
 	help(key: string, context?: DiagnosticErrorContext & { message?: string; helpUrl?: string; name?: string }): Error;
 	metric(name: string, value: number, tags?: Record<string, string | number | boolean>): void;
 	trace(name: string, payload?: Record<string, unknown>): void;
@@ -211,7 +210,7 @@ export interface QueuePort<T = unknown> {
 	enqueue(item: T): Promise<void>;
 	dequeue(): Promise<T | undefined>;
 	size(): Promise<number>;
-	run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options?: QueueRunOptions): Promise<readonly R[]>;
+	run<R>(tasks: readonly (() => Promise<R> | R)[], options?: QueueRunOptions): Promise<readonly R[]>;
 }
 
 export interface QueueAdapterOptions extends QueueRunOptions { readonly capacity?: number; readonly logger?: LoggerPort; readonly diagnostic?: DiagnosticPort }
@@ -221,12 +220,12 @@ export interface QueueAdapterOptions extends QueueRunOptions { readonly capacity
 // -----------------------------------------------------------------------------
 export interface LayerNode<T = unknown> {
 	readonly token: Token<T>;
-	readonly dependencies: ReadonlyArray<Token<unknown>>;
+	readonly dependencies: readonly Token<unknown>[];
 }
 
 export interface LayerPort {
-	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Array<Array<Token<T>>>;
-	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Array<Array<Token<T>>>;
+	compute<T>(nodes: readonly LayerNode<T>[]): Token<T>[][];
+	group<T>(tokens: readonly Token<T>[], layers: readonly (readonly Token<T>[])[]): Token<T>[][];
 }
 
 export interface LayerAdapterOptions { readonly logger?: LoggerPort; readonly diagnostic?: DiagnosticPort }
@@ -288,7 +287,7 @@ export interface ContainerGetter {
 	(name?: string | symbol): ContainerAdapter;
 	set(name: string | symbol, c: ContainerAdapter, lock?: boolean): void;
 	clear(name: string | symbol, force?: boolean): boolean;
-	list(): Array<string | symbol>;
+	list(): (string | symbol)[];
 	resolve<T>(token: Token<T>, name?: string | symbol): T;
 	resolve<TMap extends TokenRecord>(tokens: TMap, name?: string | symbol): { [K in keyof TMap]: TMap[K] extends Token<infer U> ? U : never };
 	resolve<O extends Record<string, unknown>>(tokens: InjectObject<O>, name?: string | symbol): O;
@@ -322,7 +321,7 @@ export type OrchestratorStartResult = Readonly<{ token: Token<Adapter>; lc: Adap
 export interface OrchestratorRegistration<T> {
 	readonly token: Token<T>;
 	readonly provider: Provider<T>;
-	readonly dependencies?: ReadonlyArray<Token<unknown>>;
+	readonly dependencies?: readonly Token<unknown>[];
 	readonly timeouts?: number | PhaseTimeouts;
 }
 
@@ -348,20 +347,20 @@ export interface OrchestratorGetter {
 	(name?: string | symbol): OrchestratorAdapter;
 	set(name: string | symbol, o: OrchestratorAdapter, lock?: boolean): void;
 	clear(name: string | symbol, force?: boolean): boolean;
-	list(): Array<string | symbol>;
+	list(): (string | symbol)[];
 }
 
 export interface RegisterOptions {
-	dependencies?: Array<Token<Adapter>> | Record<string, Token<Adapter>>;
+	dependencies?: Token<Adapter>[] | Record<string, Token<Adapter>>;
 	timeouts?: number | PhaseTimeouts;
 }
 
 export type OrchestratorGraphEntry<T extends Adapter = Adapter>
-	= AdapterProvider<T> & { readonly dependencies?: ReadonlyArray<Token<Adapter>>; readonly timeouts?: number | PhaseTimeouts };
+	= AdapterProvider<T> & { readonly dependencies?: readonly Token<Adapter>[]; readonly timeouts?: number | PhaseTimeouts };
 
 export type OrchestratorGraph = Readonly<Record<symbol, OrchestratorGraphEntry>>;
 
-export interface NodeEntry { readonly token: Token<Adapter>; readonly dependencies: ReadonlyArray<Token<Adapter>>; readonly timeouts?: number | PhaseTimeouts }
+export interface NodeEntry { readonly token: Token<Adapter>; readonly dependencies: readonly Token<Adapter>[]; readonly timeouts?: number | PhaseTimeouts }
 
 // -----------------------------------------------------------------------------
 // Registry (named singletons)
@@ -371,7 +370,7 @@ export interface RegistryPort<T> {
 	resolve(name?: string | symbol): T;
 	set(name: string | symbol, value: T, lock?: boolean): void;
 	clear(name?: string | symbol, force?: boolean): boolean;
-	list(): ReadonlyArray<string | symbol>;
+	list(): readonly (string | symbol)[];
 }
 
 export interface RegistryAdapterOptions<T> {

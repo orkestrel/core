@@ -1,8 +1,8 @@
-import type { DiagnosticPort, LoggerPort, QueueAdapterOptions, QueuePort, QueueRunOptions } from '../types.js';
-import { LoggerAdapter } from './logger.js';
-import { DiagnosticAdapter } from './diagnostic.js';
-import { QUEUE_MESSAGES } from '../constants.js';
-import { isNumber } from '@orkestrel/validator';
+import type { DiagnosticPort, LoggerPort, QueueAdapterOptions, QueuePort, QueueRunOptions } from '../types.js'
+import { LoggerAdapter } from './logger.js'
+import { DiagnosticAdapter } from './diagnostic.js'
+import { QUEUE_MESSAGES } from '../constants.js'
+import { isNumber } from '@orkestrel/validator'
 
 /**
  * In-memory task queue with concurrency control, timeouts, and shared deadlines.
@@ -24,11 +24,11 @@ import { isNumber } from '@orkestrel/validator';
  * ```
  */
 export class QueueAdapter<T = unknown> implements QueuePort<T> {
-	readonly #items: T[] = [];
-	readonly #capacity?: number;
-	readonly #defaults: QueueRunOptions;
-	readonly #logger: LoggerPort;
-	readonly #diagnostic: DiagnosticPort;
+	readonly #items: T[] = []
+	readonly #capacity?: number
+	readonly #defaults: QueueRunOptions
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
 
 	/**
 	 * Construct a QueueAdapter with optional configuration defaults.
@@ -44,15 +44,15 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 *
 	 */
 	constructor(options: QueueAdapterOptions = {}) {
-		this.#capacity = options.capacity;
-		this.#logger = options?.logger ?? new LoggerAdapter();
-		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: QUEUE_MESSAGES });
+		this.#capacity = options.capacity
+		this.#logger = options?.logger ?? new LoggerAdapter()
+		this.#diagnostic = options?.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: QUEUE_MESSAGES })
 		this.#defaults = {
 			concurrency: options.concurrency,
 			deadline: options.deadline,
 			timeout: options.timeout,
 			signal: options.signal,
-		};
+		}
 	}
 
 	/**
@@ -60,14 +60,14 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger; }
+	get logger(): LoggerPort { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this queue adapter for telemetry and error signaling.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic; }
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
 	 * Enqueue a single item to the in-memory FIFO queue.
@@ -83,10 +83,10 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 */
 	enqueue(item: T): Promise<void> {
 		if (typeof this.#capacity === 'number' && this.#items.length >= this.#capacity) {
-			return Promise.reject(this.#diagnostic.help('ORK1050', { scope: 'internal', message: 'QueueAdapter: capacity exceeded' }));
+			return Promise.reject(this.#diagnostic.help('ORK1050', { scope: 'internal', message: 'QueueAdapter: capacity exceeded' }))
 		}
-		this.#items.push(item);
-		return Promise.resolve();
+		this.#items.push(item)
+		return Promise.resolve()
 	}
 
 	/**
@@ -100,7 +100,7 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 * if (item) console.log('Processing:', item)
 	 * ```
 	 */
-	dequeue(): Promise<T | undefined> { return Promise.resolve(this.#items.length ? this.#items.shift() : undefined); }
+	dequeue(): Promise<T | undefined> { return Promise.resolve(this.#items.length ? this.#items.shift() : undefined) }
 
 	/**
 	 * Return the current number of items in the queue.
@@ -113,7 +113,7 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 * console.log(`Queue has ${currentSize} items`)
 	 * ```
 	 */
-	size(): Promise<number> { return Promise.resolve(this.#items.length); }
+	size(): Promise<number> { return Promise.resolve(this.#items.length) }
 
 	/**
 	 * Run a set of tasks with optional concurrency control, timeouts, and a shared deadline.
@@ -144,90 +144,90 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 * console.log('Fetched users:', results)
 	 * ```
 	 */
-	async run<R>(tasks: ReadonlyArray<() => Promise<R> | R>, options: QueueRunOptions = {}): Promise<readonly R[]> {
-		const opts: QueueRunOptions = { ...this.#defaults, ...options };
-		const n = tasks.length;
-		if (n === 0) return [];
-		const c0 = opts.concurrency;
+	async run<R>(tasks: readonly (() => Promise<R> | R)[], options: QueueRunOptions = {}): Promise<readonly R[]> {
+		const opts: QueueRunOptions = { ...this.#defaults, ...options }
+		const n = tasks.length
+		if (n === 0) return []
+		const c0 = opts.concurrency
 		const c = (() => {
-			if (!isNumber(c0)) return n;
-			const v = Math.floor(c0);
-			return v > 0 ? Math.min(v, n) : n;
-		})();
+			if (!isNumber(c0)) return n
+			const v = Math.floor(c0)
+			return v > 0 ? Math.min(v, n) : n
+		})()
 
-		const results = new Array<R>(n);
-		const d = opts.deadline;
+		const results = new Array<R>(n)
+		const d = opts.deadline
 		const sharedEnd = isNumber(d)
 			? Date.now() + Math.max(0, Math.floor(d))
-			: undefined;
-		let abortError: unknown = null;
-		let nextIdx = 0;
+			: undefined
+		let abortError: unknown = null
+		let nextIdx = 0
 
-		const diag = this.#diagnostic;
+		const diag = this.#diagnostic
 		const withTimeout = async <U>(fn: () => Promise<U> | U, idx: number): Promise<U> => {
-			const now = Date.now();
-			const remaining = sharedEnd ? Math.max(0, sharedEnd - now) : undefined;
-			const t0 = opts.timeout;
+			const now = Date.now()
+			const remaining = sharedEnd ? Math.max(0, sharedEnd - now) : undefined
+			const t0 = opts.timeout
 			const taskCap = isNumber(t0)
 				? Math.max(0, Math.floor(t0))
-				: undefined;
-			const cap = remaining == null ? taskCap : (taskCap == null ? remaining : Math.min(remaining, taskCap));
+				: undefined
+			const cap = remaining == null ? taskCap : (taskCap == null ? remaining : Math.min(remaining, taskCap))
 			// If a shared deadline is in effect and is the limiting factor, prefer the shared-deadline error.
-			const dueToShared = sharedEnd != null && (taskCap == null || (remaining != null && remaining <= taskCap));
-			if (cap != null && cap === 0) diag.fail(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` });
-			let tId: ReturnType<typeof setTimeout> | undefined;
-			if (cap == null) return Promise.resolve(fn());
+			const dueToShared = sharedEnd != null && (taskCap == null || (remaining != null && remaining <= taskCap))
+			if (cap != null && cap === 0) diag.fail(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` })
+			let tId: ReturnType<typeof setTimeout> | undefined
+			if (cap == null) return Promise.resolve(fn())
 			try {
 				return await Promise.race([
 					Promise.resolve(fn()),
 					new Promise<never>((_, reject) => {
 						tId = setTimeout(() => {
-							const e = diag.help(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` });
-							reject(e);
-						}, cap);
+							const e = diag.help(dueToShared ? 'ORK1053' : 'ORK1052', { scope: 'internal', message: dueToShared ? 'QueueAdapter: shared deadline exceeded' : `QueueAdapter: task #${idx} timed out` })
+							reject(e)
+						}, cap)
 					}),
-				]);
+				])
 			}
 			finally {
-				if (tId != null) clearTimeout(tId);
+				if (tId != null) clearTimeout(tId)
 			}
-		};
+		}
 
 		if (opts.signal?.aborted) {
-			const e = this.#diagnostic.help('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' });
-			return Promise.reject(e);
+			const e = this.#diagnostic.help('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
+			return Promise.reject(e)
 		}
 
-		const worker = async () => {
+		const worker = async() => {
 			while (abortError == null) {
 				if (opts.signal?.aborted) {
-					abortError = this.#diagnostic.help('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' });
-					break;
+					abortError = this.#diagnostic.help('ORK1051', { scope: 'internal', message: 'QueueAdapter: aborted' })
+					break
 				}
 				if (sharedEnd != null && Date.now() >= sharedEnd) {
-					abortError = this.#diagnostic.help('ORK1053', { scope: 'internal', message: 'QueueAdapter: shared deadline exceeded' });
-					break;
+					abortError = this.#diagnostic.help('ORK1053', { scope: 'internal', message: 'QueueAdapter: shared deadline exceeded' })
+					break
 				}
-				const idx = nextIdx++;
-				if (idx >= n) break;
+				const idx = nextIdx++
+				if (idx >= n) break
 				try {
-					results[idx] = await withTimeout(tasks[idx], idx);
+					results[idx] = await withTimeout(tasks[idx], idx)
 				}
 				catch (err) {
-					abortError = err;
-					break;
+					abortError = err
+					break
 				}
 			}
-		};
+		}
 
-		await Promise.all(new Array(c).fill(null).map(() => worker()));
+		await Promise.all(new Array(c).fill(null).map(() => worker()))
 		if (abortError != null) {
 			if (abortError instanceof Error) {
-				return Promise.reject(abortError);
+				return Promise.reject(abortError)
 			}
-			const message = typeof abortError === 'string' ? abortError : 'Queue task failed';
-			return Promise.reject(new Error(message));
+			const message = typeof abortError === 'string' ? abortError : 'Queue task failed'
+			return Promise.reject(new Error(message))
 		}
-		return results;
+		return results
 	}
 }

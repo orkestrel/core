@@ -1,7 +1,7 @@
-import type { RegistryPort, RegistryAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js';
-import { HELP, REGISTRY_MESSAGES } from '../constants.js';
-import { DiagnosticAdapter } from './diagnostic.js';
-import { LoggerAdapter } from './logger.js';
+import type { RegistryPort, RegistryAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
+import { HELP, REGISTRY_MESSAGES } from '../constants.js'
+import { DiagnosticAdapter } from './diagnostic.js'
+import { LoggerAdapter } from './logger.js'
 
 /**
  * Named instance registry with optional default and locking support.
@@ -26,12 +26,12 @@ import { LoggerAdapter } from './logger.js';
  * ```
  */
 export class RegistryAdapter<T> implements RegistryPort<T> {
-	readonly #store = new Map<string | symbol, T>();
-	readonly #locked = new Set<string | symbol>();
-	readonly #label: string;
-	readonly #defaultKey?: symbol;
-	readonly #logger: LoggerPort;
-	readonly #diagnostic: DiagnosticPort;
+	readonly #store = new Map<string | symbol, T>()
+	readonly #locked = new Set<string | symbol>()
+	readonly #label: string
+	readonly #defaultKey?: symbol
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
 
 	/**
 	 * Construct a RegistryAdapter with optional label and default instance.
@@ -44,12 +44,12 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 *
 	 */
 	constructor(options: RegistryAdapterOptions<T> = {}) {
-		this.#label = options.label ?? 'registry';
-		this.#logger = options.logger ?? new LoggerAdapter();
-		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: REGISTRY_MESSAGES });
+		this.#label = options.label ?? 'registry'
+		this.#logger = options.logger ?? new LoggerAdapter()
+		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: REGISTRY_MESSAGES })
 		if (options.default) {
-			this.#defaultKey = options.default.key ?? Symbol(`${this.#label}.default`);
-			this.#store.set(this.#defaultKey, options.default.value);
+			this.#defaultKey = options.default.key ?? Symbol(`${this.#label}.default`)
+			this.#store.set(this.#defaultKey, options.default.value)
 		}
 	}
 
@@ -58,14 +58,14 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger; }
+	get logger(): LoggerPort { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this registry for error reporting.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic; }
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
 	 * Get a named value without throwing an error.
@@ -80,8 +80,8 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 * ```
 	 */
 	get(name?: string | symbol): T | undefined {
-		const key = name ?? this.#defaultKey;
-		return key === undefined ? undefined : this.#store.get(key);
+		const key = name ?? this.#defaultKey
+		return key === undefined ? undefined : this.#store.get(key)
 	}
 
 	/**
@@ -99,15 +99,15 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 * ```
 	 */
 	resolve(name?: string | symbol): T {
-		const key = name ?? this.#defaultKey;
+		const key = name ?? this.#defaultKey
 		if (key === undefined) {
-			this.#diagnostic.fail('ORK1001', { scope: 'registry', message: `No ${this.#label} instance registered for '<default>'`, helpUrl: HELP.registry, extra: { label: this.#label, name: '<default>' } });
+			this.#diagnostic.fail('ORK1001', { scope: 'registry', message: `No ${this.#label} instance registered for '<default>'`, helpUrl: HELP.registry, extra: { label: this.#label, name: '<default>' } })
 		}
-		const v = this.#store.get(key);
+		const v = this.#store.get(key)
 		if (v === undefined) {
-			this.#diagnostic.fail('ORK1002', { scope: 'registry', message: `No ${this.#label} instance registered for '${String(key)}'`, helpUrl: HELP.registry, extra: { label: this.#label, name: String(key) } });
+			this.#diagnostic.fail('ORK1002', { scope: 'registry', message: `No ${this.#label} instance registered for '${String(key)}'`, helpUrl: HELP.registry, extra: { label: this.#label, name: String(key) } })
 		}
-		return v;
+		return v
 	}
 
 	/**
@@ -128,13 +128,13 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 */
 	set(name: string | symbol, value: T, lock = false): void {
 		if (this.#defaultKey !== undefined && name === this.#defaultKey) {
-			this.#diagnostic.fail('ORK1003', { scope: 'registry', message: `Cannot replace default ${this.#label} instance`, helpUrl: HELP.registry, extra: { label: this.#label } });
+			this.#diagnostic.fail('ORK1003', { scope: 'registry', message: `Cannot replace default ${this.#label} instance`, helpUrl: HELP.registry, extra: { label: this.#label } })
 		}
 		if (this.#locked.has(name)) {
-			this.#diagnostic.fail('ORK1004', { scope: 'registry', message: `Cannot replace locked ${this.#label} instance for '${String(name)}'`, helpUrl: HELP.registry, extra: { label: this.#label, name: String(name) } });
+			this.#diagnostic.fail('ORK1004', { scope: 'registry', message: `Cannot replace locked ${this.#label} instance for '${String(name)}'`, helpUrl: HELP.registry, extra: { label: this.#label, name: String(name) } })
 		}
-		this.#store.set(name, value);
-		if (lock) this.#locked.add(name);
+		this.#store.set(name, value)
+		if (lock) this.#locked.add(name)
 	}
 
 	/**
@@ -155,13 +155,13 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 * ```
 	 */
 	clear(name?: string | symbol, force = false): boolean {
-		const key = name ?? this.#defaultKey;
-		if (key === undefined) return false;
+		const key = name ?? this.#defaultKey
+		if (key === undefined) return false
 		// Default is protected regardless of force
-		if (this.#defaultKey !== undefined && key === this.#defaultKey) return false;
-		if (this.#locked.has(key) && !force) return false;
-		this.#locked.delete(key);
-		return this.#store.delete(key);
+		if (this.#defaultKey !== undefined && key === this.#defaultKey) return false
+		if (this.#locked.has(key) && !force) return false
+		this.#locked.delete(key)
+		return this.#store.delete(key)
 	}
 
 	/**
@@ -175,5 +175,5 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 * console.log('Registered keys:', keys)
 	 * ```
 	 */
-	list(): ReadonlyArray<string | symbol> { return Array.from(this.#store.keys()); }
+	list(): readonly (string | symbol)[] { return Array.from(this.#store.keys()) }
 }

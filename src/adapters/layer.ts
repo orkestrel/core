@@ -1,8 +1,8 @@
-import type { Token, LayerNode, LayerPort, LayerAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js';
-import { tokenDescription } from '../helpers.js';
-import { DiagnosticAdapter } from './diagnostic.js';
-import { LoggerAdapter } from './logger.js';
-import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js';
+import type { Token, LayerNode, LayerPort, LayerAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
+import { tokenDescription } from '../helpers.js'
+import { DiagnosticAdapter } from './diagnostic.js'
+import { LoggerAdapter } from './logger.js'
+import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
 
 /**
  * Topological layering adapter using Kahn's algorithm for dependency ordering.
@@ -28,8 +28,8 @@ import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js';
  * ```
  */
 export class LayerAdapter implements LayerPort {
-	readonly #logger: LoggerPort;
-	readonly #diagnostic: DiagnosticPort;
+	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticPort
 
 	/**
 	 * Construct a LayerAdapter with optional logger and diagnostic ports.
@@ -40,8 +40,8 @@ export class LayerAdapter implements LayerPort {
      *
      */
 	constructor(options: LayerAdapterOptions = {}) {
-		this.#logger = options.logger ?? new LoggerAdapter();
-		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: ORCHESTRATOR_MESSAGES });
+		this.#logger = options.logger ?? new LoggerAdapter()
+		this.#diagnostic = options.diagnostic ?? new DiagnosticAdapter({ logger: this.#logger, messages: ORCHESTRATOR_MESSAGES })
 	}
 
 	/**
@@ -49,14 +49,14 @@ export class LayerAdapter implements LayerPort {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger; }
+	get logger(): LoggerPort { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this layer adapter for validation errors and tracing.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic; }
+	get diagnostic(): DiagnosticPort { return this.#diagnostic }
 
 	/**
 	 * Compute topological layers for the given dependency graph using Kahn's algorithm.
@@ -81,59 +81,59 @@ export class LayerAdapter implements LayerPort {
 	 * // => [[Database], [UserService], [ApiServer]]
 	 * ```
 	 */
-	compute<T>(nodes: ReadonlyArray<LayerNode<T>>): Array<Array<Token<T>>> {
+	compute<T>(nodes: readonly LayerNode<T>[]): Token<T>[][] {
 		// Validate dependencies exist
-		const present = new Set<symbol>();
-		for (const n of nodes) present.add(n.token);
+		const present = new Set<symbol>()
+		for (const n of nodes) present.add(n.token)
 		for (const n of nodes) {
 			for (const d of n.dependencies) {
 				if (!present.has(d)) {
-					this.#diagnostic.fail('ORK1008', { scope: 'orchestrator', message: `Unknown dependency ${tokenDescription(d)} required by ${tokenDescription(n.token)}`, helpUrl: HELP.orchestrator, token: tokenDescription(n.token) });
+					this.#diagnostic.fail('ORK1008', { scope: 'orchestrator', message: `Unknown dependency ${tokenDescription(d)} required by ${tokenDescription(n.token)}`, helpUrl: HELP.orchestrator, token: tokenDescription(n.token) })
 				}
 			}
 		}
 
 		// Build graph keyed by symbol identity
-		const typed = new Map<symbol, Token<T>>();
-		const indeg = new Map<symbol, number>();
-		const adj = new Map<symbol, symbol[]>();
+		const typed = new Map<symbol, Token<T>>()
+		const indeg = new Map<symbol, number>()
+		const adj = new Map<symbol, symbol[]>()
 		for (const n of nodes) {
-			typed.set(n.token, n.token);
-			indeg.set(n.token, 0);
-			adj.set(n.token, []);
+			typed.set(n.token, n.token)
+			indeg.set(n.token, 0)
+			adj.set(n.token, [])
 		}
 		for (const n of nodes) {
 			for (const dep of n.dependencies) {
-				indeg.set(n.token, (indeg.get(n.token) ?? 0) + 1);
-				const arr = adj.get(dep);
-				if (arr) arr.push(n.token);
+				indeg.set(n.token, (indeg.get(n.token) ?? 0) + 1)
+				const arr = adj.get(dep)
+				if (arr) arr.push(n.token)
 			}
 		}
 
 		// Kahn frontier in insertion order
-		let frontier: symbol[] = [];
-		for (const n of nodes) if ((indeg.get(n.token) ?? 0) === 0) frontier.push(n.token);
-		const layers: Array<Array<Token<T>>> = [];
-		let resolved = 0;
+		let frontier: symbol[] = []
+		for (const n of nodes) if ((indeg.get(n.token) ?? 0) === 0) frontier.push(n.token)
+		const layers: Token<T>[][] = []
+		let resolved = 0
 		while (frontier.length) {
-			const current = frontier;
-			frontier = [];
-			const layer: Array<Token<T>> = [];
+			const current = frontier
+			frontier = []
+			const layer: Token<T>[] = []
 			for (const s of current) {
-				const tk = typed.get(s);
-				if (tk) layer.push(tk);
+				const tk = typed.get(s)
+				if (tk) layer.push(tk)
 				for (const child of adj.get(s) ?? []) {
-					const v = (indeg.get(child) ?? 0) - 1;
-					indeg.set(child, v);
-					if (v === 0) frontier.push(child);
+					const v = (indeg.get(child) ?? 0) - 1
+					indeg.set(child, v)
+					if (v === 0) frontier.push(child)
 				}
-				resolved++;
+				resolved++
 			}
-			layers.push(layer);
+			layers.push(layer)
 		}
 
-		if (resolved !== nodes.length) this.#diagnostic.fail('ORK1009', { scope: 'orchestrator', message: 'Cycle detected in dependency graph', helpUrl: HELP.orchestrator });
-		return layers;
+		if (resolved !== nodes.length) this.#diagnostic.fail('ORK1009', { scope: 'orchestrator', message: 'Cycle detected in dependency graph', helpUrl: HELP.orchestrator })
+		return layers
 	}
 
 	/**
@@ -157,28 +157,28 @@ export class LayerAdapter implements LayerPort {
 	 * // => [[C], [B]] (reverse order for safe teardown)
 	 * ```
 	 */
-	group<T>(tokens: ReadonlyArray<Token<T>>, layers: ReadonlyArray<ReadonlyArray<Token<T>>>): Array<Array<Token<T>>> {
+	group<T>(tokens: readonly Token<T>[], layers: readonly (readonly Token<T>[])[]): Token<T>[][] {
 		// Build index of token -> layer number
-		const index = new Map<symbol, number>();
-		for (let i = 0; i < layers.length; i++) for (const tk of layers[i]) index.set(tk, i);
+		const index = new Map<symbol, number>()
+		for (let i = 0; i < layers.length; i++) for (const tk of layers[i]) index.set(tk, i)
 		// Bucket tokens by their layer, preserving input order per bucket
-		const buckets = new Map<number, Array<Token<T>>>();
+		const buckets = new Map<number, Token<T>[]>()
 		for (const tk of tokens) {
-			const idx = index.get(tk);
-			if (idx == null) continue;
-			let list = buckets.get(idx);
+			const idx = index.get(tk)
+			if (idx == null) continue
+			let list = buckets.get(idx)
 			if (!list) {
-				list = [];
-				buckets.set(idx, list);
+				list = []
+				buckets.set(idx, list)
 			}
-			list.push(tk);
+			list.push(tk)
 		}
 		// Emit in strict reverse layer order without sorting keys
-		const out: Array<Array<Token<T>>> = [];
+		const out: Token<T>[][] = []
 		for (let i = layers.length - 1; i >= 0; i--) {
-			const g = buckets.get(i);
-			if (g?.length) out.push(g);
+			const g = buckets.get(i)
+			if (g?.length) out.push(g)
 		}
-		return out;
+		return out
 	}
 }

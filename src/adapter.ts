@@ -2,8 +2,8 @@ import { EmitterAdapter } from './adapters/emitter.js'
 import { QueueAdapter } from './adapters/queue.js'
 import { DiagnosticAdapter } from './adapters/diagnostic.js'
 import type {
-	LifecycleState, LifecycleOptions, LifecycleEventMap, LifecycleHook, EmitterPort, QueuePort, DiagnosticPort,
-	LoggerPort,
+	LifecycleState, AdapterOptions, LifecycleEventMap, LifecycleHook, EmitterInterface, QueueInterface, DiagnosticInterface,
+	LoggerInterface, Unsubscribe,
 } from './types.js'
 import { LoggerAdapter } from './adapters/logger.js'
 import { HELP, LIFECYCLE_MESSAGES } from './constants.js'
@@ -62,12 +62,13 @@ export abstract class Adapter {
 
 	#state: LifecycleState = 'created'
 	#emitInitial = true
+	readonly #unsubscribers = new Map<(...args: unknown[]) => unknown, Unsubscribe>()
 
 	readonly #timeouts: number
-	readonly #emitter: EmitterPort<LifecycleEventMap>
-	readonly #queue: QueuePort
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #emitter: EmitterInterface<LifecycleEventMap>
+	readonly #queue: QueueInterface
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
  * Construct an Adapter with optional configuration.
@@ -76,7 +77,7 @@ export abstract class Adapter {
  *
  * @param opts - Configuration options
  */
-	constructor(opts: LifecycleOptions = {}) {
+	constructor(opts: AdapterOptions = {}) {
 		this.#timeouts = opts.timeouts ?? 5000
 		this.#emitInitial = opts.emitInitial ?? true
 		this.#logger = opts.logger ?? new LoggerAdapter()
@@ -98,7 +99,7 @@ export abstract class Adapter {
 	 * console.log(instance.state)  // 'created'
 	 * ```
 	 */
-	static getInstance<T extends typeof Adapter>(this: T, opts?: LifecycleOptions): InstanceType<T> {
+	static getInstance<T extends typeof Adapter>(this: T, opts?: AdapterOptions): InstanceType<T> {
 		// TypeScript doesn't allow `new this()` on abstract classes, but at runtime
 		// this method is only called on concrete subclasses.
 
@@ -131,7 +132,7 @@ export abstract class Adapter {
 	 * console.log(HttpServer.getState())  // 'created'
 	 * ```
 	 */
-	static async create(opts?: LifecycleOptions): Promise<void> {
+	static async create(opts?: AdapterOptions): Promise<void> {
 		const instance = this.getInstance(opts)
 		await instance.#create()
 	}
@@ -147,7 +148,7 @@ export abstract class Adapter {
 	 * console.log(HttpServer.getState())  // 'started'
 	 * ```
 	 */
-	static async start(opts?: LifecycleOptions): Promise<void> {
+	static async start(opts?: AdapterOptions): Promise<void> {
 		const instance = this.getInstance(opts)
 		await instance.#start()
 	}
@@ -193,17 +194,17 @@ export abstract class Adapter {
 	 * @returns The Adapter class for method chaining
 	 * @example
 	 * ```ts
-	 * HttpServer.on('transition', (state) => console.log('New state:', state))
+	 * const unsubscribe = HttpServer.on('transition', (state) => console.log('New state:', state))
+	 * // Later: unsubscribe()
 	 * ```
 	 */
-	static on<T extends keyof LifecycleEventMap & string, This extends typeof Adapter>(
-		this: This,
+	static on<T extends keyof LifecycleEventMap & string>(
+		this: typeof Adapter,
 		evt: T,
-		fn: (...args: LifecycleEventMap[T]) => void,
-	): This {
+		fn: (...args: LifecycleEventMap[T]) => unknown,
+	): Unsubscribe {
 		const instance = this.getInstance()
-		instance.#on(evt, fn)
-		return this
+		return instance.#on(evt, fn)
 	}
 
 	/**
@@ -211,23 +212,21 @@ export abstract class Adapter {
 	 *
 	 * @param evt - The lifecycle event name to unsubscribe from
 	 * @param fn - The callback function to remove
-	 * @returns The Adapter class for method chaining
 	 * @example
 	 * ```ts
 	 * const handler = (state) => console.log('State:', state)
-	 * HttpServer.on('transition', handler)
-	 * HttpServer.off('transition', handler)
+	 * const unsubscribe = HttpServer.on('transition', handler)
+	 * unsubscribe() // Or manually: HttpServer.off('transition', handler)
 	 * ```
 	 */
-	static off<T extends keyof LifecycleEventMap & string, This extends typeof Adapter>(
-		this: This,
+	static off<T extends keyof LifecycleEventMap & string>(
+		this: typeof Adapter,
 		evt: T,
-		fn: (...args: LifecycleEventMap[T]) => void,
-	): This {
+		fn: (...args: LifecycleEventMap[T]) => unknown,
+	): void {
 		if (this.instance) {
 			this.instance.#off(evt, fn)
 		}
-		return this
 	}
 
 	/* Instance Properties and Methods */
@@ -242,38 +241,38 @@ export abstract class Adapter {
 	}
 
 	/**
-	 * Access the emitter port.
+	 * Access the emitter.
 	 *
-	 * @returns The emitter port instance
+	 * @returns The emitter instance
 	 */
-	get emitter(): EmitterPort<LifecycleEventMap> {
+	get emitter(): EmitterInterface<LifecycleEventMap> {
 		return this.#emitter
 	}
 
 	/**
-	 * Access the queue port.
+	 * Access the queue.
 	 *
-	 * @returns The queue port instance
+	 * @returns The queue instance
 	 */
-	get queue(): QueuePort {
+	get queue(): QueueInterface {
 		return this.#queue
 	}
 
 	/**
-	 * Access the logger port.
+	 * Access the logger.
 	 *
-	 * @returns The logger port instance
+	 * @returns The logger instance
 	 */
-	get logger(): LoggerPort {
+	get logger(): LoggerInterface {
 		return this.#logger
 	}
 
 	/**
-	 * Access the diagnostic port.
+	 * Access the diagnostic.
 	 *
-	 * @returns The diagnostic port instance
+	 * @returns The diagnostic instance
 	 */
-	get diagnostics(): DiagnosticPort {
+	get diagnostic(): DiagnosticInterface {
 		return this.#diagnostic
 	}
 
@@ -348,17 +347,26 @@ export abstract class Adapter {
 	}
 
 	// Internal: subscribe to lifecycle event.
-	#on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
+	#on<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => unknown): Unsubscribe {
 		if (evt === 'transition' && this.#emitInitial) {
 			this.#emitInitial = false
 			setTimeout(() => this.#emitter.emit('transition', this.#state), 0)
 		}
-		this.#emitter.on(evt, fn)
+		const unsubscribe = this.#emitter.on(evt, fn)
+		this.#unsubscribers.set(fn, unsubscribe)
+		return () => {
+			this.#unsubscribers.delete(fn)
+			unsubscribe()
+		}
 	}
 
 	// Internal: unsubscribe from lifecycle event.
-	#off<T extends keyof LifecycleEventMap & string>(evt: T, fn: (...args: LifecycleEventMap[T]) => void): void {
-		this.#emitter.off(evt, fn)
+	#off<T extends keyof LifecycleEventMap & string>(_evt: T, fn: (...args: LifecycleEventMap[T]) => unknown): void {
+		const unsubscribe = this.#unsubscribers.get(fn)
+		if (unsubscribe) {
+			this.#unsubscribers.delete(fn)
+			unsubscribe()
+		}
 	}
 
 	/* Protected Hook Methods - Override in subclasses */

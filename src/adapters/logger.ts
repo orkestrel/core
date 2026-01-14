@@ -1,4 +1,4 @@
-import type { LogLevel, LoggerPort } from '../types.js'
+import type { LogLevel, LoggerInterface } from '../types.js'
 
 /**
  * Console-like logger adapter.
@@ -16,7 +16,7 @@ import type { LogLevel, LoggerPort } from '../types.js'
  * lg.info('started', { env: 'dev' })
  * ```
  */
-export class LoggerAdapter implements LoggerPort {
+export class LoggerAdapter implements LoggerInterface {
 	/**
 	 * Debug-level log.
 	 *
@@ -144,7 +144,7 @@ export class LoggerAdapter implements LoggerPort {
  * const n = new NoopLogger(); n.info('x')
  * ```
  */
-export class NoopLogger implements LoggerPort {
+export class NoopLogger implements LoggerInterface {
 	/**
 	 * No-op debug method.
 	 *
@@ -224,7 +224,7 @@ export class NoopLogger implements LoggerPort {
  * expect(lg.entries[0]).toMatchObject({ level: 'info', message: 'started', fields: { env: 'test' } })
  * ```
  */
-export class FakeLogger implements LoggerPort {
+export class FakeLogger implements LoggerInterface {
 	public entries: { level: LogLevel; message: string; fields?: Record<string, unknown> }[] = []
 
 	// Extract fields from payload using Object.entries to avoid type assertions.

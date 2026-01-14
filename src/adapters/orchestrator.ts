@@ -12,10 +12,10 @@ import type {
 	LifecyclePhase,
 	OrchestratorStartResult,
 	LifecycleContext,
-	LayerPort,
-	QueuePort,
-	DiagnosticPort,
-	LoggerPort,
+	LayerInterface,
+	QueueInterface,
+	DiagnosticInterface,
+	LoggerInterface,
 	OrchestratorGraph,
 } from '../types.js'
 import {
@@ -71,10 +71,10 @@ export class OrchestratorAdapter {
 	readonly #timeouts: number | PhaseTimeouts
 	readonly #events?: OrchestratorOptions['events']
 	readonly #tracer?: OrchestratorOptions['tracer']
-	readonly #layer: LayerPort
-	readonly #queue: QueuePort
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #layer: LayerInterface
+	readonly #queue: QueueInterface
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
 	 * Construct an OrchestratorAdapter bound to a container and optional runtime ports.
@@ -121,28 +121,28 @@ export class OrchestratorAdapter {
 	 *
 	 * @returns The LayerPort responsible for computing and grouping layers.
 	 */
-	get layer(): LayerPort { return this.#layer }
+	get layer(): LayerInterface { return this.#layer }
 
 	/**
 	 * Access the queue adapter used to run per-layer jobs with optional concurrency.
 	 *
 	 * @returns The QueuePort used to schedule and execute tasks.
 	 */
-	get queue(): QueuePort { return this.#queue }
+	get queue(): QueueInterface { return this.#queue }
 
 	/**
 	 * Access the logger port in use (propagated to internal adapters when not provided).
 	 *
 	 * @returns The LoggerPort for logging messages.
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Access the diagnostic port for logging, metrics, traces, and errors.
 	 *
 	 * @returns The DiagnosticPort for telemetry and error reporting.
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Register Adapter components via an orchestrator graph object.

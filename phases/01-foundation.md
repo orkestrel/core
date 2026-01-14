@@ -13,11 +13,11 @@ Establish the foundational types, utilities, and structure for the refactored @o
 
 | # | Deliverable | Status | Assignee |
 |---|-------------|--------|----------|
-| 1.1 | Refactor `types.ts` with Interface suffix convention | 🔄 Active | — |
-| 1.2 | Implement native type guards in `helpers.ts` | ⏳ Pending | — |
-| 1.3 | Update `constants.ts` with standardized error messages | ⏳ Pending | — |
-| 1.4 | Create `errors.ts` with error class hierarchy | ⏳ Pending | — |
-| 1.5 | Create `factories.ts` stub | ⏳ Pending | — |
+| 1.1 | Refactor `types.ts` with Interface suffix convention | ✅ Done | — |
+| 1.2 | Implement native type guards in `helpers.ts` | ✅ Done | — |
+| 1.3 | Update `constants.ts` with standardized error messages | ✅ Done | — |
+| 1.4 | Create `errors.ts` with error class hierarchy | ✅ Done | — |
+| 1.5 | Create `factories.ts` stub | ✅ Done | — |
 | 1.6 | Create `core/` directory structure | ⏳ Pending | — |
 | 1.7 | Unit tests for helpers and types | ⏳ Pending | — |
 
@@ -26,28 +26,50 @@ Establish the foundational types, utilities, and structure for the refactored @o
 - 🔄 Active
 - ⏳ Pending
 
-## Current Focus:  1.1 Refactor types.ts
+## Completed Work
 
-### Requirements
+### 1.1 Refactor types.ts ✅
 
-1.  Rename all `*Port` interfaces to `*Interface`
-2. Add `Unsubscribe` type and `SubscriptionToHook` utility type
-3. Define subscription interfaces for lifecycle events
-4. Update options interfaces to extend `SubscriptionToHook<Subscriptions>`
-5. Remove dependency on `./adapters/*. js` imports (circular dependency)
-6. Add all missing types from analysis
+- Added `Unsubscribe` type at top of file
+- Added `SubscriptionToHook` utility type
+- Renamed `LoggerPort` → `LoggerInterface`
+- Renamed `DiagnosticPort` → `DiagnosticInterface`
+- Renamed `EmitterPort` → `EmitterInterface`
+- Renamed `EventPort` → `EventBusInterface`
+- Renamed `QueuePort` → `QueueInterface`
+- Renamed `LayerPort` → `LayerInterface`
+- Renamed `RegistryPort` → `RegistryInterface`
+- Added `LifecycleSubscriptions` interface
+- Updated event listener return type to `unknown`
+- Updated `EventMap` to use `readonly unknown[]`
+- Added deprecated type aliases for backward compatibility
 
-### Interface Contract
+### 1.2 Native Type Guards ✅
 
-```typescript
-// Core utility types
-export type Unsubscribe = () => void
-export type SubscriptionToHook<T> = {
-	[K in keyof T]?: T[K] extends (callback: infer CB) => Unsubscribe ?  CB : never
-}
-export type Token<T> = symbol & { readonly __t?:  T }
+Implemented in `helpers.ts`:
+- `isString`, `isNumber`, `isBoolean`, `isFunction`
+- `isRecord`, `isError`, `isArray`
+- `isLiteral`, `isArrayOf`
+- Updated `isLifecycleErrorDetail` and `isAggregateLifecycleError`
 
-// Lifecycle types (data-only, no suffix)
+### 1.4 Error Classes ✅
+
+Created `errors.ts` with:
+- `OrkestrelError` - Base error class
+- `NotFoundError` - For resolve() failures
+- `InvalidTransitionError` - For invalid lifecycle transitions
+- `TimeoutError` - For hook timeouts
+- `AggregateLifecycleError` - For multiple failures
+- `ContainerDestroyedError` - For destroyed container access
+- `CircularDependencyError` - For dependency cycles
+- `DuplicateRegistrationError` - For duplicate registrations
+
+### 1.5 Factories Stub ✅
+
+Created `factories.ts` with `createToken` function.
+Additional factory functions to be added in Phase 3.
+
+## Current Focus:  1.6 Create core/ directory structure
 export type LifecycleState = 'created' | 'started' | 'stopped' | 'destroyed'
 export type LifecyclePhase = 'start' | 'stop' | 'destroy'
 export type LifecycleHook = 'create' | 'start' | 'stop' | 'destroy'

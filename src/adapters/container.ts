@@ -4,8 +4,8 @@ import { CONTAINER_MESSAGES, HELP } from '../constants.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import type {
 	AdapterProvider,
-	DiagnosticPort,
-	LoggerPort,
+	DiagnosticInterface,
+	LoggerInterface,
 	Registration,
 	ResolvedProvider,
 	Token,
@@ -49,8 +49,8 @@ export class ContainerAdapter {
 
 	readonly #registry: RegistryAdapter<Registration<Adapter>>
 	readonly #parent?: ContainerAdapter
-	readonly #diagnostic: DiagnosticPort
-	readonly #logger: LoggerPort
+	readonly #diagnostic: DiagnosticInterface
+	readonly #logger: LoggerInterface
 
 	/**
 	 * Construct a ContainerAdapter with optional parent, logger, and diagnostic adapters.
@@ -73,14 +73,14 @@ export class ContainerAdapter {
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Access the logger port used by this container.
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Register an Adapter class under a token.

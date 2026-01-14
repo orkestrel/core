@@ -9,7 +9,6 @@
 
 export * from './constants.js'
 export * from './errors.js'
-export * from './factories.js'
 export * from './helpers.js'
 export * from './adapter.js'
 export * from './ports.js'

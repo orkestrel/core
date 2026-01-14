@@ -1,8 +1,8 @@
 import type {
 	DiagnosticAdapterOptions,
-	DiagnosticPort,
+	DiagnosticInterface,
 	DiagnosticErrorContext,
-	LoggerPort,
+	LoggerInterface,
 	LogLevel,
 	LifecycleErrorDetail,
 	MessageMapEntry,
@@ -65,8 +65,8 @@ class AggregateDiagnosticError extends Error {
  * }
  * ```
  */
-export class DiagnosticAdapter implements DiagnosticPort {
-	readonly #logger: LoggerPort
+export class DiagnosticAdapter implements DiagnosticInterface {
+	readonly #logger: LoggerInterface
 	readonly #messages: ReadonlyMap<string, MessageMapEntry>
 
 	/**
@@ -89,7 +89,7 @@ export class DiagnosticAdapter implements DiagnosticPort {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Write a log entry with a level, message key, and optional structured fields.

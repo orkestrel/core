@@ -1,4 +1,4 @@
-import type { EventHandler, EventPort, EventAdapterOptions, LoggerPort, DiagnosticPort } from '../types.js'
+import type { EventHandler, EventBusInterface, EventAdapterOptions, LoggerInterface, DiagnosticInterface, Unsubscribe } from '../types.js'
 import { isFunction, safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
@@ -22,13 +22,13 @@ import { DiagnosticAdapter } from './diagnostic.js'
  * await unsubscribe()
  * ```
  */
-export class EventAdapter implements EventPort {
+export class EventAdapter implements EventBusInterface {
 	readonly #map = new Map<string, Set<unknown>>()
 	readonly #onError?: (err: unknown, topic: string) => void
 	readonly #sequential: boolean
 
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
 	 * Construct an EventAdapter with optional configuration.
@@ -53,14 +53,14 @@ export class EventAdapter implements EventPort {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this event adapter.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Publish a payload to a topic, invoking all subscribed handlers.

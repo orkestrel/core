@@ -1,4 +1,4 @@
-import type { DiagnosticPort, LoggerPort, QueueAdapterOptions, QueuePort, QueueRunOptions } from '../types.js'
+import type { DiagnosticInterface, LoggerInterface, QueueAdapterOptions, QueueInterface, QueueRunOptions } from '../types.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
@@ -23,12 +23,12 @@ import { isNumber } from '../helpers.js'
  * console.log(results) // => [1, 2, 3] (order preserved)
  * ```
  */
-export class QueueAdapter<T = unknown> implements QueuePort<T> {
+export class QueueAdapter<T = unknown> implements QueueInterface<T> {
 	readonly #items: T[] = []
 	readonly #capacity?: number
 	readonly #defaults: QueueRunOptions
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
 	 * Construct a QueueAdapter with optional configuration defaults.
@@ -60,14 +60,14 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this queue adapter for telemetry and error signaling.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Enqueue a single item to the in-memory FIFO queue.

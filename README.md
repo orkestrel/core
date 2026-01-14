@@ -16,6 +16,8 @@ Minimal, strongly-typed adapter/port toolkit for TypeScript. Compose capabilitie
 - **Deterministic lifecycle** — Start, stop, destroy with timeouts and rollback
 - **Orchestration** — Topological ordering with per-layer concurrency
 - **Built-in adapters** — Logger, diagnostics, emitter, event bus, queue, registry
+- **Zero dependencies** — No external runtime dependencies
+- **Strict TypeScript** — Full `exactOptionalPropertyTypes` support
 
 <!-- Template section: Requirements -->
 ## Requirements
@@ -65,30 +67,53 @@ await app.start({
 await app.destroy() // Cleanup in reverse order
 ```
 
+<!-- Package-specific section: Subscription pattern -->
+## Event Subscriptions
+
+Event subscriptions return an `Unsubscribe` function for cleanup:
+
+```ts
+// Subscribe to lifecycle events
+const unsubscribe = MyAdapter.on('transition', (state) => {
+  console.log('New state:', state)
+})
+
+// Later: cleanup
+unsubscribe()
+```
+
 <!-- Package-specific section: Core concepts summary -->
 ## Core Concepts
 
-| Concept          | Description                                              |
-|------------------|----------------------------------------------------------|
-| **Token**        | Typed symbol key for registration and resolution         |
-| **Adapter**      | Base class with singleton pattern and lifecycle hooks    |
-| **Container**    | DI container that registers and resolves Adapter classes |
-| **Orchestrator** | Manages start/stop/destroy in dependency order           |
+| Concept | Description |
+|---------|-------------|
+| **Token** | Typed symbol key for registration and resolution |
+| **Adapter** | Base class with singleton pattern and lifecycle hooks |
+| **Container** | DI container that registers and resolves Adapter classes |
+| **Orchestrator** | Manages start/stop/destroy in dependency order |
+
+## Interfaces
+
+All behavioral interfaces use the `*Interface` suffix:
+
+| Interface | Description |
+|-----------|-------------|
+| `LoggerInterface` | Structured logging |
+| `DiagnosticInterface` | Error reporting, metrics, telemetry |
+| `EmitterInterface` | Typed synchronous event emission |
+| `EventBusInterface` | Async topic-based pub/sub |
+| `QueueInterface` | Task queue with concurrency control |
+| `LayerInterface` | Topological layer computation |
+| `RegistryInterface` | Named singleton storage |
 
 <!-- Template section: Documentation links (customize URLs) -->
 ## Documentation
 
-| Guide                                | Description                                |
-|--------------------------------------|--------------------------------------------|
-| [Overview](./guides/overview.md)     | Mental model and architecture              |
-| [Start](./guides/start.md)           | Installation and 5-minute tour             |
-| [Concepts](./guides/concepts.md)     | Tokens, adapters, lifecycle, orchestration |
-| [Core](./guides/core.md)             | Built-in adapters and runtime              |
-| [Examples](./guides/examples.md)     | Copy-pasteable patterns                    |
-| [Tips](./guides/tips.md)             | Patterns and troubleshooting               |
-| [Tests](./guides/tests.md)           | Testing guidance                           |
-| [FAQ](./guides/faq.md)               | Common questions                           |
-| [Contribute](./guides/contribute.md) | Development workflow                       |
+| Guide | Description |
+|-------|-------------|
+| [Examples](./guides/examples.md) | Copy-pasteable patterns |
+| [Migration](./guides/migration.md) | v1 → v2 upgrade guide |
+| [Core](./guides/core.md) | Built-in adapters and runtime |
 
 <!-- Template section: Scripts -->
 ## Development

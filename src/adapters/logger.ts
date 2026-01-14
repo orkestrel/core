@@ -1,4 +1,4 @@
-import type { LogLevel, LoggerPort } from '../types.js'
+import type { LogLevel, LoggerInterface } from '../types.js'
 
 /**
  * Console-like logger adapter.
@@ -16,7 +16,7 @@ import type { LogLevel, LoggerPort } from '../types.js'
  * lg.info('started', { env: 'dev' })
  * ```
  */
-export class LoggerAdapter implements LoggerPort {
+export class LoggerAdapter implements LoggerInterface {
 	/**
 	 * Debug-level log.
 	 *
@@ -144,7 +144,7 @@ export class LoggerAdapter implements LoggerPort {
  * const n = new NoopLogger(); n.info('x')
  * ```
  */
-export class NoopLogger implements LoggerPort {
+export class NoopLogger implements LoggerInterface {
 	/**
 	 * No-op debug method.
 	 *
@@ -224,7 +224,7 @@ export class NoopLogger implements LoggerPort {
  * expect(lg.entries[0]).toMatchObject({ level: 'info', message: 'started', fields: { env: 'test' } })
  * ```
  */
-export class FakeLogger implements LoggerPort {
+export class FakeLogger implements LoggerInterface {
 	public entries: { level: LogLevel; message: string; fields?: Record<string, unknown> }[] = []
 
 	// Extract fields from payload using Object.entries to avoid type assertions.
@@ -239,6 +239,12 @@ export class FakeLogger implements LoggerPort {
 		return undefined
 	}
 
+	#pushEntry(level: LogLevel, message: string, fields: Record<string, unknown> | undefined): void {
+		const entry: { level: LogLevel; message: string; fields?: Record<string, unknown> } = { level, message }
+		if (fields !== undefined) entry.fields = fields
+		this.entries.push(entry)
+	}
+
 	/**
 	 * Capture a debug-level entry.
 	 *
@@ -251,7 +257,7 @@ export class FakeLogger implements LoggerPort {
 	 * lg.debug('verbose', { key: 'value' })
 	 * ```
 	 */
-	debug(message: string, payload?: unknown): void { this.entries.push({ level: 'debug', message, fields: this.#extractFields(payload) }) }
+	debug(message: string, payload?: unknown): void { this.#pushEntry('debug', message, this.#extractFields(payload)) }
 
 	/**
 	 * Capture an info-level entry.
@@ -265,7 +271,7 @@ export class FakeLogger implements LoggerPort {
 	 * lg.info('started', { env: 'test' })
 	 * ```
 	 */
-	info(message: string, payload?: unknown): void { this.entries.push({ level: 'info', message, fields: this.#extractFields(payload) }) }
+	info(message: string, payload?: unknown): void { this.#pushEntry('info', message, this.#extractFields(payload)) }
 
 	/**
 	 * Capture a warn-level entry.
@@ -279,7 +285,7 @@ export class FakeLogger implements LoggerPort {
 	 * lg.warn('slow-response', { ms: 123 })
 	 * ```
 	 */
-	warn(message: string, payload?: unknown): void { this.entries.push({ level: 'warn', message, fields: this.#extractFields(payload) }) }
+	warn(message: string, payload?: unknown): void { this.#pushEntry('warn', message, this.#extractFields(payload)) }
 
 	/**
 	 * Capture an error-level entry.
@@ -293,7 +299,7 @@ export class FakeLogger implements LoggerPort {
 	 * lg.error('failed', { err: new Error('boom') })
 	 * ```
 	 */
-	error(message: string, payload?: unknown): void { this.entries.push({ level: 'error', message, fields: this.#extractFields(payload) }) }
+	error(message: string, payload?: unknown): void { this.#pushEntry('error', message, this.#extractFields(payload)) }
 
 	/**
 	 * Compatibility log method.
@@ -308,5 +314,5 @@ export class FakeLogger implements LoggerPort {
 	 * lg.log('info', 'app.started', { version: '1.0' })
 	 * ```
 	 */
-	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void { this.entries.push({ level, message, fields }) }
+	log(level: LogLevel, message: string, fields?: Record<string, unknown>): void { this.#pushEntry(level, message, fields) }
 }

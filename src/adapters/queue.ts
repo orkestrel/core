@@ -1,8 +1,8 @@
-import type { DiagnosticPort, LoggerPort, QueueAdapterOptions, QueuePort, QueueRunOptions } from '../types.js'
+import type { DiagnosticInterface, LoggerInterface, QueueAdapterOptions, QueueInterface, QueueRunOptions } from '../types.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { QUEUE_MESSAGES } from '../constants.js'
-import { isNumber } from '@orkestrel/validator'
+import { isNumber } from '../helpers.js'
 
 /**
  * In-memory task queue with concurrency control, timeouts, and shared deadlines.
@@ -23,12 +23,17 @@ import { isNumber } from '@orkestrel/validator'
  * console.log(results) // => [1, 2, 3] (order preserved)
  * ```
  */
-export class QueueAdapter<T = unknown> implements QueuePort<T> {
+export class QueueAdapter<T = unknown> implements QueueInterface<T> {
 	readonly #items: T[] = []
-	readonly #capacity?: number
-	readonly #defaults: QueueRunOptions
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #capacity: number | undefined
+	readonly #defaults: {
+		concurrency: number | undefined
+		deadline: number | undefined
+		timeout: number | undefined
+		signal: AbortSignal | undefined
+	}
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
 	 * Construct a QueueAdapter with optional configuration defaults.
@@ -60,14 +65,14 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this queue adapter for telemetry and error signaling.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Enqueue a single item to the in-memory FIFO queue.
@@ -145,7 +150,12 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 	 * ```
 	 */
 	async run<R>(tasks: readonly (() => Promise<R> | R)[], options: QueueRunOptions = {}): Promise<readonly R[]> {
-		const opts: QueueRunOptions = { ...this.#defaults, ...options }
+		const opts = {
+			concurrency: options.concurrency ?? this.#defaults.concurrency,
+			deadline: options.deadline ?? this.#defaults.deadline,
+			timeout: options.timeout ?? this.#defaults.timeout,
+			signal: options.signal ?? this.#defaults.signal,
+		}
 		const n = tasks.length
 		if (n === 0) return []
 		const c0 = opts.concurrency
@@ -210,8 +220,10 @@ export class QueueAdapter<T = unknown> implements QueuePort<T> {
 				}
 				const idx = nextIdx++
 				if (idx >= n) break
+				const task = tasks[idx]
+				if (!task) break
 				try {
-					results[idx] = await withTimeout(tasks[idx], idx)
+					results[idx] = await withTimeout(task, idx)
 				}
 				catch (err) {
 					abortError = err

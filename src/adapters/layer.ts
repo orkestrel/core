@@ -1,4 +1,4 @@
-import type { Token, LayerNode, LayerPort, LayerAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
+import type { Token, LayerNode, LayerInterface, LayerAdapterOptions, DiagnosticInterface, LoggerInterface } from '../types.js'
 import { tokenDescription } from '../helpers.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { LoggerAdapter } from './logger.js'
@@ -27,9 +27,9 @@ import { HELP, ORCHESTRATOR_MESSAGES } from '../constants.js'
  * // => [[A], [B, C]]
  * ```
  */
-export class LayerAdapter implements LayerPort {
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+export class LayerAdapter implements LayerInterface {
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
 	 * Construct a LayerAdapter with optional logger and diagnostic ports.
@@ -49,14 +49,14 @@ export class LayerAdapter implements LayerPort {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this layer adapter for validation errors and tracing.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Compute topological layers for the given dependency graph using Kahn's algorithm.
@@ -160,7 +160,10 @@ export class LayerAdapter implements LayerPort {
 	group<T>(tokens: readonly Token<T>[], layers: readonly (readonly Token<T>[])[]): Token<T>[][] {
 		// Build index of token -> layer number
 		const index = new Map<symbol, number>()
-		for (let i = 0; i < layers.length; i++) for (const tk of layers[i]) index.set(tk, i)
+		for (let i = 0; i < layers.length; i++) {
+			const layer = layers[i]
+			if (layer) for (const tk of layer) index.set(tk, i)
+		}
 		// Bucket tokens by their layer, preserving input order per bucket
 		const buckets = new Map<number, Token<T>[]>()
 		for (const tk of tokens) {

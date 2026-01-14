@@ -1,6 +1,5 @@
-import type { DiagnosticPort, EmitterAdapterOptions, EmitterPort, EmitterListener, EventMap, LoggerPort } from '../types.js'
-import { safeInvoke } from '../helpers.js'
-import { isFunction } from '@orkestrel/validator'
+import type { DiagnosticInterface, EmitterAdapterOptions, EmitterInterface, EventListener, EventMap, LoggerInterface, Unsubscribe } from '../types.js'
+import { isFunction, safeInvoke } from '../helpers.js'
 import { LoggerAdapter } from './logger.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 
@@ -23,12 +22,12 @@ import { DiagnosticAdapter } from './diagnostic.js'
  * emitter.removeAllListeners()
  * ```
  */
-export class EmitterAdapter<EMap extends EventMap = EventMap> implements EmitterPort<EMap> {
+export class EmitterAdapter<EMap extends EventMap = EventMap> implements EmitterInterface<EMap> {
 	// Internal registry of per-event listeners.
 	readonly #listeners = new Map<keyof EMap & string, Set<unknown>>()
 
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
 	 * Construct an EmitterAdapter with optional logger and diagnostic ports.
@@ -48,58 +47,42 @@ export class EmitterAdapter<EMap extends EventMap = EventMap> implements Emitter
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this emitter.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Register a listener function for a specific event.
 	 *
 	 * @param event - Event name (key in the event map)
 	 * @param fn - Listener function that receives tuple-typed arguments matching the event signature
-	 * @returns This emitter instance for method chaining
-     *
+	 * @returns Unsubscribe function to remove the listener
+	 *
 	 * @example
 	 * ```ts
-	 * emitter.on('data', (value: string) => console.log('data:', value))
+	 * const unsubscribe = emitter.on('data', (value: string) => console.log('data:', value))
+	 * // Later: unsubscribe()
 	 * ```
 	 */
-	on<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this {
+	on<E extends keyof EMap & string>(event: E, fn: EventListener<EMap, E>): Unsubscribe {
 		let set = this.#listeners.get(event)
 		if (!set) {
 			set = new Set<unknown>()
 			this.#listeners.set(event, set)
 		}
 		set.add(fn)
-		return this
-	}
-
-	/**
-	 * Remove a previously registered listener for a specific event.
-	 *
-	 * @param event - Event name (key in the event map)
-	 * @param fn - The exact listener function to remove
-	 * @returns This emitter instance for method chaining
-     *
-	 * @example
-	 * ```ts
-	 * const handler = (s: string) => console.log(s)
-	 * emitter.on('data', handler)
-	 * emitter.off('data', handler)
-	 * ```
-	 */
-	off<E extends keyof EMap & string>(event: E, fn: EmitterListener<EMap, E>): this {
-		const set = this.#listeners.get(event)
-		if (set) {
-			set.delete(fn)
-			if (set.size === 0) this.#listeners.delete(event)
+		return () => {
+			const s = this.#listeners.get(event)
+			if (s) {
+				s.delete(fn)
+				if (s.size === 0) this.#listeners.delete(event)
+			}
 		}
-		return this
 	}
 
 	/**

@@ -13,7 +13,7 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: {
-			'@orkestral/core': resolve(__dirname, '../src', 'index.ts'),
+			'@orkestrel/core': resolve(__dirname, '../src', 'index.ts'),
 		},
 	},
 })

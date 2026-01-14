@@ -60,8 +60,10 @@ describe('Diagnostic suite', () => {
 		const d = new DiagnosticAdapter({ logger })
 		d.log('info', 'hello')
 		assert.equal(logger.entries.length, 1)
-		assert.equal(logger.entries[0].level, 'info')
-		assert.equal(logger.entries[0].message, 'hello')
+		const entry0 = logger.entries[0]
+		assert.ok(entry0)
+		assert.equal(entry0.level, 'info')
+		assert.equal(entry0.message, 'hello')
 	})
 
 	test('DiagnosticAdapter overrides apply via messages array (log)', () => {
@@ -69,8 +71,10 @@ describe('Diagnostic suite', () => {
 		const d = new DiagnosticAdapter({ logger, messages: [{ key: 'hello', level: 'warn', message: 'hi' }] })
 		d.log('info', 'hello')
 		assert.equal(logger.entries.length, 1)
-		assert.equal(logger.entries[0].level, 'warn')
-		assert.equal(logger.entries[0].message, 'hi')
+		const entry0 = logger.entries[0]
+		assert.ok(entry0)
+		assert.equal(entry0.level, 'warn')
+		assert.equal(entry0.message, 'hi')
 	})
 
 	test('DiagnosticAdapter overrides apply for metric/trace/event', () => {
@@ -82,38 +86,48 @@ describe('Diagnostic suite', () => {
 		] })
 
 		d.metric('m1', 42, { tag: 'x' })
-		assert.equal(logger.entries[0].level, 'info') // default level for metric
-		assert.equal(logger.entries[0].message, 'metric-one')
-		assert.deepEqual(logger.entries[0].fields, { value: 42, tag: 'x' })
+		const metricEntry = logger.entries[0]
+		assert.ok(metricEntry)
+		assert.equal(metricEntry.level, 'info') // default level for metric
+		assert.equal(metricEntry.message, 'metric-one')
+		assert.deepEqual(metricEntry.fields, { value: 42, tag: 'x' })
 
 		logger.entries = []
 		d.trace('t1', { a: 1 })
-		assert.equal(logger.entries[0].level, 'info') // overridden level
-		assert.equal(logger.entries[0].message, 't1') // message unchanged when not provided
-		assert.deepEqual(logger.entries[0].fields, { a: 1 })
+		const traceEntry = logger.entries[0]
+		assert.ok(traceEntry)
+		assert.equal(traceEntry.level, 'info') // overridden level
+		assert.equal(traceEntry.message, 't1') // message unchanged when not provided
+		assert.deepEqual(traceEntry.fields, { a: 1 })
 
 		logger.entries = []
 		d.event('e1', { b: 2 })
-		assert.equal(logger.entries[0].level, 'warn')
-		assert.equal(logger.entries[0].message, 'event-one')
-		assert.deepEqual(logger.entries[0].fields, { b: 2 })
+		const eventEntry = logger.entries[0]
+		assert.ok(eventEntry)
+		assert.equal(eventEntry.level, 'warn')
+		assert.equal(eventEntry.message, 'event-one')
+		assert.deepEqual(eventEntry.fields, { b: 2 })
 	})
 
 	test('DiagnosticAdapter error uses context.code when provided', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: [{ key: 'MYCODE', level: 'warn', message: 'bad things' }] })
 		d.error(new Error('boom'), { code: 'MYCODE' as unknown as never })
-		assert.equal(logger.entries[0].level, 'warn')
-		assert.equal(logger.entries[0].message, 'bad things')
-		assert.ok(logger.entries[0].fields && 'err' in (logger.entries[0].fields as object))
+		const entry0 = logger.entries[0]
+		assert.ok(entry0)
+		assert.equal(entry0.level, 'warn')
+		assert.equal(entry0.message, 'bad things')
+		assert.ok(entry0.fields && 'err' in (entry0.fields as object))
 	})
 
 	test('DiagnosticAdapter error falls back to error name key when no code', () => {
 		const logger = new FakeLogger()
 		const d = new DiagnosticAdapter({ logger, messages: [{ key: 'Error', level: 'error', message: 'oops mapped' }] })
 		d.error(new Error('original'))
-		assert.equal(logger.entries[0].level, 'error')
-		assert.equal(logger.entries[0].message, 'oops mapped')
+		const entry0 = logger.entries[0]
+		assert.ok(entry0)
+		assert.equal(entry0.level, 'error')
+		assert.equal(entry0.message, 'oops mapped')
 	})
 
 	// Domain message maps resolution

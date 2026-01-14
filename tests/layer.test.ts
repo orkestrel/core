@@ -34,8 +34,8 @@ function makeRng(seed: number) {
 		shuffle<T>(arr: T[]): T[] {
 			for (let i = arr.length - 1; i > 0; i--) {
 				const j = this.rangeInt(0, i)
-				const t = arr[i]
-				arr[i] = arr[j]
+				const t = arr[i]!
+				arr[i] = arr[j]!
 				arr[j] = t
 			}
 			return arr
@@ -66,28 +66,32 @@ describe('Layer suite', () => {
 	test('compute throws ORK1008 on unknown dependency', () => {
 		const layer = new LayerAdapter({ logger })
 		const UNKNOWN = createToken('UNKNOWN')
-		assert.throws(() => {
+		try {
 			layer.compute([
 				{ token: A, dependencies: [UNKNOWN] },
 			])
-		}, (err: unknown) => {
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			const e = err as { message?: string; code?: string }
-			return e?.code === 'ORK1008' && typeof e?.message === 'string' && e.message.includes('Unknown dependency')
-		})
+			assert.equal(e?.code, 'ORK1008')
+			assert.ok(typeof e?.message === 'string' && e.message.includes('Unknown dependency'))
+		}
 	})
 
 	test('compute throws ORK1009 when cycle exists', () => {
 		const layer = new LayerAdapter({ logger })
-		assert.throws(() => {
+		try {
 			// A <- B <- A (cycle)
 			layer.compute([
 				{ token: A, dependencies: [B] },
 				{ token: B, dependencies: [A] },
 			])
-		}, (err: unknown) => {
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			const e = err as { message?: string; code?: string }
-			return e?.code === 'ORK1009' && typeof e?.message === 'string' && /cycle/i.test(e.message)
-		})
+			assert.equal(e?.code, 'ORK1009')
+			assert.ok(typeof e?.message === 'string' && /cycle/i.test(e.message))
+		}
 	})
 
 	test('group returns tokens grouped by reverse layer order', () => {
@@ -115,15 +119,15 @@ describe('Layer suite', () => {
 			const rng = makeRng(seed)
 			for (let iter = 0; iter < 5; iter++) {
 				const { n, edges, labels } = buildRandomDag(rng)
-				const tokens = Array.from({ length: n }, (_, i) => createToken(`N${labels[i]}`))
-				const nodes = tokens.map((tk, i) => ({ token: tk, dependencies: edges.filter(([_, v]) => v === i).map(([u]) => tokens[u]) }))
+				const tokens = Array.from({ length: n }, (_, i) => createToken(`N${labels[i]!}`))
+				const nodes = tokens.map((tk, i) => ({ token: tk, dependencies: edges.filter(([_, v]) => v === i).map(([u]) => tokens[u]!) }))
 				const layer = new LayerAdapter({ logger })
 				const layers = layer.compute(nodes)
 				const index = new Map<symbol, number>()
 				layers.forEach((layerArr, idx) => layerArr.forEach(tk => index.set(tk, idx)))
 				for (const [u, v] of edges) {
-					const iu = index.get(tokens[u])
-					const iv = index.get(tokens[v])
+					const iu = index.get(tokens[u]!)
+					const iv = index.get(tokens[v]!)
 					assert.ok(iu !== undefined && iv !== undefined, `index missing for edge ${u}->${v}`)
 					assert.ok(iu < iv, `topology violated for edge ${u}->${v}: ${iu} !< ${iv}`)
 				}
@@ -137,8 +141,8 @@ describe('Layer suite', () => {
 			const rng = makeRng(seed)
 			for (let iter = 0; iter < 5; iter++) {
 				const { n, edges, labels } = buildRandomDag(rng)
-				const tokens = Array.from({ length: n }, (_, i) => createToken(`M${labels[i]}`))
-				const nodes = tokens.map((tk, i) => ({ token: tk, dependencies: edges.filter(([_, v]) => v === i).map(([u]) => tokens[u]) }))
+				const tokens = Array.from({ length: n }, (_, i) => createToken(`M${labels[i]!}`))
+				const nodes = tokens.map((tk, i) => ({ token: tk, dependencies: edges.filter(([_, v]) => v === i).map(([u]) => tokens[u]!) }))
 				const layer = new LayerAdapter({ logger })
 				const layers = layer.compute(nodes)
 				const groups = layer.group(tokens, layers)
@@ -146,8 +150,8 @@ describe('Layer suite', () => {
 				const order = new Map<symbol, number>()
 				groups.forEach((g, idx) => g.forEach(tk => order.set(tk, idx)))
 				for (const [u, v] of edges) {
-					const ou = order.get(tokens[u])
-					const ov = order.get(tokens[v])
+					const ou = order.get(tokens[u]!)
+					const ov = order.get(tokens[v]!)
 					assert.ok(ou !== undefined && ov !== undefined, `order missing for edge ${u}->${v}`)
 					assert.ok(ov < ou, `reverse order violated for edge ${u}->${v}: ${ov} !< ${ou}`)
 				}

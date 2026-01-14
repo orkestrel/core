@@ -1,10 +1,103 @@
-import { andOf, arrayOf, isBoolean, isError, isNumber, isRecord, isString, literalOf } from '@orkestrel/validator'
 import type {
 	Token,
 	AdapterProvider,
-	AggregateLifecycleError,
+	AggregateLifecycleErrorLike,
 } from './types.js'
 import type { Adapter } from './adapter.js'
+
+// -----------------------------------------------------------------------------
+// Native Type Guards (replacing @orkestrel/validator)
+// -----------------------------------------------------------------------------
+
+/**
+ * Type guard for string values.
+ *
+ * @param x - Value to check
+ * @returns True if `x` is a string
+ */
+export function isString(x: unknown): x is string {
+	return typeof x === 'string'
+}
+
+/**
+ * Type guard for number values (excludes NaN).
+ *
+ * @param x - Value to check
+ * @returns True if `x` is a number and not NaN
+ */
+export function isNumber(x: unknown): x is number {
+	return typeof x === 'number' && !Number.isNaN(x)
+}
+
+/**
+ * Type guard for boolean values.
+ *
+ * @param x - Value to check
+ * @returns True if `x` is a boolean
+ */
+export function isBoolean(x: unknown): x is boolean {
+	return typeof x === 'boolean'
+}
+
+/**
+ * Type guard for function values.
+ *
+ * @param x - Value to check
+ * @returns True if `x` is a function
+ */
+export function isFunction(x: unknown): x is (...args: unknown[]) => unknown {
+	return typeof x === 'function'
+}
+
+/**
+ * Type guard for plain objects (non-null, non-array).
+ *
+ * @param x - Value to check
+ * @returns True if `x` is a non-null, non-array object
+ */
+export function isRecord(x: unknown): x is Record<string, unknown> {
+	return typeof x === 'object' && x !== null && !Array.isArray(x)
+}
+
+/**
+ * Type guard for Error instances.
+ *
+ * @param x - Value to check
+ * @returns True if `x` is an Error instance
+ */
+export function isError(x: unknown): x is Error {
+	return x instanceof Error
+}
+
+/**
+ * Type guard for array values.
+ *
+ * @param x - Value to check
+ * @returns True if `x` is an array
+ */
+export function isArray(x: unknown): x is readonly unknown[] {
+	return Array.isArray(x)
+}
+
+/**
+ * Creates a type guard that checks if a value is one of the specified literals.
+ *
+ * @param values - The literal values to check against
+ * @returns A type guard function
+ */
+export function isLiteral<T extends readonly string[]>(...values: T): (x: unknown) => x is T[number] {
+	return (x: unknown): x is T[number] => values.includes(x as T[number])
+}
+
+/**
+ * Creates a type guard that checks if all elements in an array match the given guard.
+ *
+ * @param guard - The type guard to apply to each element
+ * @returns A type guard for arrays where all elements match
+ */
+export function isArrayOf<T>(guard: (x: unknown) => x is T): (x: unknown) => x is readonly T[] {
+	return (x: unknown): x is readonly T[] => Array.isArray(x) && x.every(guard)
+}
 
 /**
  * Create a unique Token (a branded `symbol`) with a human‑friendly description.
@@ -193,37 +286,23 @@ export function isLifecycleErrorDetail(x: unknown): x is {
 	durationMs: number;
 	error: Error;
 } {
-	return andOf<Record<string, unknown>, {
-		tokenDescription: string;
-		phase: 'start' | 'stop' | 'destroy';
-		context: 'normal' | 'rollback' | 'container';
-		timedOut: boolean;
-		durationMs: number;
-		error: Error;
-	}>(
-		isRecord,
-		(obj: Record<string, unknown>): obj is {
-			tokenDescription: string;
-			phase: 'start' | 'stop' | 'destroy';
-			context: 'normal' | 'rollback' | 'container';
-			timedOut: boolean;
-			durationMs: number;
-			error: Error;
-		} => (
-			'tokenDescription' in obj
-			&& isString(obj.tokenDescription)
-			&& 'phase' in obj
-			&& literalOf('start', 'stop', 'destroy')(obj.phase)
-			&& 'context' in obj
-			&& literalOf('normal', 'rollback', 'container')(obj.context)
-			&& 'timedOut' in obj
-			&& isBoolean(obj.timedOut)
-			&& 'durationMs' in obj
-			&& isNumber(obj.durationMs)
-			&& 'error' in obj
-			&& isError(obj.error)
-		),
-	)(x)
+	if (!isRecord(x)) return false
+	const isPhase = isLiteral('start', 'stop', 'destroy')
+	const isContext = isLiteral('normal', 'rollback', 'container')
+	return (
+		'tokenDescription' in x
+		&& isString(x.tokenDescription)
+		&& 'phase' in x
+		&& isPhase(x.phase)
+		&& 'context' in x
+		&& isContext(x.context)
+		&& 'timedOut' in x
+		&& isBoolean(x.timedOut)
+		&& 'durationMs' in x
+		&& isNumber(x.durationMs)
+		&& 'error' in x
+		&& isError(x.error)
+	)
 }
 
 /**
@@ -237,12 +316,12 @@ export function isLifecycleErrorDetail(x: unknown): x is {
  * isAggregateLifecycleError(agg) // true
  * ```
  */
-export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleError {
+export function isAggregateLifecycleError(x: unknown): x is AggregateLifecycleErrorLike {
 	if (!isRecord(x)) return false
 	return (
 		'details' in x
-		&& arrayOf(isLifecycleErrorDetail)(x.details)
+		&& isArrayOf(isLifecycleErrorDetail)(x.details)
 		&& 'errors' in x
-		&& arrayOf(isError)(x.errors)
+		&& isArrayOf(isError)(x.errors)
 	)
 }

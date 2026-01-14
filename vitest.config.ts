@@ -5,6 +5,9 @@ import { playwright } from '@vitest/browser-playwright'
 export default defineConfig({
 	test: {
 		include: ['tests/**/*.test.ts'],
+		testTimeout: 10000,
+		hookTimeout: 10000,
+		teardownTimeout: 5000,
 		browser: {
 			enabled: true,
 			provider: playwright(),

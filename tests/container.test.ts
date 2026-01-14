@@ -1,33 +1,33 @@
-import { describe, test, beforeEach, afterEach, assert } from 'vitest'
+import { describe, test, beforeEach, afterEach, assert, expect } from 'vitest'
 import { createToken, ContainerAdapter, container, Adapter, NoopLogger, isAggregateLifecycleError } from '@orkestrel/core'
 
 let logger: NoopLogger
 
 class TestAdapter extends Adapter {
-	static instance?: TestAdapter
+	static override instance: TestAdapter | undefined
 	started = 0
 	stopped = 0
 	value = 42
 
-	protected async onStart() { this.started++ }
-	protected async onStop() { this.stopped++ }
+	protected override async onStart() { this.started++ }
+	protected override async onStop() { this.stopped++ }
 }
 
 class DependentAdapter extends Adapter {
-	static instance?: DependentAdapter
+	static override instance: DependentAdapter | undefined
 	message = 'dependent'
 }
 
 class FailingOnDestroy extends Adapter {
-	static instance?: FailingOnDestroy
-	protected async onDestroy(): Promise<void> {
+	static override instance: FailingOnDestroy | undefined
+	protected override async onDestroy(): Promise<void> {
 		throw new Error('destroy-fail')
 	}
 }
 
 class AnotherFailingOnDestroy extends Adapter {
-	static instance?: AnotherFailingOnDestroy
-	protected async onDestroy(): Promise<void> {
+	static override instance: AnotherFailingOnDestroy | undefined
+	protected override async onDestroy(): Promise<void> {
 		throw new Error('another-destroy-fail')
 	}
 }
@@ -60,10 +60,7 @@ describe('Container suite', () => {
 	test('strict resolve missing token throws', () => {
 		const MISSING = createToken<TestAdapter>('missing:strict')
 		const c = new ContainerAdapter({ logger })
-		assert.throws(() => c.resolve(MISSING), (err: unknown) => {
-			const e = err as { message?: string; code?: string }
-			return typeof e?.message === 'string' && (e.message.includes('No provider for missing:strict') || e.code === 'ORK1006')
-		})
+		expect(() => c.resolve(MISSING)).toThrow(/No provider for missing:strict|ORK1006/)
 	})
 
 	test('get returns undefined for missing token', () => {
@@ -104,16 +101,22 @@ describe('Container suite', () => {
 		await AnotherFailingOnDestroy.start()
 
 		// Destroy should aggregate errors
-		await assert.rejects(() => c.destroy(), (err: unknown) => {
+		try {
+			await c.destroy()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			if (isAggregateLifecycleError(err)) {
 				assert.equal(err.errors.length, 2)
 				// Errors are wrapped as HookError
-				assert.match(err.errors[0].message, /Hook 'destroy' failed/)
-				assert.match(err.errors[1].message, /Hook 'destroy' failed/)
-				return true
+				const err0 = err.errors[0]
+				const err1 = err.errors[1]
+				assert.ok(err0 && err1)
+				assert.match(err0.message, /Hook 'destroy' failed/)
+				assert.match(err1.message, /Hook 'destroy' failed/)
+			} else {
+				assert.fail('Expected aggregate lifecycle error')
 			}
-			return false
-		})
+		}
 
 		// Idempotent - second destroy is safe
 		await c.destroy()
@@ -146,7 +149,7 @@ describe('Container suite', () => {
 
 	test('using(apply, fn) registers overrides in a child scope', async() => {
 		class Override extends Adapter {
-			static instance?: Override
+			static override instance: Override | undefined
 			value = 100
 		}
 

@@ -1,4 +1,4 @@
-import type { RegistryPort, RegistryAdapterOptions, DiagnosticPort, LoggerPort } from '../types.js'
+import type { RegistryInterface, RegistryAdapterOptions, DiagnosticInterface, LoggerInterface } from '../types.js'
 import { HELP, REGISTRY_MESSAGES } from '../constants.js'
 import { DiagnosticAdapter } from './diagnostic.js'
 import { LoggerAdapter } from './logger.js'
@@ -25,13 +25,13 @@ import { LoggerAdapter } from './logger.js'
  * reg.clear('alt', true)           // true (forced)
  * ```
  */
-export class RegistryAdapter<T> implements RegistryPort<T> {
+export class RegistryAdapter<T> implements RegistryInterface<T> {
 	readonly #store = new Map<string | symbol, T>()
 	readonly #locked = new Set<string | symbol>()
 	readonly #label: string
 	readonly #defaultKey?: symbol
-	readonly #logger: LoggerPort
-	readonly #diagnostic: DiagnosticPort
+	readonly #logger: LoggerInterface
+	readonly #diagnostic: DiagnosticInterface
 
 	/**
 	 * Construct a RegistryAdapter with optional label and default instance.
@@ -58,14 +58,14 @@ export class RegistryAdapter<T> implements RegistryPort<T> {
 	 *
 	 * @returns The configured LoggerPort instance
 	 */
-	get logger(): LoggerPort { return this.#logger }
+	get logger(): LoggerInterface { return this.#logger }
 
 	/**
 	 * Access the diagnostic port used by this registry for error reporting.
 	 *
 	 * @returns The configured DiagnosticPort instance
 	 */
-	get diagnostic(): DiagnosticPort { return this.#diagnostic }
+	get diagnostic(): DiagnosticInterface { return this.#diagnostic }
 
 	/**
 	 * Get a named value without throwing an error.

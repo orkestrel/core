@@ -1,4 +1,4 @@
-import { describe, test, beforeEach, afterEach, assert } from 'vitest'
+import { describe, test, beforeEach, afterEach, assert, expect } from 'vitest'
 import { NoopLogger,
 	OrchestratorAdapter, orchestrator, createToken, ContainerAdapter, Adapter, tokenDescription, QueueAdapter,
 	isAggregateLifecycleError, isLifecycleErrorDetail,
@@ -7,6 +7,7 @@ import { NoopLogger,
 let logger: NoopLogger
 
 class TestComponent extends Adapter {
+	static override instance: TestComponent | undefined
 	public readonly name: string
 	public startedAt: number | null = null
 	public stoppedAt: number | null = null
@@ -16,11 +17,11 @@ class TestComponent extends Adapter {
 		this.name = name
 	}
 
-	protected async onStart(): Promise<void> {
+	protected override async onStart(): Promise<void> {
 		this.startedAt = TestComponent.counter++
 	}
 
-	protected async onStop(): Promise<void> {
+	protected override async onStop(): Promise<void> {
 		this.stoppedAt = TestComponent.counter++
 	}
 }
@@ -43,38 +44,38 @@ describe('Orchestrator suite', () => {
 
 		// Create separate adapter classes for each component
 		class ComponentA extends Adapter {
-			static instance?: ComponentA
+			static override instance: ComponentA | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
 		class ComponentB extends Adapter {
-			static instance?: ComponentB
+			static override instance: ComponentB | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
 		class ComponentC extends Adapter {
-			static instance?: ComponentC
+			static override instance: ComponentC | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
@@ -107,10 +108,10 @@ describe('Orchestrator suite', () => {
 
 	test('detects dependency cycles', async() => {
 		class CycleA extends Adapter {
-			static instance?: CycleA
+			static override instance: CycleA | undefined
 		}
 		class CycleB extends Adapter {
-			static instance?: CycleB
+			static override instance: CycleB | undefined
 		}
 
 		const A = createToken<CycleA>('A')
@@ -120,7 +121,10 @@ describe('Orchestrator suite', () => {
 			[A]: { adapter: CycleA, dependencies: [B] },
 			[B]: { adapter: CycleB, dependencies: [A] },
 		})
-		await assert.rejects(() => orch.start(), (err: unknown) => {
+		try {
+			await orch.start()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			assert.match((err as Error).message, /Cycle detected/)
 			type WithDiag = Error & { code?: string; helpUrl?: string };
 			const e2 = err as WithDiag
@@ -128,28 +132,27 @@ describe('Orchestrator suite', () => {
 			if (typeof e2.helpUrl === 'string') {
 				assert.ok(e2.helpUrl.includes('/api/index.html'), `helpUrl should include '/api/index.html'; actual: ${e2.helpUrl}`)
 			}
-			return true
-		})
+		}
 		await CycleA.destroy().catch(() => {})
 		await CycleB.destroy().catch(() => {})
 	})
 
 	test('aggregates start errors and rolls back started components', async() => {
 		class GoodComponent extends Adapter {
-			static instance?: GoodComponent
+			static override instance: GoodComponent | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
 		class BadComponent extends Adapter {
-			static instance?: BadComponent
-			protected async onStart(): Promise<void> {
+			static override instance: BadComponent | undefined
+			protected override async onStart(): Promise<void> {
 				throw new Error('boom')
 			}
 		}
@@ -162,13 +165,15 @@ describe('Orchestrator suite', () => {
 			[GOOD]: { adapter: GoodComponent },
 			[BAD]: { adapter: BadComponent, dependencies: [GOOD] },
 		})
-		await assert.rejects(async() => orch.start(), (err: unknown) => {
+		try {
+			await orch.start()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			if (isAggregateLifecycleError(err)) {
 				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')
 				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated start error details')
 			}
-			return true
-		})
+		}
 		const good = GoodComponent.getInstance()
 		assert.notEqual(good.startedAt, null)
 		await orch.destroy().catch(() => {})
@@ -178,7 +183,7 @@ describe('Orchestrator suite', () => {
 
 	test('unknown dependency error contains context', async() => {
 		class ComponentA extends Adapter {
-			static instance?: ComponentA
+			static override instance: ComponentA | undefined
 		}
 
 		const A = createToken<ComponentA>('A')
@@ -187,22 +192,24 @@ describe('Orchestrator suite', () => {
 		orch.register({
 			[A]: { adapter: ComponentA, dependencies: [B] },
 		})
-		await assert.rejects(() => orch.start(), (err: unknown) => {
+		try {
+			await orch.start()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			assert.match((err as Error).message, /Unknown dependency B required by A/)
 			type WithDiag = Error & { code?: string };
 			assert.equal((err as WithDiag).code, 'ORK1008')
-			return true
-		})
+		}
 		await ComponentA.destroy().catch(() => {})
 	})
 
 	test('destroy aggregates component and container errors', async() => {
 		class GoodComp extends Adapter {
-			static instance?: GoodComp
+			static override instance: GoodComp | undefined
 		}
 		class BadComp extends Adapter {
-			static instance?: BadComp
-			protected async onDestroy(): Promise<void> {
+			static override instance: BadComp | undefined
+			protected override async onDestroy(): Promise<void> {
 				throw new Error('bye')
 			}
 		}
@@ -216,7 +223,10 @@ describe('Orchestrator suite', () => {
 		})
 		await orch.start()
 		await orch.stop()
-		await assert.rejects(() => orch.destroy(), (err: unknown) => {
+		try {
+			await orch.destroy()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			assert.match((err as Error).message, /Errors during destroy/)
 			type WithDiag = Error & { code?: string };
 			assert.equal((err as WithDiag).code, 'ORK1017')
@@ -224,8 +234,7 @@ describe('Orchestrator suite', () => {
 				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')
 				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated destroy error details')
 			}
-			return true
-		})
+		}
 		await GoodComp.destroy().catch(() => {})
 		await BadComp.destroy().catch(() => {})
 	})
@@ -247,32 +256,32 @@ describe('Orchestrator suite', () => {
 
 	test('start rollback stops previously started components on failure', async() => {
 		class TrackA extends Adapter {
-			static instance?: TrackA
+			static override instance: TrackA | undefined
 			public started = false
 			public stopped = false
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.started = true
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stopped = true
 			}
 		}
 		class TrackB extends Adapter {
-			static instance?: TrackB
+			static override instance: TrackB | undefined
 			public started = false
 			public stopped = false
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.started = true
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stopped = true
 			}
 		}
 		class FailingX extends Adapter {
-			static instance?: FailingX
-			protected async onStart(): Promise<void> {
+			static override instance: FailingX | undefined
+			protected override async onStart(): Promise<void> {
 				throw new Error('boom')
 			}
 		}
@@ -303,8 +312,8 @@ describe('Orchestrator suite', () => {
 
 	test('per-lifecycle onStart timeout triggers failure with telemetry', async() => {
 		class SlowStartAdapter extends Adapter {
-			static instance?: SlowStartAdapter
-			protected async onStart(): Promise<void> {
+			static override instance: SlowStartAdapter | undefined
+			protected override async onStart(): Promise<void> {
 				await new Promise(r => setTimeout(r, 30))
 			}
 		}
@@ -334,8 +343,8 @@ describe('Orchestrator suite', () => {
 
 	test('per-lifecycle onStop timeout triggers failure with telemetry', async() => {
 		class SlowStopAdapter extends Adapter {
-			static instance?: SlowStopAdapter
-			protected async onStop(): Promise<void> {
+			static override instance: SlowStopAdapter | undefined
+			protected override async onStop(): Promise<void> {
 				await new Promise(r => setTimeout(r, 30))
 			}
 		}
@@ -366,12 +375,12 @@ describe('Orchestrator suite', () => {
 
 	test('destroy() aggregates stop and destroy errors', async() => {
 		class FailingBoth extends Adapter {
-			static instance?: FailingBoth
-			protected async onStop() {
+			static override instance: FailingBoth | undefined
+			protected override async onStop() {
 				throw new Error('stop-bad')
 			}
 
-			protected async onDestroy() {
+			protected override async onDestroy() {
 				throw new Error('destroy-bad')
 			}
 		}
@@ -382,17 +391,19 @@ describe('Orchestrator suite', () => {
 			[FB]: { adapter: FailingBoth },
 		})
 		await app.start()
-		await assert.rejects(() => app.destroy(), (err: unknown) => {
+		try {
+			await app.destroy()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			assert.match((err as Error).message, /Errors during destroy/)
 			type WithDiag = Error & { code?: string };
 			assert.equal((err as WithDiag).code, 'ORK1017')
-			if (!isAggregateLifecycleError(err)) return false
+			if (!isAggregateLifecycleError(err)) assert.fail('Expected aggregate lifecycle error')
 			const details = err.details
 			assert.ok(details.every(isLifecycleErrorDetail))
 			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'stop'))
 			assert.ok(details.some(d => d.tokenDescription === 'FB' && d.phase === 'destroy'))
-			return true
-		})
+		}
 
 		await app.destroy().catch(() => {})
 		await FailingBoth.destroy().catch(() => {})
@@ -400,10 +411,10 @@ describe('Orchestrator suite', () => {
 
 	test('dependency graph wires dependencies correctly', async() => {
 		class A extends Adapter {
-			static instance?: A
+			static override instance: A | undefined
 		}
 		class B extends Adapter {
-			static instance?: B
+			static override instance: B | undefined
 		}
 		const TA = createToken<A>('A')
 		const TB = createToken<B>('B')
@@ -423,10 +434,10 @@ describe('Orchestrator suite', () => {
 
 	test('defaultTimeouts on orchestrator apply when register omits timeouts', async() => {
 		class SlowS extends Adapter {
-			static instance?: SlowS
-			protected async onStart() {}
+			static override instance: SlowS | undefined
+			protected override async onStart() {}
 
-			protected async onStop() {
+			protected override async onStop() {
 				await new Promise<void>(r => setTimeout(r, 30))
 			}
 		}
@@ -452,14 +463,14 @@ describe('Orchestrator suite', () => {
 
 	test('events callbacks are invoked for start/stop/destroy and errors', async() => {
 		class Ok extends Adapter {
-			static instance?: Ok
-			protected async onStart() {}
-			protected async onStop() {}
-			protected async onDestroy() {}
+			static override instance: Ok | undefined
+			protected override async onStart() {}
+			protected override async onStop() {}
+			protected override async onDestroy() {}
 		}
 		class BadStop extends Adapter {
-			static instance?: BadStop
-			protected async onStop() {
+			static override instance: BadStop | undefined
+			protected override async onStop() {
 				throw new Error('nope')
 			}
 		}
@@ -502,17 +513,17 @@ describe('Orchestrator suite', () => {
 
 	test('register supports dependencies map and dedup/self-filter', async() => {
 		class CmpA extends Adapter {
-			static instance?: CmpA
+			static override instance: CmpA | undefined
 			public startedAt: number | null = null
 			static counter = 0
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = CmpA.counter++
 			}
 		}
 		class CmpB extends Adapter {
-			static instance?: CmpB
+			static override instance: CmpB | undefined
 			public startedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = CmpA.counter++
 			}
 		}
@@ -536,8 +547,8 @@ describe('Orchestrator suite', () => {
 
 	test('register options allow per-registration onStart timeout', async() => {
 		class SlowAdapter extends Adapter {
-			static instance?: SlowAdapter
-			protected async onStart(): Promise<void> {
+			static override instance: SlowAdapter | undefined
+			protected override async onStart(): Promise<void> {
 				await new Promise(r => setTimeout(r, 100))
 			}
 		}
@@ -557,10 +568,10 @@ describe('Orchestrator suite', () => {
 
 	test('tracer emits layers and per-phase outcomes', async() => {
 		class A extends Adapter {
-			static instance?: A
+			static override instance: A | undefined
 		}
 		class B extends Adapter {
-			static instance?: B
+			static override instance: B | undefined
 		}
 		const TA = createToken<A>('Tracer:A')
 		const TB = createToken<B>('Tracer:B')
@@ -605,8 +616,8 @@ describe('Orchestrator suite', () => {
 		let activeStart = 0
 		let peakStart = 0
 		class Probe1 extends Adapter {
-			static instance?: Probe1
-			protected async onStart() {
+			static override instance: Probe1 | undefined
+			protected override async onStart() {
 				activeStart++
 				peakStart = Math.max(peakStart, activeStart)
 				await new Promise(r => setTimeout(r, 20))
@@ -614,8 +625,8 @@ describe('Orchestrator suite', () => {
 			}
 		}
 		class Probe2 extends Adapter {
-			static instance?: Probe2
-			protected async onStart() {
+			static override instance: Probe2 | undefined
+			protected override async onStart() {
 				activeStart++
 				peakStart = Math.max(peakStart, activeStart)
 				await new Promise(r => setTimeout(r, 20))
@@ -623,8 +634,8 @@ describe('Orchestrator suite', () => {
 			}
 		}
 		class Probe3 extends Adapter {
-			static instance?: Probe3
-			protected async onStart() {
+			static override instance: Probe3 | undefined
+			protected override async onStart() {
 				activeStart++
 				peakStart = Math.max(peakStart, activeStart)
 				await new Promise(r => setTimeout(r, 20))
@@ -632,8 +643,8 @@ describe('Orchestrator suite', () => {
 			}
 		}
 		class Probe4 extends Adapter {
-			static instance?: Probe4
-			protected async onStart() {
+			static override instance: Probe4 | undefined
+			protected override async onStart() {
 				activeStart++
 				peakStart = Math.max(peakStart, activeStart)
 				await new Promise(r => setTimeout(r, 20))
@@ -667,15 +678,15 @@ describe('Orchestrator suite', () => {
 		let activeDestroy = 0
 		let peakDestroy = 0
 		class Probe1 extends Adapter {
-			static instance?: Probe1
-			protected async onStop() {
+			static override instance: Probe1 | undefined
+			protected override async onStop() {
 				activeStop++
 				peakStop = Math.max(peakStop, activeStop)
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
 
-			protected async onDestroy() {
+			protected override async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
 				await new Promise(r => setTimeout(r, 20))
@@ -683,15 +694,15 @@ describe('Orchestrator suite', () => {
 			}
 		}
 		class Probe2 extends Adapter {
-			static instance?: Probe2
-			protected async onStop() {
+			static override instance: Probe2 | undefined
+			protected override async onStop() {
 				activeStop++
 				peakStop = Math.max(peakStop, activeStop)
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
 
-			protected async onDestroy() {
+			protected override async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
 				await new Promise(r => setTimeout(r, 20))
@@ -699,15 +710,15 @@ describe('Orchestrator suite', () => {
 			}
 		}
 		class Probe3 extends Adapter {
-			static instance?: Probe3
-			protected async onStop() {
+			static override instance: Probe3 | undefined
+			protected override async onStop() {
 				activeStop++
 				peakStop = Math.max(peakStop, activeStop)
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
 
-			protected async onDestroy() {
+			protected override async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
 				await new Promise(r => setTimeout(r, 20))
@@ -715,15 +726,15 @@ describe('Orchestrator suite', () => {
 			}
 		}
 		class Probe4 extends Adapter {
-			static instance?: Probe4
-			protected async onStop() {
+			static override instance: Probe4 | undefined
+			protected override async onStop() {
 				activeStop++
 				peakStop = Math.max(peakStop, activeStop)
 				await new Promise(r => setTimeout(r, 20))
 				activeStop--
 			}
 
-			protected async onDestroy() {
+			protected override async onDestroy() {
 				activeDestroy++
 				peakDestroy = Math.max(peakDestroy, activeDestroy)
 				await new Promise(r => setTimeout(r, 20))
@@ -756,12 +767,12 @@ describe('Orchestrator suite', () => {
 
 	test('tracer start outcomes include failures (first)', async() => {
 		class Good extends Adapter {
-			static instance?: Good
-			protected async onStart() {}
+			static override instance: Good | undefined
+			protected override async onStart() {}
 		}
 		class Bad extends Adapter {
-			static instance?: Bad
-			protected async onStart() {
+			static override instance: Bad | undefined
+			protected override async onStart() {
 				throw new Error('fail-start')
 			}
 		}
@@ -798,26 +809,26 @@ describe('Orchestrator suite', () => {
 
 	test('destroy() stops then destroys in one pass', async() => {
 		class TA extends Adapter {
-			static instance?: TA
+			static override instance: TA | undefined
 			public started = false
 			public stopped = false
-			protected async onStart() {
+			protected override async onStart() {
 				this.started = true
 			}
 
-			protected async onStop() {
+			protected override async onStop() {
 				this.stopped = true
 			}
 		}
 		class TB extends Adapter {
-			static instance?: TB
+			static override instance: TB | undefined
 			public started = false
 			public stopped = false
-			protected async onStart() {
+			protected override async onStart() {
 				this.started = true
 			}
 
-			protected async onStop() {
+			protected override async onStop() {
 				this.stopped = true
 			}
 		}
@@ -846,12 +857,12 @@ describe('Orchestrator suite', () => {
 
 	test('tracer start outcomes include failures', async() => {
 		class Good extends Adapter {
-			static instance?: Good
-			protected async onStart() {}
+			static override instance: Good | undefined
+			protected override async onStart() {}
 		}
 		class Bad extends Adapter {
-			static instance?: Bad
-			protected async onStart() {
+			static override instance: Bad | undefined
+			protected override async onStart() {
 				throw new Error('fail-start')
 			}
 		}
@@ -888,14 +899,14 @@ describe('Orchestrator suite', () => {
 
 	test('events callbacks errors are isolated and do not disrupt orchestration', async() => {
 		class Ok extends Adapter {
-			static instance?: Ok
-			protected async onStart() {}
-			protected async onStop() {}
+			static override instance: Ok | undefined
+			protected override async onStart() {}
+			protected override async onStop() {}
 		}
 		class BadStop extends Adapter {
-			static instance?: BadStop
-			protected async onStart() {}
-			protected async onStop() {
+			static override instance: BadStop | undefined
+			protected override async onStart() {}
+			protected override async onStop() {
 				throw new Error('bad-stop')
 			}
 		}
@@ -933,24 +944,26 @@ describe('Orchestrator suite', () => {
 
 	test('duplicate registration for the same token throws ORK1007', () => {
 		class C extends Adapter {
-			static instance?: C
+			static override instance: C | undefined
 		}
 		const T = createToken<C>('dup')
 		const orch = new OrchestratorAdapter(new ContainerAdapter({ logger }), { logger })
 		orch.register({ [T]: { adapter: C } })
-		assert.throws(() => orch.register({ [T]: { adapter: C } }), (err: unknown) => {
+		try {
+			orch.register({ [T]: { adapter: C } })
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			assert.match((err as Error).message, /Duplicate registration/)
-			// removed formatted prefix assertion
-			return (err as Error & { code?: string }).code === 'ORK1007'
-		})
+			assert.equal((err as Error & { code?: string }).code, 'ORK1007')
+		}
 	})
 
 	test('numeric defaultTimeouts apply to all phases', async() => {
 		class SlowBoth extends Adapter {
-			static instance?: SlowBoth
-			protected async onStart() {}
+			static override instance: SlowBoth | undefined
+			protected override async onStart() {}
 
-			protected async onStop() {
+			protected override async onStop() {
 				await new Promise<void>(r => setTimeout(r, 15))
 			}
 		}
@@ -988,38 +1001,38 @@ describe('Orchestrator suite', () => {
 	test('register with dependency graph object', async() => {
 		TestComponent.counter = 0
 		class CompA extends Adapter {
-			static instance?: CompA
+			static override instance: CompA | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
 		class CompB extends Adapter {
-			static instance?: CompB
+			static override instance: CompB | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
 		class CompC extends Adapter {
-			static instance?: CompC
+			static override instance: CompC | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
@@ -1057,38 +1070,38 @@ describe('Orchestrator suite', () => {
 		// Similar to register test - reuse same classes
 		TestComponent.counter = 0
 		class CompA extends Adapter {
-			static instance?: CompA
+			static override instance: CompA | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
 		class CompB extends Adapter {
-			static instance?: CompB
+			static override instance: CompB | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
 		class CompC extends Adapter {
-			static instance?: CompC
+			static override instance: CompC | undefined
 			public startedAt: number | null = null
 			public stoppedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 
-			protected async onStop(): Promise<void> {
+			protected override async onStop(): Promise<void> {
 				this.stoppedAt = TestComponent.counter++
 			}
 		}
@@ -1124,14 +1137,14 @@ describe('Orchestrator suite', () => {
 
 	test('dependency graph with timeouts', async() => {
 		class SlowA extends Adapter {
-			static instance?: SlowA
-			protected async onStart(): Promise<void> {
+			static override instance: SlowA | undefined
+			protected override async onStart(): Promise<void> {
 				await new Promise(r => setTimeout(r, 50))
 			}
 		}
 		class SlowB extends Adapter {
-			static instance?: SlowB
-			protected async onStart(): Promise<void> {
+			static override instance: SlowB | undefined
+			protected override async onStart(): Promise<void> {
 				await new Promise(r => setTimeout(r, 50))
 			}
 		}
@@ -1158,10 +1171,10 @@ describe('Orchestrator suite', () => {
 
 	test('dependency graph detects cycles', async() => {
 		class CycleA extends Adapter {
-			static instance?: CycleA
+			static override instance: CycleA | undefined
 		}
 		class CycleB extends Adapter {
-			static instance?: CycleB
+			static override instance: CycleB | undefined
 		}
 		const A = createToken<CycleA>('A')
 		const B = createToken<CycleB>('B')
@@ -1172,12 +1185,14 @@ describe('Orchestrator suite', () => {
 			[B]: { adapter: CycleB, dependencies: [A] },
 		})
 
-		await assert.rejects(() => orch.start(), (err: unknown) => {
+		try {
+			await orch.start()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			assert.match((err as Error).message, /Cycle detected/)
 			type WithDiag = Error & { code?: string };
 			assert.equal((err as WithDiag).code, 'ORK1009')
-			return true
-		})
+		}
 		await orch.destroy().catch(() => {})
 		await CycleA.destroy().catch(() => {})
 		await CycleB.destroy().catch(() => {})
@@ -1186,15 +1201,15 @@ describe('Orchestrator suite', () => {
 	test('dependency graph errors aggregate on start failure', async() => {
 		TestComponent.counter = 0
 		class GoodComp extends Adapter {
-			static instance?: GoodComp
+			static override instance: GoodComp | undefined
 			public startedAt: number | null = null
-			protected async onStart(): Promise<void> {
+			protected override async onStart(): Promise<void> {
 				this.startedAt = TestComponent.counter++
 			}
 		}
 		class BadComp extends Adapter {
-			static instance?: BadComp
-			protected async onStart(): Promise<void> {
+			static override instance: BadComp | undefined
+			protected override async onStart(): Promise<void> {
 				throw new Error('boom')
 			}
 		}
@@ -1207,13 +1222,15 @@ describe('Orchestrator suite', () => {
 			[BAD]: { adapter: BadComp, dependencies: [GOOD] },
 		})
 
-		await assert.rejects(async() => orch.start(), (err: unknown) => {
+		try {
+			await orch.start()
+			assert.fail('Expected error to be thrown')
+		} catch (err: unknown) {
 			if (isAggregateLifecycleError(err)) {
 				const hasHookFail = err.details.some(d => (d.error as Error & { code?: string }).code === 'ORK1022')
 				if (!hasHookFail) assert.fail('Expected ORK1022 in aggregated start error details')
 			}
-			return true
-		})
+		}
 
 		const good = orch.container.get(GOOD)
 		assert.notEqual(good?.startedAt, null)

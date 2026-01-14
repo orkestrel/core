@@ -1,8 +1,8 @@
-name: copilot-setup-steps.yml
-# This workflow defines setup steps for GitHub Copilot to run before it performs
+name: copilot-setup-steps. yml
 
-# Automatically run the setup steps when they are changed to allow for easy validation,
-# and allow manual testing through the repository's "Actions" tab.
+# This workflow defines setup steps for GitHub Copilot to run before it performs tasks.
+# Automatically runs when the workflow is changed to allow for easy validation,
+# and allows manual testing through the repository's "Actions" tab.
 on:
   workflow_dispatch:
   push:
@@ -22,21 +22,20 @@ jobs:
     permissions:
       contents: read
 
-    steps:
-      # If you do not check out your code, Copilot will do this after the steps complete.
-      # We check out here to install dependencies from the repo.
+    steps: 
+      # If you do not check out your code, Copilot will do this after the steps complete. 
+      # We check out here to install dependencies and Playwright browsers from the repo.
       - name: Checkout code
         uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "22"
-          cache: "npm"
+          node-version: '24.11'
+          cache: 'npm'
 
-      # Preinstall tools/dependencies for Copilot's environment.
-      # Prefer npm (no yarn/pnpm logic).
-      - name: Install JavaScript dependencies
+      # Install dependencies using npm ci for consistency with ci.yml
+      - name: Install dependencies
         shell: bash
         run: |
           if [ -f package-lock.json ]; then
@@ -44,3 +43,16 @@ jobs:
           else
             npm install
           fi
+
+      # Install Playwright browsers required for Vitest browser testing
+      # This ensures Copilot can run tests without binary download issues
+      - name: Install Playwright browsers
+        shell: bash
+        run: npx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'
+
+      # Verify Playwright installation
+      - name: Verify Playwright installation
+        shell: bash
+        run: npx playwright --version

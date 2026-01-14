@@ -1,8 +1,8 @@
 # Project Plan: @orkestrel/core
 
-> **Status:** Phase 2 of 4 — Core API
+> **Status:** Phase 3 of 4 — Integration
 > **Last Updated:** 2026-01-14
-> **Next Milestone:** Implement core adapter classes with new conventions
+> **Next Milestone:** Fix test infrastructure and complete integration testing
 
 ## Vision
 
@@ -74,8 +74,8 @@ Explicit boundaries.  What we are NOT building:
 | # | Phase | Status | Description |
 |---|-------|--------|-------------|
 | 1 | Foundation | ✅ Complete | Types, helpers, constants, errors, file structure |
-| 2 | Core API | 🔄 Active | BaseAdapter, Emitter, Queue, Registry, Layer |
-| 3 | Integration | ⏳ Pending | Container, Orchestrator, factories |
+| 2 | Core API | ✅ Complete | TypeScript strict mode compatibility fixes |
+| 3 | Integration | 🔄 Active | Container, Orchestrator, test fixes, factories |
 | 4 | Polish | ⏳ Pending | Docs, examples, edge cases, migration guide |
 
 **Status Legend:**

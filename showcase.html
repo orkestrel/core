@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orkestrel Core Showcase</title>
+  <script type="module" crossorigin>(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const n of document.querySelectorAll('link[rel="modulepreload"]'))s(n);new MutationObserver(n=>{for(const i of n)if(i.type==="childList")for(const o of i.addedNodes)o.tagName==="LINK"&&o.rel==="modulepreload"&&s(o)}).observe(document,{childList:!0,subtree:!0});function t(n){const i={};return n.integrity&&(i.integrity=n.integrity),n.referrerPolicy&&(i.referrerPolicy=n.referrerPolicy),n.crossOrigin==="use-credentials"?i.credentials="include":n.crossOrigin==="anonymous"?i.credentials="omit":i.credentials="same-origin",i}function s(n){if(n.ep)return;n.ep=!0;const i=t(n);fetch(n.href,i)}})();const oe=Object.freeze([{key:"lifecycle.transition",level:"debug",message:"lifecycle.transition"},{key:"lifecycle.hook",level:"info",message:"lifecycle.hook"},{key:"ORK1020",level:"error",message:"Lifecycle: invalid transition"},{key:"ORK1021",level:"error",message:"Lifecycle: hook timed out"},{key:"ORK1022",level:"error",message:"Lifecycle: hook failed"}]),ie=Object.freeze([{key:"orchestrator.component.start",level:"info",message:"orchestrator.component.start"},{key:"orchestrator.component.stop",level:"info",message:"orchestrator.component.stop"},{key:"orchestrator.component.destroy",level:"info",message:"orchestrator.component.destroy"},{key:"orchestrator.phase",level:"info",message:"orchestrator.phase"},{key:"orchestrator.layers",level:"debug",message:"orchestrator.layers"},{key:"ORK1007",level:"error",message:"Orchestrator: duplicate registration"},{key:"ORK1008",level:"error",message:"Orchestrator: unknown dependency"},{key:"ORK1009",level:"error",message:"Orchestrator: cycle detected"},{key:"ORK1010",level:"error",message:"Orchestrator: async useValue"},{key:"ORK1011",level:"error",message:"Orchestrator: async useFactory (async function)"},{key:"ORK1012",level:"error",message:"Orchestrator: async useFactory (returned Promise)"},{key:"ORK1013",level:"error",message:"Errors during start"},{key:"ORK1014",level:"error",message:"Errors during stop"},{key:"ORK1015",level:"error",message:"Errors during destroyAll"},{key:"ORK1017",level:"error",message:"Errors during destroy"}]),Oe=Object.freeze([{key:"ORK1005",level:"error",message:"Container: already destroyed"},{key:"ORK1006",level:"error",message:"Container: no provider for token"},{key:"ORK1016",level:"error",message:"Errors during container destroy"}]),Ce=Object.freeze([{key:"ORK1001",level:"error",message:"Registry: no default instance"},{key:"ORK1002",level:"error",message:"Registry: no named instance"},{key:"ORK1003",level:"error",message:"Registry: cannot replace default"},{key:"ORK1004",level:"error",message:"Registry: cannot replace locked"}]),Le=Object.freeze([{key:"ORK1050",level:"error",message:"Queue: capacity exceeded"},{key:"ORK1051",level:"error",message:"Queue: aborted"},{key:"ORK1052",level:"error",message:"Queue: task timed out"},{key:"ORK1053",level:"error",message:"Queue: shared deadline exceeded"}]),pe=Object.freeze([{key:"ORK1099",level:"error",message:"Internal invariant"}]),f={registry:"https://github.com/orkestrel/core/blob/main/api/index.html#registry",container:"https://github.com/orkestrel/core/blob/main/api/index.html#container",providers:"https://github.com/orkestrel/core/blob/main/api/index.html#register-and-resolve",orchestrator:"https://github.com/orkestrel/core/blob/main/api/index.html#orchestrator",errors:"https://github.com/orkestrel/core/blob/main/api/index.html#troubleshooting",lifecycle:"https://github.com/orkestrel/core/blob/main/api/index.html#lifecycle"};function ae(r){return typeof r=="string"}function P(r){return typeof r=="number"&&!Number.isNaN(r)}function ke(r){return typeof r=="boolean"}function ee(r){return typeof r=="function"}function q(r){return typeof r=="object"&&r!==null&&!Array.isArray(r)}function he(r){return r instanceof Error}function Re(r){return Array.isArray(r)}function ce(...r){return e=>r.includes(e)}function de(r){return e=>Array.isArray(e)&&e.every(r)}function R(r){return Symbol(r)}function Te(r){return typeof r=="symbol"}function Me(r){return typeof r=="function"&&"start"in r&&typeof r.start=="function"&&"stop"in r&&typeof r.stop=="function"&&"destroy"in r&&typeof r.destroy=="function"}function le(r){return q(r)&&Object.hasOwn(r,"adapter")}function h(r,...e){try{r?.(...e)}catch{}}function b(r){return r.description??String(r)}function Ie(r){if(!q(r))return!1;const e=ce("start","stop","destroy"),t=ce("normal","rollback","container");return"tokenDescription"in r&&ae(r.tokenDescription)&&"phase"in r&&e(r.phase)&&"context"in r&&t(r.context)&&"timedOut"in r&&ke(r.timedOut)&&"durationMs"in r&&P(r.durationMs)&&"error"in r&&he(r.error)}function De(r){return q(r)?"details"in r&&de(Ie)(r.details)&&"errors"in r&&de(he)(r.errors):!1}class O{debug(e,...t){const s=this.#e(e,t);this.#t("debug",s)}info(e,...t){const s=this.#e(e,t);this.#t("info",s)}warn(e,...t){const s=this.#e(e,t);this.#t("warn",s)}error(e,...t){const s=this.#e(e,t);this.#t("error",s)}log(e,t,s={}){e==="debug"?this.debug(t,s):e==="info"?this.info(t,s):e==="warn"?this.warn(t,s):this.error(t,s)}#e(e,t){const s=t[0];if(s&&typeof s=="object"&&!Array.isArray(s)){const n={};for(const[i,o]of Object.entries(s))n[i]=o;return{msg:e,...n}}return t.length>0?[e,...t]:e}#t(e,t){try{e==="debug"?console.debug(t):e==="info"?console.info(t):e==="warn"?console.warn(t):console.error(t)}catch{}}}class $e extends Error{constructor(e,t,s){super(e),this.code=t,this.helpUrl=s}}class Be extends Error{constructor(e,t,s,n,i){super(e),this.details=t,this.errors=s,this.code=n,this.helpUrl=i}}class C{#e;#t;constructor(e){this.#e=e?.logger??new O;const t=new Map;for(const s of e?.messages??[]){const n={};s.level!==void 0&&(n.level=s.level),s.message!==void 0&&(n.message=s.message),t.set(s.key,n)}this.#t=t}get logger(){return this.#e}log(e,t,s){const n=this.#o(t,{level:e,message:t});this.#r(n.level??e,n.message??t,s)}error(e,t={}){const s=e instanceof Error?e:new Error(String(e)),n=String(t.code??s.name??"error"),i=this.#o(n,{level:"error",message:s.message});this.#r(i.level??"error",i.message??s.message,{err:this.#c(s),...t})}fail(e,t={}){const{message:s,helpUrl:n,name:i,...o}=t,c=this.#t.get(e),d=c?.level??"error",u=s??c?.message??e,l={context:o};n!==void 0&&(l.helpUrl=n),i!==void 0&&(l.name=i);const g=this.#s(e,u,l);throw this.#r(d,u,{err:this.#c(g),...o,...g.code?{code:g.code}:{}}),g}help(e,t={}){const{message:s,helpUrl:n,name:i,...o}=t,c=this.#t.get(e),d=s??c?.message??e,u={context:o};return n!==void 0&&(u.helpUrl=n),i!==void 0&&(u.name=i),this.#s(e,d,u)}aggregate(e,t,s={}){const n=this.#a(t),i=this.#t.get(e),o=i?.level??"error",c=s.message??i?.message??e,d=s.code??(/^ORK\d{4}$/.test(e),e),u=new Be(c,n,n.map(l=>l.error),d,s.helpUrl);throw this.#r(o,c,{err:this.#c(u),...s,details:n}),u}metric(e,t,s){const n=this.#o(e,{level:"info",message:e}),i={value:t,...s??{}};this.#r(n.level??"info",n.message??e,i)}trace(e,t){const s=this.#o(e,{level:"debug",message:e});this.#r(s.level??"debug",s.message??e,t)}event(e,t){const s=this.#o(e,{level:"info",message:e});this.#r(s.level??"info",s.message??e,t)}#r(e,t,s){try{h(e==="debug"?this.#e.debug.bind(this.#e):e==="info"?this.#e.info.bind(this.#e):e==="warn"?this.#e.warn.bind(this.#e):this.#e.error.bind(this.#e),t,s)}catch{}}#o(e,t){const s=this.#t.get(e);if(!s)return t;const n={},i=s.level??t.level,o=s.message??t.message;return i!==void 0&&(n.level=i),o!==void 0&&(n.message=o),n}#s(e,t,s){const{helpUrl:n,name:i,context:o}=s,c=o?.code??(/^ORK\d{4}$/.test(e),e),d=new $e(t,c,n);return i&&(d.name=i),d}#a(e){const t=[];for(const s of e)s instanceof Error?t.push({tokenDescription:"unknown",phase:"destroy",context:"normal",timedOut:!1,durationMs:0,error:s}):t.push(s);return t}#c(e){const t={name:e.name,message:e.message};return e.stack!==void 0&&(t.stack=e.stack),t}}class Ee{#e=new Map;#t;#r;constructor(e={}){this.#t=e?.logger??new O,this.#r=e?.diagnostic??new C({logger:this.#t})}get logger(){return this.#t}get diagnostic(){return this.#r}on(e,t){let s=this.#e.get(e);return s||(s=new Set,this.#e.set(e,s)),s.add(t),()=>{const n=this.#e.get(e);n&&(n.delete(t),n.size===0&&this.#e.delete(e))}}emit(e,...t){const s=this.#e.get(e);if(!s||s.size===0)return;const n=Array.from(s);for(const i of n)ee(i)&&h(i,...t)}removeAllListeners(){this.#e.clear()}}class Z{#e=[];#t;#r;#o;#s;constructor(e={}){this.#t=e.capacity,this.#o=e?.logger??new O,this.#s=e?.diagnostic??new C({logger:this.#o,messages:Le}),this.#r={concurrency:e.concurrency,deadline:e.deadline,timeout:e.timeout,signal:e.signal}}get logger(){return this.#o}get diagnostic(){return this.#s}enqueue(e){return typeof this.#t=="number"&&this.#e.length>=this.#t?Promise.reject(this.#s.help("ORK1050",{scope:"internal",message:"QueueAdapter: capacity exceeded"})):(this.#e.push(e),Promise.resolve())}dequeue(){return Promise.resolve(this.#e.length?this.#e.shift():void 0)}size(){return Promise.resolve(this.#e.length)}async run(e,t={}){const s={concurrency:t.concurrency??this.#r.concurrency,deadline:t.deadline??this.#r.deadline,timeout:t.timeout??this.#r.timeout,signal:t.signal??this.#r.signal},n=e.length;if(n===0)return[];const i=s.concurrency,o=(()=>{if(!P(i))return n;const y=Math.floor(i);return y>0?Math.min(y,n):n})(),c=new Array(n),d=s.deadline,u=P(d)?Date.now()+Math.max(0,Math.floor(d)):void 0;let l=null,g=0;const m=this.#s,p=async(y,E)=>{const I=Date.now(),D=u?Math.max(0,u-I):void 0,me=s.timeout,Q=P(me)?Math.max(0,Math.floor(me)):void 0,F=D==null?Q:Q==null?D:Math.min(D,Q),Y=u!=null&&(Q==null||D!=null&&D<=Q);F!=null&&F===0&&m.fail(Y?"ORK1053":"ORK1052",{scope:"internal",message:Y?"QueueAdapter: shared deadline exceeded":`QueueAdapter: task #${E} timed out`});let re;if(F==null)return Promise.resolve(y());try{return await Promise.race([Promise.resolve(y()),new Promise((ht,Se)=>{re=setTimeout(()=>{const Ae=m.help(Y?"ORK1053":"ORK1052",{scope:"internal",message:Y?"QueueAdapter: shared deadline exceeded":`QueueAdapter: task #${E} timed out`});Se(Ae)},F)})])}finally{re!=null&&clearTimeout(re)}};if(s.signal?.aborted){const y=this.#s.help("ORK1051",{scope:"internal",message:"QueueAdapter: aborted"});return Promise.reject(y)}const w=async()=>{for(;l==null;){if(s.signal?.aborted){l=this.#s.help("ORK1051",{scope:"internal",message:"QueueAdapter: aborted"});break}if(u!=null&&Date.now()>=u){l=this.#s.help("ORK1053",{scope:"internal",message:"QueueAdapter: shared deadline exceeded"});break}const y=g++;if(y>=n)break;const E=e[y];if(!E)break;try{c[y]=await p(E,y)}catch(I){l=I;break}}};if(await Promise.all(new Array(o).fill(null).map(()=>w())),l!=null){if(l instanceof Error)return Promise.reject(l);const y=typeof l=="string"?l:"Queue task failed";return Promise.reject(new Error(y))}return c}}class S{static instance;#e="created";#t=!0;#r=new Map;#o;#s;#a;#c;#i;constructor(e={}){this.#o=e.timeouts??5e3,this.#t=e.emitInitial??!0,this.#c=e.logger??new O,this.#i=e.diagnostic??new C({logger:this.#c,messages:oe}),this.#s=e.emitter??new Ee({logger:this.#c,diagnostic:this.#i}),this.#a=e.queue??new Z({concurrency:1,logger:this.#c,diagnostic:this.#i})}static getInstance(e){return this.instance??=new(Function.prototype.bind.call(this,null,e)),this.instance}static getState(){return this.instance?.state??"created"}static async create(e){await this.getInstance(e).#p()}static async start(e){await this.getInstance(e).#b()}static async stop(){if(!this.instance)throw new Error("Cannot stop: no instance exists");await this.instance.#u()}static async destroy(){this.instance&&(await this.instance.#g(),this.instance=void 0)}static on(e,t){return this.getInstance().#h(e,t)}static off(e,t){this.instance&&this.instance.#m(e,t)}get state(){return this.#e}get emitter(){return this.#s}get queue(){return this.#a}get logger(){return this.#c}get diagnostic(){return this.#i}#d(e){this.#e!==e&&(this.#e=e,this.#s.emit("transition",e),h(this.#i.event.bind(this.#i),"lifecycle.transition",{state:e}))}async#n(e,t,s,n){const i=[()=>t(),()=>this.onTransition(s,n,e)];try{await this.#a.run(i,{deadline:this.#o,concurrency:1}),this.#d(n),this.#s.emit(e),h(this.#i.event.bind(this.#i),"lifecycle.hook",{hook:e,to:n})}catch(o){const c=o instanceof Error&&(o.message.includes("timed out")||o.message.includes("shared deadline exceeded")),d=c?this.#i.help("ORK1021",{name:"TimeoutError",message:"Hook '"+e+"' timed out after "+this.#o+"ms",hook:e,timedOut:!0}):this.#i.help("ORK1022",{name:"HookError",message:"Hook '"+e+"' failed",hook:e});this.#s.emit("error",d);const u=o instanceof Error?o.message:void 0,l=o instanceof Error?o.stack:void 0;return h(this.#i.error.bind(this.#i),d,{scope:"lifecycle",hook:e,timedOut:c,extra:{original:o,originalMessage:u,originalStack:l}}),Promise.reject(d)}}#l(e){const t=this.#e,s=n=>this.#i.fail("ORK1020",{scope:"lifecycle",name:"InvalidTransitionError",message:"Invalid lifecycle transition from "+t+" to "+n,helpUrl:f.lifecycle});t==="destroyed"&&s(e),t==="created"&&e!=="started"&&e!=="destroyed"&&s(e),t==="started"&&!(e==="stopped"||e==="destroyed")&&s(e),t==="stopped"&&!(e==="started"||e==="destroyed")&&s(e)}async#p(){this.#e!=="created"&&this.#i.fail("ORK1020",{scope:"lifecycle",name:"InvalidTransitionError",message:"Invalid lifecycle transition from "+this.#e+" to created",helpUrl:f.lifecycle}),await this.#n("create",()=>this.onCreate(),this.#e,"created")}async#b(){this.#l("started"),await this.#n("start",()=>this.onStart(),this.#e,"started")}async#u(){this.#l("stopped"),await this.#n("stop",()=>this.onStop(),this.#e,"stopped")}async#g(){this.#l("destroyed"),await this.#n("destroy",()=>this.onDestroy(),this.#e,"destroyed"),this.#s.removeAllListeners()}#h(e,t){e==="transition"&&this.#t&&(this.#t=!1,setTimeout(()=>this.#s.emit("transition",this.#e),0));const s=this.#s.on(e,t);return this.#r.set(t,s),()=>{this.#r.delete(t),s()}}#m(e,t){const s=this.#r.get(t);s&&(this.#r.delete(t),s())}onCreate(){return Promise.resolve()}onStart(){return Promise.resolve()}onStop(){return Promise.resolve()}onDestroy(){return Promise.resolve()}onTransition(e,t,s){return Promise.resolve()}}class te{#e=new Map;#t=new Set;#r;#o;#s;#a;constructor(e={}){this.#r=e.label??"registry",this.#s=e.logger??new O,this.#a=e.diagnostic??new C({logger:this.#s,messages:Ce}),e.default&&(this.#o=e.default.key??Symbol(`${this.#r}.default`),this.#e.set(this.#o,e.default.value))}get logger(){return this.#s}get diagnostic(){return this.#a}get(e){const t=e??this.#o;return t===void 0?void 0:this.#e.get(t)}resolve(e){const t=e??this.#o;t===void 0&&this.#a.fail("ORK1001",{scope:"registry",message:`No ${this.#r} instance registered for '<default>'`,helpUrl:f.registry,extra:{label:this.#r,name:"<default>"}});const s=this.#e.get(t);return s===void 0&&this.#a.fail("ORK1002",{scope:"registry",message:`No ${this.#r} instance registered for '${String(t)}'`,helpUrl:f.registry,extra:{label:this.#r,name:String(t)}}),s}set(e,t,s=!1){this.#o!==void 0&&e===this.#o&&this.#a.fail("ORK1003",{scope:"registry",message:`Cannot replace default ${this.#r} instance`,helpUrl:f.registry,extra:{label:this.#r}}),this.#t.has(e)&&this.#a.fail("ORK1004",{scope:"registry",message:`Cannot replace locked ${this.#r} instance for '${String(e)}'`,helpUrl:f.registry,extra:{label:this.#r,name:String(e)}}),this.#e.set(e,t),s&&this.#t.add(e)}clear(e,t=!1){const s=e??this.#o;return s===void 0||this.#o!==void 0&&s===this.#o||this.#t.has(s)&&!t?!1:(this.#t.delete(s),this.#e.delete(s))}list(){return Array.from(this.#e.keys())}}class Ke{#e=new Map;#t;#r;#o;#s;constructor(e={}){this.#t=e.onError,this.#r=e.sequential!==!1,this.#o=e?.logger??new O,this.#s=e?.diagnostic??new C({logger:this.#o})}get logger(){return this.#o}get diagnostic(){return this.#s}async publish(e,t){const s=this.#e.get(e);if(!s||s.size===0)return;const n=Array.from(s).filter(o=>ee(o)),i=o=>{h(this.#t,o,e),h(this.#s.error.bind(this.#s),o,{scope:"internal",extra:{topic:e,original:o,originalMessage:o instanceof Error?o.message:String(o),originalStack:o instanceof Error?o.stack:void 0}})};if(this.#r){for(const o of n)try{await o(t)}catch(c){i(c)}return}await Promise.all(n.map(async o=>{try{await o(t)}catch(c){i(c)}}))}subscribe(e,t){let s=this.#e.get(e);s||(s=new Set,this.#e.set(e,s)),s.add(t);const n=()=>{s?.delete(t),s?.size===0&&this.#e.delete(e)};return Promise.resolve(n)}topics(){return Array.from(this.#e.keys())}}class ue{#e;#t;constructor(e={}){this.#e=e.logger??new O,this.#t=e.diagnostic??new C({logger:this.#e,messages:ie})}get logger(){return this.#e}get diagnostic(){return this.#t}compute(e){const t=new Set;for(const u of e)t.add(u.token);for(const u of e)for(const l of u.dependencies)t.has(l)||this.#t.fail("ORK1008",{scope:"orchestrator",message:`Unknown dependency ${b(l)} required by ${b(u.token)}`,helpUrl:f.orchestrator,token:b(u.token)});const s=new Map,n=new Map,i=new Map;for(const u of e)s.set(u.token,u.token),n.set(u.token,0),i.set(u.token,[]);for(const u of e)for(const l of u.dependencies){n.set(u.token,(n.get(u.token)??0)+1);const g=i.get(l);g&&g.push(u.token)}let o=[];for(const u of e)(n.get(u.token)??0)===0&&o.push(u.token);const c=[];let d=0;for(;o.length;){const u=o;o=[];const l=[];for(const g of u){const m=s.get(g);m&&l.push(m);for(const p of i.get(g)??[]){const w=(n.get(p)??0)-1;n.set(p,w),w===0&&o.push(p)}d++}c.push(l)}return d!==e.length&&this.#t.fail("ORK1009",{scope:"orchestrator",message:"Cycle detected in dependency graph",helpUrl:f.orchestrator}),c}group(e,t){const s=new Map;for(let o=0;o<t.length;o++){const c=t[o];if(c)for(const d of c)s.set(d,o)}const n=new Map;for(const o of e){const c=s.get(o);if(c==null)continue;let d=n.get(c);d||(d=[],n.set(c,d)),d.push(o)}const i=[];for(let o=t.length-1;o>=0;o--){const c=n.get(o);c?.length&&i.push(c)}return i}}class L{#e=!1;#t;#r;#o;#s;constructor(e={}){this.#r=e.parent,this.#s=e.logger??new O,this.#o=e.diagnostic??new C({logger:this.#s,messages:Oe}),this.#t=new te({label:"provider",logger:this.#s,diagnostic:this.#o})}get diagnostic(){return this.#o}get logger(){return this.#s}register(e,t,s){return this.#d(),le(t)||this.#o.fail("ORK1007",{scope:"container",message:`Provider for ${b(e)} must be an AdapterProvider ({ adapter: AdapterClass })`,helpUrl:f.providers}),this.#t.set(e,{token:e,provider:t},s),this}has(e){return!!this.#t.get(e)||(this.#r?.has(e)??!1)}resolve(e){const t=this.#a(e);return t||this.#o.fail("ORK1006",{scope:"container",message:`No provider for ${b(e)}`,helpUrl:f.providers}),this.#i(t).value}get(e){const t=this.#a(e);return t?this.#i(t).value:void 0}createChild(){return new L({parent:this,diagnostic:this.diagnostic,logger:this.logger})}async using(e,t){const s=this.createChild();try{return t?(await Promise.resolve(e(s)),await t(s)):await e(s)}finally{await s.destroy()}}async destroy(){if(this.#e)return;this.#e=!0;const e=[];for(const t of this.#t.list()){const s=this.#t.get(t);if(!s)continue;const n=s.resolved;if(n?.lifecycle){const i=n.lifecycle;try{const o=i.getState();o==="started"&&await i.stop(),o!=="destroyed"&&await i.destroy()}catch(o){e.push(o instanceof Error?o:new Error(String(o)))}}}e.length&&this.diagnostic.aggregate("ORK1016",e,{scope:"container",message:"Errors during container destroy",helpUrl:f.errors})}#a(e){const t=this.#t.get(e);return t&&this.#c(t,e)?t:this.#r?this.#r.#a(e):void 0}#c(e,t){return e.token===t}#i(e){if(e.resolved)return e.resolved;const t=e.provider;le(t)||this.#o.fail("ORK1099",{scope:"internal",message:"Invariant: provider is not an AdapterProvider"});const n={value:t.adapter.getInstance(),lifecycle:t.adapter,disposable:!0};return e.resolved=n,n}#d(){this.#e&&this.#o.fail("ORK1005",{scope:"container",message:"Container already destroyed",helpUrl:f.container})}}const K=new te({label:"container",default:{value:new L}});function Pe(r,e){return K.resolve(e).resolve(r)}function qe(r,e){return K.resolve(e).get(r)}function Ue(r,e,t){const s=K.resolve(typeof e=="function"?t:e);return typeof e=="function"?s.using(async n=>{await r(n)},n=>e(n)):s.using(n=>r(n))}const je=Object.assign(r=>K.resolve(r),{set(r,e,t){K.set(r,e,t)},clear(r,e){return K.clear(r,e)},list(){return[...K.list()]},resolve:Pe,get:qe,using:Ue});class ge{#e;#t=new Map;#r=null;#o;#s;#a;#c;#i;#d;#n;constructor(e,t){e instanceof L?(this.#e=e,this.#s=t?.events,this.#a=t?.tracer,this.#o=t?.timeouts??{},this.#d=t?.logger??new O,this.#n=t?.diagnostic??new C({logger:this.#d,messages:[...ie,...oe,...pe]}),this.#c=t?.layer??new ue({logger:this.#d,diagnostic:this.#n}),this.#i=t?.queue??new Z({logger:this.#d,diagnostic:this.#n})):(this.#s=e?.events,this.#a=e?.tracer,this.#o=e?.timeouts??{},this.#d=e?.logger??new O,this.#n=e?.diagnostic??new C({logger:this.#d,messages:[...ie,...oe,...pe]}),this.#c=e?.layer??new ue({logger:this.#d,diagnostic:this.#n}),this.#i=e?.queue??new Z({logger:this.#d,diagnostic:this.#n}),this.#e=new L({logger:this.#d,diagnostic:this.#n}))}get container(){return this.#e}get layer(){return this.#c}get queue(){return this.#i}get logger(){return this.#d}get diagnostic(){return this.#n}register(e){for(const t of Object.getOwnPropertySymbols(e)){const s=t,n=e[s];if(!n)continue;this.#t.has(s)&&this.#n.fail("ORK1007",{scope:"orchestrator",message:`Duplicate registration for ${b(s)}`,helpUrl:f.orchestrator});const i=n.dependencies??[],o=Ge([...i]).filter(d=>d!==s),c={token:s,dependencies:o};n.timeouts!==void 0&&(c.timeouts=n.timeouts),this.#t.set(s,c),this.container.register(s,{adapter:n.adapter}),this.#r=null}}async start(e){e&&this.register(e);const t=this.#l(),s=[];for(let n=0;n<t.length;n++){const i=t[n];if(!i)continue;const o=[];for(const l of i){const g=this.container.get(l);if(g instanceof S&&g.state==="created"){const m=this.#u(l,"start");o.push(async()=>({token:l,lc:g,result:await this.#h(g,"start",m)}))}else g instanceof S&&g.state==="started"&&s.push({token:l,lc:g})}const c=await this.#m("start",n,o,({token:l,result:g})=>{const m={token:b(l),ok:g.ok,durationMs:g.durationMs};return!g.ok&&g.timedOut!==void 0&&(m.timedOut=g.timedOut),m}),d=[],u=[];for(const{token:l,lc:g,result:m}of c)if(m.ok)u.push({token:l,lc:g,durationMs:m.durationMs}),h(this.#s?.onComponentStart,{token:l,durationMs:m.durationMs}),h(this.#n.event.bind(this.#n),"orchestrator.component.start",{token:b(l),durationMs:m.durationMs});else{const p={tokenDescription:b(l),phase:"start",context:"normal",timedOut:m.timedOut??!1,durationMs:m.durationMs,error:m.error};d.push(p),h(this.#s?.onComponentError,p),h(this.#n.error.bind(this.#n),p.error,{scope:"orchestrator",token:p.tokenDescription,phase:"start",timedOut:p.timedOut,durationMs:p.durationMs,extra:{original:p.error,originalMessage:p.error.message,originalStack:p.error.stack}})}if(d.length>0){const l=[...s,...u].reverse(),g=[];for(const p of this.#p(l.map(w=>w.token))){const w=[];for(const E of p){const I=this.container.get(E);if(I instanceof S&&I.state==="started"){const D=this.#u(E,"stop");w.push(async()=>this.#y(E,I,D,"rollback"))}}const y=await this.#i.run(w);for(const E of y)E.error&&g.push(E.error)}const m=[...d,...g];this.#n.aggregate("ORK1013",m,{scope:"orchestrator",message:"Errors during start",helpUrl:f.errors})}for(const l of u)s.push({token:l.token,lc:l.lc})}}async stop(){const e=this.#l(),t=e.slice().reverse(),s=[];for(let n=0;n<t.length;n++){const i=t[n];if(!i)continue;const o=[];for(const d of i){const u=this.container.get(d);if(u instanceof S&&u.state==="started"){const l=this.#u(d,"stop");o.push(async()=>this.#y(d,u,l,"normal"))}}const c=await this.#m("stop",e.length-1-n,o,({outcome:d})=>d);for(const d of c)d.error&&s.push(d.error)}s.length&&this.#n.aggregate("ORK1014",s,{scope:"orchestrator",message:"Errors during stop",helpUrl:f.errors})}async destroy(){const e=this.#l(),t=e.slice().reverse(),s=[];for(let n=0;n<t.length;n++){const i=t[n];if(!i)continue;const o=[],c=[],d=[];for(const g of i){const m=this.container.get(g);if(!(m instanceof S)||m.state==="destroyed")continue;const p=this.#u(g,"stop"),w=this.#u(g,"destroy");d.push(async()=>this.#f(g,m,p,w))}const u=await this.#i.run(d);for(const g of u)g.stopOutcome&&o.push(g.stopOutcome),g.destroyOutcome&&c.push(g.destroyOutcome),g.errors&&s.push(...g.errors);const l=e.length-1-n;o.length&&h(this.#a?.onPhase,{phase:"stop",layer:l,outcomes:o}),c.length&&h(this.#a?.onPhase,{phase:"destroy",layer:l,outcomes:c}),h(this.#n.event.bind(this.#n),"orchestrator.phase",{phase:"stop",layer:l,outcomes:o.length?o:void 0}),h(this.#n.event.bind(this.#n),"orchestrator.phase",{phase:"destroy",layer:l,outcomes:c.length?c:void 0})}try{await this.container.destroy()}catch(n){De(n)?s.push(...n.details):n instanceof Error&&s.push({tokenDescription:"container",phase:"destroy",context:"container",timedOut:!1,durationMs:0,error:n})}s.length&&this.#n.aggregate("ORK1017",s,{scope:"orchestrator",message:"Errors during destroy",helpUrl:f.errors})}#l(){if(this.#r)return this.#r;const e=Array.from(this.#t.values()),t=this.#c.compute(e);return this.#r=t,h(this.#a?.onLayers,{layers:t.map(s=>s.map(n=>b(n)))}),h(this.#n.trace.bind(this.#n),"orchestrator.layers",{layers:t.map(s=>s.map(n=>b(n)))}),t}#p(e){const t=this.#l();return this.#c.group(e,t)}#b(e){const t=this.#t.get(e);return t||this.#n.fail("ORK1099",{scope:"internal",message:"Invariant: missing node entry"}),t}#u(e,t){const s=this.#b(e).timeouts;let n;typeof s=="number"?n=s:n=t==="start"?s?.onStart:t==="stop"?s?.onStop:s?.onDestroy;const i=this.#o;let o;return typeof i=="number"?o=i:o=t==="start"?i.onStart:t==="stop"?i.onStop:i.onDestroy,n??o}#g(){const e=globalThis;if(q(e)&&"performance"in e&&q(e.performance)&&"now"in e.performance&&ee(e.performance.now)){const t=e.performance.now();return P(t)?t:Date.now()}return Date.now()}async#h(e,t,s){const n=this.#g();let i=!1;try{const o=e.constructor;Me(o)||this.#n.fail("ORK1099",{scope:"internal",message:"Invariant: instance constructor is not an AdapterSubclass"});const c=t==="start"?o.start():t==="stop"?o.stop():o.destroy();if(typeof s=="number"&&s>0){const u=new Promise((l,g)=>{const m=setTimeout(()=>{i=!0;const p=this.#n.help("ORK1021",{scope:"lifecycle",message:`Lifecycle hook '${t}' timed out after ${s}ms`,name:"TimeoutError",hook:t,timedOut:!0,durationMs:s});g(p)},s);Promise.resolve(c).finally(()=>clearTimeout(m))});await Promise.race([c,u]).catch(l=>{throw i&&Promise.resolve(c).catch(()=>{}),l instanceof Error?l:new Error(String(l))})}else await c;return{ok:!0,durationMs:this.#g()-n}}catch(o){return{ok:!1,durationMs:this.#g()-n,error:o instanceof Error?o:new Error(String(o)),timedOut:i}}}async#m(e,t,s,n){const i=await this.#i.run(s),o=[];for(const c of i){const d=n(c);d&&o.push(d)}return o.length&&h(this.#a?.onPhase,{phase:e,layer:t,outcomes:o}),h(this.#n.event.bind(this.#n),"orchestrator.phase",{phase:e,layer:t,outcomes:o.length?o:void 0}),i}async#y(e,t,s,n){const i=await this.#h(t,"stop",s);if(i.ok)return h(this.#s?.onComponentStop,{token:e,durationMs:i.durationMs}),h(this.#n.event.bind(this.#n),"orchestrator.component.stop",{token:b(e),durationMs:i.durationMs,context:n}),{outcome:{token:b(e),ok:!0,durationMs:i.durationMs}};const o={tokenDescription:b(e),phase:"stop",context:n,timedOut:i.timedOut??!1,durationMs:i.durationMs,error:i.error};return h(this.#s?.onComponentError,o),h(this.#n.error.bind(this.#n),o.error,{scope:"orchestrator",token:o.tokenDescription,phase:"stop",timedOut:o.timedOut,durationMs:o.durationMs,extra:{original:o.error,originalMessage:o.error.message,originalStack:o.error.stack}}),{outcome:{token:b(e),ok:!1,durationMs:i.durationMs,timedOut:i.timedOut},error:o}}async#f(e,t,s,n){const i={},o=[];if(t.state==="started"){const c=await this.#y(e,t,s,"normal");i.stopOutcome=c.outcome,c.error&&o.push(c.error)}if(t.state!=="destroyed"){const c=await this.#h(t,"destroy",n);if(c.ok)h(this.#s?.onComponentDestroy,{token:e,durationMs:c.durationMs}),h(this.#n.event.bind(this.#n),"orchestrator.component.destroy",{token:b(e),durationMs:c.durationMs}),i.destroyOutcome={token:b(e),ok:!0,durationMs:c.durationMs};else{const d={tokenDescription:b(e),phase:"destroy",context:"normal",timedOut:c.timedOut??!1,durationMs:c.durationMs,error:c.error};h(this.#s?.onComponentError,d),h(this.#n.error.bind(this.#n),d.error,{scope:"orchestrator",token:d.tokenDescription,phase:"destroy",timedOut:d.timedOut,durationMs:d.durationMs,extra:{original:d.error,originalMessage:d.error.message,originalStack:d.error.stack}}),i.destroyOutcome={token:b(e),ok:!1,durationMs:c.durationMs,timedOut:c.timedOut},o.push(d)}}return o.length&&(i.errors=o),i}}const H=new te({label:"orchestrator",default:{value:new ge(je())}});Object.assign(r=>H.resolve(r),{set(r,e,t){H.set(r,e,t)},clear(r,e){return H.clear(r,e)},list(){return[...H.list()]},using:xe});function xe(r,e,t){const s=H.resolve(typeof e=="function"?t:e);return typeof e=="function"?s.container.using(async()=>{await r(s)},()=>e(s)):s.container.using(()=>r(s))}function Ge(r){if(!r)return[];const e=Array.isArray(r)?r:Object.values(r),t=new Set,s=[];for(const n of e)!n||t.has(n)||(t.add(n),s.push(n));return s}const J=[{id:"adapter",label:"Adapter Lifecycle",render:Qe,init:ze},{id:"container",label:"Container DI",render:_e,init:He},{id:"orchestrator",label:"Orchestrator",render:We,init:Xe},{id:"emitter",label:"Emitter",render:Ze,init:et},{id:"eventbus",label:"EventBus",render:tt,init:rt},{id:"queue",label:"Queue",render:st,init:ot},{id:"registry",label:"Registry",render:it,init:at},{id:"layer",label:"Layer",render:ct,init:dt},{id:"guards",label:"Type Guards",render:lt,init:ut}];let z="adapter";function we(){const r=document.getElementById("app");r&&(r.innerHTML=`
+		<header class="header">
+			<h1>@orkestrel/core Showcase</h1>
+			<p>Interactive demonstrations of all library features</p>
+		</header>
+		<nav class="tabs">
+			${J.map(e=>`
+				<button class="tab ${e.id===z?"active":""}" data-tab="${e.id}">
+					${e.label}
+				</button>
+			`).join("")}
+		</nav>
+		<main class="content" id="tab-content">
+			${J.find(e=>e.id===z)?.render()??""}
+		</main>
+	`,r.querySelectorAll(".tab").forEach(e=>{e.addEventListener("click",()=>{z=e.dataset.tab??"adapter",we(),J.find(t=>t.id===z)?.init?.()})}),J.find(e=>e.id===z)?.init?.())}class B extends S{async onCreate(){await k(100),a("adapter-log","✓ onCreate() called")}async onStart(){await k(100),a("adapter-log","✓ onStart() called")}async onStop(){await k(100),a("adapter-log","✓ onStop() called")}async onDestroy(){await k(100),a("adapter-log","✓ onDestroy() called")}}function Qe(){return`
+		<section class="demo-section">
+			<h2>Adapter Lifecycle</h2>
+			<p>Adapters are lifecycle-managed singleton components with hooks for create, start, stop, and destroy.</p>
+
+			<div class="demo-card">
+				<h3>State Machine</h3>
+				<div class="state-machine">
+					<div class="state" id="state-created">created</div>
+					<div class="arrow">→</div>
+					<div class="state" id="state-started">started</div>
+					<div class="arrow">→</div>
+					<div class="state" id="state-stopped">stopped</div>
+					<div class="arrow">→</div>
+					<div class="state" id="state-destroyed">destroyed</div>
+				</div>
+				<p class="current-state">Current: <strong id="adapter-state">-</strong></p>
+			</div>
+
+			<div class="demo-card">
+				<h3>Controls</h3>
+				<div class="button-group">
+					<button id="btn-create" class="btn">Create</button>
+					<button id="btn-start" class="btn btn-success">Start</button>
+					<button id="btn-stop" class="btn btn-warning">Stop</button>
+					<button id="btn-destroy" class="btn btn-danger">Destroy</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="adapter-log"></div>
+				<button id="btn-clear-adapter" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}let be=null;function ze(){U(),be?.(),be=B.on("transition",r=>{a("adapter-log",`→ Transition to: ${r}`),U()}),document.getElementById("btn-create")?.addEventListener("click",async()=>{try{a("adapter-log","Calling DemoAdapter.create()..."),await B.create(),a("adapter-log","✓ Create completed")}catch(r){a("adapter-log",`✗ Error: ${r.message}`)}U()}),document.getElementById("btn-start")?.addEventListener("click",async()=>{try{a("adapter-log","Calling DemoAdapter.start()..."),await B.start(),a("adapter-log","✓ Start completed")}catch(r){a("adapter-log",`✗ Error: ${r.message}`)}U()}),document.getElementById("btn-stop")?.addEventListener("click",async()=>{try{a("adapter-log","Calling DemoAdapter.stop()..."),await B.stop(),a("adapter-log","✓ Stop completed")}catch(r){a("adapter-log",`✗ Error: ${r.message}`)}U()}),document.getElementById("btn-destroy")?.addEventListener("click",async()=>{try{a("adapter-log","Calling DemoAdapter.destroy()..."),await B.destroy(),a("adapter-log","✓ Destroy completed")}catch(r){a("adapter-log",`✗ Error: ${r.message}`)}U()}),document.getElementById("btn-clear-adapter")?.addEventListener("click",()=>{M("adapter-log")})}function U(){const r=B.getState(),e=document.getElementById("adapter-state");e&&(e.textContent=r),["created","started","stopped","destroyed"].forEach(s=>{const n=document.getElementById(`state-${s}`);n&&n.classList.toggle("active",s===r)})}class Ne extends S{async onStart(){await k(50)}}class ye extends S{async onStart(){await k(50)}}const V=R("Database"),se=R("Cache");function _e(){return`
+		<section class="demo-section">
+			<h2>Container (Dependency Injection)</h2>
+			<p>The ContainerAdapter provides minimal DI for registering and resolving Adapter classes.</p>
+
+			<div class="demo-card">
+				<h3>Token Registration</h3>
+				<div class="code-block">
+					<pre>const DbToken = createToken&lt;DatabaseAdapter&gt;('Database')
+const CacheToken = createToken&lt;CacheAdapter&gt;('Cache')
+
+container.register(DbToken, { adapter: DatabaseAdapter })
+container.register(CacheToken, { adapter: CacheAdapter })</pre>
+				</div>
+				<div class="button-group">
+					<button id="btn-register-db" class="btn">Register Database</button>
+					<button id="btn-register-cache" class="btn">Register Cache</button>
+					<button id="btn-resolve-db" class="btn btn-success">Resolve Database</button>
+					<button id="btn-check-has" class="btn btn-secondary">Check has()</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Child Containers</h3>
+				<div class="button-group">
+					<button id="btn-create-child" class="btn">Create Child Container</button>
+					<button id="btn-using-scope" class="btn btn-warning">Run using() Scope</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Lifecycle</h3>
+				<div class="button-group">
+					<button id="btn-container-destroy" class="btn btn-danger">Destroy Container</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="container-log"></div>
+				<button id="btn-clear-container" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}let A=null;function He(){A=new L,a("container-log","✓ Created new ContainerAdapter"),document.getElementById("btn-register-db")?.addEventListener("click",()=>{try{A?.register(V,{adapter:Ne}),a("container-log","✓ Registered DatabaseAdapter under DbToken")}catch(r){a("container-log",`✗ Error: ${r.message}`)}}),document.getElementById("btn-register-cache")?.addEventListener("click",()=>{try{A?.register(se,{adapter:ye}),a("container-log","✓ Registered CacheAdapter under CacheToken")}catch(r){a("container-log",`✗ Error: ${r.message}`)}}),document.getElementById("btn-resolve-db")?.addEventListener("click",()=>{try{const r=A?.resolve(V);a("container-log",`✓ Resolved DbToken: ${r?.constructor.name}`)}catch(r){a("container-log",`✗ Error: ${r.message}`)}}),document.getElementById("btn-check-has")?.addEventListener("click",()=>{const r=A?.has(V),e=A?.has(se);a("container-log",`has(DbToken): ${r}, has(CacheToken): ${e}`)}),document.getElementById("btn-create-child")?.addEventListener("click",()=>{const r=A?.createChild();a("container-log","✓ Created child container (inherits from parent)"),a("container-log",`  Child can resolve parent tokens: ${r?.has(V)}`)}),document.getElementById("btn-using-scope")?.addEventListener("click",async()=>{a("container-log","Running container.using() scope...");try{await A?.using(async r=>{a("container-log","  → Inside scope"),r.register(se,{adapter:ye}),a("container-log","  → Registered in scope")}),a("container-log","✓ Scope completed and destroyed")}catch(r){a("container-log",`✗ Error: ${r.message}`)}}),document.getElementById("btn-container-destroy")?.addEventListener("click",async()=>{try{await A?.destroy(),a("container-log","✓ Container destroyed (all adapters stopped and destroyed)"),A=new L,a("container-log","✓ Created fresh container")}catch(r){a("container-log",`✗ Error: ${r.message}`)}}),document.getElementById("btn-clear-container")?.addEventListener("click",()=>{M("container-log")})}class Fe extends S{async onStart(){await k(100),a("orchestrator-log","  [Config] Started")}async onStop(){await k(50),a("orchestrator-log","  [Config] Stopped")}}class Ye extends S{async onStart(){await k(150),a("orchestrator-log","  [Database] Started")}async onStop(){await k(50),a("orchestrator-log","  [Database] Stopped")}}class Je extends S{async onStart(){await k(100),a("orchestrator-log","  [Server] Started")}async onStop(){await k(50),a("orchestrator-log","  [Server] Stopped")}}const fe=R("Config"),ve=R("DbService"),Ve=R("Server");function We(){return`
+		<section class="demo-section">
+			<h2>Orchestrator</h2>
+			<p>Coordinates lifecycle phases in topological dependency order.</p>
+
+			<div class="demo-card">
+				<h3>Dependency Graph</h3>
+				<div class="graph-visual">
+					<div class="node">Config</div>
+					<div class="arrow-down">↓</div>
+					<div class="node">Database</div>
+					<div class="arrow-down">↓</div>
+					<div class="node">Server</div>
+				</div>
+				<p>Server depends on Database, Database depends on Config</p>
+			</div>
+
+			<div class="demo-card">
+				<h3>Controls</h3>
+				<div class="button-group">
+					<button id="btn-orch-start" class="btn btn-success">Start All</button>
+					<button id="btn-orch-stop" class="btn btn-warning">Stop All</button>
+					<button id="btn-orch-destroy" class="btn btn-danger">Destroy All</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="orchestrator-log"></div>
+				<button id="btn-clear-orchestrator" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}let N=null;function Xe(){const r=new L;N=new ge(r,{events:{onComponentStart:({token:e,durationMs:t})=>{a("orchestrator-log",`  ✓ ${String(e.description)} started in ${t}ms`)},onComponentStop:({token:e,durationMs:t})=>{a("orchestrator-log",`  ✓ ${String(e.description)} stopped in ${t}ms`)}}}),a("orchestrator-log","✓ Created OrchestratorAdapter"),document.getElementById("btn-orch-start")?.addEventListener("click",async()=>{try{a("orchestrator-log","→ Starting in dependency order..."),await N?.start({[fe]:{adapter:Fe},[ve]:{adapter:Ye,dependencies:[fe]},[Ve]:{adapter:Je,dependencies:[ve]}}),a("orchestrator-log","✓ All components started")}catch(e){a("orchestrator-log",`✗ Error: ${e.message}`)}}),document.getElementById("btn-orch-stop")?.addEventListener("click",async()=>{try{a("orchestrator-log","→ Stopping in reverse dependency order..."),await N?.stop(),a("orchestrator-log","✓ All components stopped")}catch(e){a("orchestrator-log",`✗ Error: ${e.message}`)}}),document.getElementById("btn-orch-destroy")?.addEventListener("click",async()=>{try{a("orchestrator-log","→ Destroying all components..."),await N?.destroy(),a("orchestrator-log","✓ All components destroyed");const e=new L;N=new ge(e),a("orchestrator-log","✓ Created fresh orchestrator")}catch(e){a("orchestrator-log",`✗ Error: ${e.message}`)}}),document.getElementById("btn-clear-orchestrator")?.addEventListener("click",()=>{M("orchestrator-log")})}function Ze(){return`
+		<section class="demo-section">
+			<h2>Emitter (Typed Events)</h2>
+			<p>Synchronous typed event emission with automatic listener isolation.</p>
+
+			<div class="demo-card">
+				<h3>Event Types</h3>
+				<div class="code-block">
+					<pre>type DemoEvents = {
+  message: [string]
+  count: [number]
+  data: [{ id: string; value: number }]
+}</pre>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Subscribe & Emit</h3>
+				<div class="button-group">
+					<button id="btn-subscribe-message" class="btn">Subscribe to 'message'</button>
+					<button id="btn-subscribe-count" class="btn">Subscribe to 'count'</button>
+					<button id="btn-unsubscribe" class="btn btn-warning">Unsubscribe All</button>
+				</div>
+				<div class="button-group" style="margin-top: 1rem">
+					<button id="btn-emit-message" class="btn btn-success">Emit message</button>
+					<button id="btn-emit-count" class="btn btn-success">Emit count</button>
+					<button id="btn-emit-data" class="btn btn-success">Emit data</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="emitter-log"></div>
+				<button id="btn-clear-emitter" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}let j=null;const W=[];function et(){j=new Ee,a("emitter-log","✓ Created EmitterAdapter"),document.getElementById("btn-subscribe-message")?.addEventListener("click",()=>{const r=j?.on("message",e=>{a("emitter-log",`  → Received message: "${e}"`)});r&&W.push(r),a("emitter-log",'✓ Subscribed to "message" event')}),document.getElementById("btn-subscribe-count")?.addEventListener("click",()=>{const r=j?.on("count",e=>{a("emitter-log",`  → Received count: ${e}`)});r&&W.push(r),a("emitter-log",'✓ Subscribed to "count" event')}),document.getElementById("btn-unsubscribe")?.addEventListener("click",()=>{W.forEach(r=>r()),W.length=0,a("emitter-log","✓ Unsubscribed all listeners")}),document.getElementById("btn-emit-message")?.addEventListener("click",()=>{a("emitter-log","Emitting message event..."),j?.emit("message",`Hello at ${new Date().toLocaleTimeString()}`)}),document.getElementById("btn-emit-count")?.addEventListener("click",()=>{a("emitter-log","Emitting count event..."),j?.emit("count",Math.floor(Math.random()*100))}),document.getElementById("btn-emit-data")?.addEventListener("click",()=>{a("emitter-log","Emitting data event..."),j?.emit("data",{id:crypto.randomUUID().slice(0,8),value:Math.random()})}),document.getElementById("btn-clear-emitter")?.addEventListener("click",()=>{M("emitter-log")})}function tt(){return`
+		<section class="demo-section">
+			<h2>EventBus (Async Pub/Sub)</h2>
+			<p>Asynchronous topic-based publish/subscribe with typed payloads.</p>
+
+			<div class="demo-card">
+				<h3>Topic Types</h3>
+				<div class="code-block">
+					<pre>type DemoTopics = {
+  'user.created': { id: string; name: string }
+  'user.deleted': { id: string }
+  'order.placed': { orderId: string; total: number }
+}</pre>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Subscribe & Publish</h3>
+				<div class="button-group">
+					<button id="btn-sub-user-created" class="btn">Subscribe user.created</button>
+					<button id="btn-sub-order" class="btn">Subscribe order.placed</button>
+					<button id="btn-list-topics" class="btn btn-secondary">List Topics</button>
+				</div>
+				<div class="button-group" style="margin-top: 1rem">
+					<button id="btn-pub-user-created" class="btn btn-success">Publish user.created</button>
+					<button id="btn-pub-order" class="btn btn-success">Publish order.placed</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="eventbus-log"></div>
+				<button id="btn-clear-eventbus" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}let x=null;function rt(){x=new Ke({onError:(r,e)=>{a("eventbus-log",`✗ Error in ${e}: ${r.message}`)}}),a("eventbus-log","✓ Created EventAdapter"),document.getElementById("btn-sub-user-created")?.addEventListener("click",async()=>{await x?.subscribe("user.created",async r=>{a("eventbus-log",`  → User created: ${r.name} (${r.id})`)}),a("eventbus-log",'✓ Subscribed to "user.created"')}),document.getElementById("btn-sub-order")?.addEventListener("click",async()=>{await x?.subscribe("order.placed",async r=>{a("eventbus-log",`  → Order placed: ${r.orderId} - $${r.total.toFixed(2)}`)}),a("eventbus-log",'✓ Subscribed to "order.placed"')}),document.getElementById("btn-list-topics")?.addEventListener("click",()=>{const r=x?.topics()??[];a("eventbus-log",`Topics with subscribers: [${r.join(", ")}]`)}),document.getElementById("btn-pub-user-created")?.addEventListener("click",async()=>{a("eventbus-log","Publishing user.created..."),await x?.publish("user.created",{id:crypto.randomUUID().slice(0,8),name:"Alice"})}),document.getElementById("btn-pub-order")?.addEventListener("click",async()=>{a("eventbus-log","Publishing order.placed..."),await x?.publish("order.placed",{orderId:`ORD-${Date.now()}`,total:Math.random()*100})}),document.getElementById("btn-clear-eventbus")?.addEventListener("click",()=>{M("eventbus-log")})}function st(){return`
+		<section class="demo-section">
+			<h2>Queue (Task Execution)</h2>
+			<p>Task queue with concurrency control and timeout support.</p>
+
+			<div class="demo-card">
+				<h3>Basic Queue Operations</h3>
+				<div class="button-group">
+					<button id="btn-enqueue" class="btn">Enqueue Item</button>
+					<button id="btn-dequeue" class="btn btn-warning">Dequeue Item</button>
+					<button id="btn-queue-size" class="btn btn-secondary">Get Size</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Task Runner</h3>
+				<p>Run tasks with concurrency control:</p>
+				<div class="button-group">
+					<button id="btn-run-tasks" class="btn btn-success">Run 5 Tasks (concurrency: 2)</button>
+					<button id="btn-run-parallel" class="btn btn-success">Run All Parallel</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="queue-log"></div>
+				<button id="btn-clear-queue" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}let G=null,nt=0;function ot(){G=new Z({capacity:100}),a("queue-log","✓ Created QueueAdapter"),document.getElementById("btn-enqueue")?.addEventListener("click",async()=>{const r=`task-${++nt}`;await G?.enqueue(r),a("queue-log",`✓ Enqueued: ${r}`)}),document.getElementById("btn-dequeue")?.addEventListener("click",async()=>{const r=await G?.dequeue();a("queue-log",r?`✓ Dequeued: ${r}`:"(queue empty)")}),document.getElementById("btn-queue-size")?.addEventListener("click",async()=>{const r=await G?.size();a("queue-log",`Queue size: ${r}`)}),document.getElementById("btn-run-tasks")?.addEventListener("click",async()=>{a("queue-log","Running 5 tasks with concurrency 2...");const r=Array.from({length:5},(t,s)=>async()=>(a("queue-log",`  → Task ${s+1} starting...`),await k(200+Math.random()*300),a("queue-log",`  ✓ Task ${s+1} completed`),s+1)),e=await G?.run(r,{concurrency:2});a("queue-log",`✓ All tasks completed: [${e?.join(", ")}]`)}),document.getElementById("btn-run-parallel")?.addEventListener("click",async()=>{a("queue-log","Running 5 tasks in parallel...");const r=Array.from({length:5},(n,i)=>async()=>(await k(100+Math.random()*200),`result-${i+1}`)),e=Date.now(),t=await G?.run(r,{concurrency:10}),s=Date.now()-e;a("queue-log",`✓ Completed in ${s}ms: [${t?.join(", ")}]`)}),document.getElementById("btn-clear-queue")?.addEventListener("click",()=>{M("queue-log")})}function it(){return`
+		<section class="demo-section">
+			<h2>Registry (Named Singletons)</h2>
+			<p>Named singleton storage with optional locking.</p>
+
+			<div class="demo-card">
+				<h3>Operations</h3>
+				<div class="button-group">
+					<button id="btn-reg-set" class="btn">Set 'primary'</button>
+					<button id="btn-reg-set-locked" class="btn btn-warning">Set 'locked' (locked)</button>
+					<button id="btn-reg-get" class="btn btn-secondary">Get 'primary'</button>
+					<button id="btn-reg-resolve" class="btn btn-secondary">Resolve 'locked'</button>
+				</div>
+				<div class="button-group" style="margin-top: 1rem">
+					<button id="btn-reg-list" class="btn btn-secondary">List All</button>
+					<button id="btn-reg-clear" class="btn btn-danger">Clear 'primary'</button>
+					<button id="btn-reg-clear-locked" class="btn btn-danger">Clear 'locked' (force)</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="registry-log"></div>
+				<button id="btn-clear-registry" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}let T=null;function at(){T=new te({label:"config"}),a("registry-log","✓ Created RegistryAdapter"),document.getElementById("btn-reg-set")?.addEventListener("click",()=>{const r=Math.floor(Math.random()*100);T?.set("primary",{value:r}),a("registry-log",`✓ Set 'primary': { value: ${r} }`)}),document.getElementById("btn-reg-set-locked")?.addEventListener("click",()=>{try{const r=Math.floor(Math.random()*100);T?.set("locked",{value:r},!0),a("registry-log",`✓ Set 'locked' (locked): { value: ${r} }`)}catch(r){a("registry-log",`✗ Error: ${r.message}`)}}),document.getElementById("btn-reg-get")?.addEventListener("click",()=>{const r=T?.get("primary");a("registry-log",r?`Get 'primary': { value: ${r.value} }`:"Get 'primary': undefined")}),document.getElementById("btn-reg-resolve")?.addEventListener("click",()=>{try{const r=T?.resolve("locked");a("registry-log",`Resolve 'locked': { value: ${r?.value} }`)}catch(r){a("registry-log",`✗ Error: ${r.message}`)}}),document.getElementById("btn-reg-list")?.addEventListener("click",()=>{const r=T?.list()??[];a("registry-log",`Keys: [${r.map(e=>String(e)).join(", ")}]`)}),document.getElementById("btn-reg-clear")?.addEventListener("click",()=>{const r=T?.clear("primary");a("registry-log",r?"✓ Cleared 'primary'":"✗ Could not clear 'primary'")}),document.getElementById("btn-reg-clear-locked")?.addEventListener("click",()=>{const r=T?.clear("locked",!0);a("registry-log",r?"✓ Force cleared 'locked'":"✗ Could not clear 'locked'")}),document.getElementById("btn-clear-registry")?.addEventListener("click",()=>{M("registry-log")})}function ct(){return`
+		<section class="demo-section">
+			<h2>Layer (Topological Sort)</h2>
+			<p>Computes dependency layers using Kahn's algorithm.</p>
+
+			<div class="demo-card">
+				<h3>Example Graph</h3>
+				<div class="code-block">
+					<pre>A → B → D
+    ↘   ↗
+      C</pre>
+				</div>
+				<p>A has no deps, B and C depend on A, D depends on B and C</p>
+			</div>
+
+			<div class="demo-card">
+				<h3>Compute Layers</h3>
+				<div class="button-group">
+					<button id="btn-compute-layers" class="btn btn-success">Compute Layers</button>
+					<button id="btn-group-tokens" class="btn">Group [D, A, C]</button>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Log</h3>
+				<div class="log-area" id="layer-log"></div>
+				<button id="btn-clear-layer" class="btn btn-secondary">Clear Log</button>
+			</div>
+		</section>
+	`}const $=R("A"),X=R("B"),_=R("C"),ne=R("D");function dt(){const r=new ue;a("layer-log","✓ Created LayerAdapter"),document.getElementById("btn-compute-layers")?.addEventListener("click",()=>{const e=[{token:$,dependencies:[]},{token:X,dependencies:[$]},{token:_,dependencies:[$]},{token:ne,dependencies:[X,_]}];a("layer-log","Computing layers..."),r.compute(e).forEach((s,n)=>{const i=s.map(o=>o.description??String(o));a("layer-log",`  Layer ${n}: [${i.join(", ")}]`)}),a("layer-log","✓ Layers computed")}),document.getElementById("btn-group-tokens")?.addEventListener("click",()=>{const e=[{token:$,dependencies:[]},{token:X,dependencies:[$]},{token:_,dependencies:[$]},{token:ne,dependencies:[X,_]}],t=r.compute(e),s=[ne,$,_];a("layer-log","Grouping [D, A, C] by layer order..."),r.group(s,t).forEach((i,o)=>{const c=i.map(d=>d.description??String(d));a("layer-log",`  Group ${o}: [${c.join(", ")}]`)})}),document.getElementById("btn-clear-layer")?.addEventListener("click",()=>{M("layer-log")})}function lt(){return`
+		<section class="demo-section">
+			<h2>Type Guards</h2>
+			<p>Native type guards for runtime validation without external dependencies.</p>
+
+			<div class="demo-card">
+				<h3>Primitive Guards</h3>
+				<div class="guard-grid">
+					<div class="guard-item">
+						<code>isString('hello')</code>
+						<span class="guard-result" id="guard-string"></span>
+					</div>
+					<div class="guard-item">
+						<code>isNumber(42)</code>
+						<span class="guard-result" id="guard-number"></span>
+					</div>
+					<div class="guard-item">
+						<code>isNumber(NaN)</code>
+						<span class="guard-result" id="guard-nan"></span>
+					</div>
+					<div class="guard-item">
+						<code>isBoolean(true)</code>
+						<span class="guard-result" id="guard-boolean"></span>
+					</div>
+					<div class="guard-item">
+						<code>isFunction(() => {})</code>
+						<span class="guard-result" id="guard-function"></span>
+					</div>
+					<div class="guard-item">
+						<code>isRecord({ a: 1 })</code>
+						<span class="guard-result" id="guard-record"></span>
+					</div>
+					<div class="guard-item">
+						<code>isRecord([1, 2])</code>
+						<span class="guard-result" id="guard-record-array"></span>
+					</div>
+					<div class="guard-item">
+						<code>isError(new Error())</code>
+						<span class="guard-result" id="guard-error"></span>
+					</div>
+					<div class="guard-item">
+						<code>isArray([1, 2, 3])</code>
+						<span class="guard-result" id="guard-array"></span>
+					</div>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Composite Guards</h3>
+				<div class="guard-grid">
+					<div class="guard-item">
+						<code>isLiteral('a', 'b')('a')</code>
+						<span class="guard-result" id="guard-literal"></span>
+					</div>
+					<div class="guard-item">
+						<code>isLiteral('a', 'b')('c')</code>
+						<span class="guard-result" id="guard-literal-fail"></span>
+					</div>
+					<div class="guard-item">
+						<code>isArrayOf(isString)(['a', 'b'])</code>
+						<span class="guard-result" id="guard-arrayof"></span>
+					</div>
+					<div class="guard-item">
+						<code>isArrayOf(isString)(['a', 1])</code>
+						<span class="guard-result" id="guard-arrayof-fail"></span>
+					</div>
+				</div>
+			</div>
+
+			<div class="demo-card">
+				<h3>Token Guards</h3>
+				<div class="guard-grid">
+					<div class="guard-item">
+						<code>isToken(Symbol('x'))</code>
+						<span class="guard-result" id="guard-token"></span>
+					</div>
+					<div class="guard-item">
+						<code>isAdapterProvider({ adapter: Adapter })</code>
+						<span class="guard-result" id="guard-adapter-provider"></span>
+					</div>
+				</div>
+			</div>
+
+			<button id="btn-run-guards" class="btn btn-success" style="margin-top: 1rem">Run All Guards</button>
+		</section>
+	`}function ut(){document.getElementById("btn-run-guards")?.addEventListener("click",()=>{v("guard-string",ae("hello")),v("guard-number",P(42)),v("guard-nan",P(NaN)),v("guard-boolean",ke(!0)),v("guard-function",ee(()=>{})),v("guard-record",q({a:1})),v("guard-record-array",q([1,2])),v("guard-error",he(new Error)),v("guard-array",Re([1,2,3]));const r=ce("a","b");v("guard-literal",r("a")),v("guard-literal-fail",r("c"));const e=de(ae);v("guard-arrayof",e(["a","b"])),v("guard-arrayof-fail",e(["a",1])),v("guard-token",Te(Symbol("x"))),v("guard-adapter-provider",le({adapter:B}))})}function v(r,e){const t=document.getElementById(r);t&&(t.textContent=String(e),t.className=`guard-result ${e?"true":"false"}`)}function a(r,e){const t=document.getElementById(r);if(t){const s=new Date().toLocaleTimeString();t.innerHTML+=`<div class="log-entry"><span class="log-time">[${s}]</span> ${gt(e)}</div>`,t.scrollTop=t.scrollHeight}}function M(r){const e=document.getElementById(r);e&&(e.innerHTML="")}function gt(r){return r.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function k(r){return new Promise(e=>setTimeout(e,r))}document.addEventListener("DOMContentLoaded",()=>{we()});</script>
+  <style rel="stylesheet" crossorigin>*{box-sizing:border-box;margin:0;padding:0}:root{--bg: #0a0a0a;--bg-card: #141414;--bg-hover: #1a1a1a;--text: #e0e0e0;--text-muted: #888;--primary: #6366f1;--primary-hover: #818cf8;--success: #22c55e;--warning: #f59e0b;--danger: #ef4444;--border: #2a2a2a;--code-bg: #1e1e1e}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}#app{max-width:1200px;margin:0 auto;padding:1rem}.header{text-align:center;padding:2rem 0;border-bottom:1px solid var(--border);margin-bottom:1rem}.header h1{font-size:2rem;margin-bottom:.5rem;background:linear-gradient(135deg,var(--primary),#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}.header p{color:var(--text-muted)}.tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;padding:1rem 0;border-bottom:1px solid var(--border)}.tab{padding:.5rem 1rem;border:1px solid var(--border);background:var(--bg-card);color:var(--text);border-radius:6px;cursor:pointer;font-size:.875rem;transition:all .2s}.tab:hover{background:var(--bg-hover);border-color:var(--primary)}.tab.active{background:var(--primary);border-color:var(--primary);color:#fff}.demo-section{padding:1rem 0}.demo-section h2{font-size:1.5rem;margin-bottom:.5rem}.demo-section>p{color:var(--text-muted);margin-bottom:1.5rem}.demo-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin-bottom:1rem}.demo-card h3{font-size:1rem;margin-bottom:1rem;color:var(--text)}.demo-card p{color:var(--text-muted);font-size:.875rem;margin-bottom:.5rem}.button-group{display:flex;flex-wrap:wrap;gap:.5rem}.btn{padding:.5rem 1rem;border:none;border-radius:6px;cursor:pointer;font-size:.875rem;font-weight:500;transition:all .2s;background:var(--primary);color:#fff}.btn:hover{background:var(--primary-hover);transform:translateY(-1px)}.btn:active{transform:translateY(0)}.btn-success{background:var(--success)}.btn-success:hover{background:#16a34a}.btn-warning{background:var(--warning);color:#000}.btn-warning:hover{background:#d97706}.btn-danger{background:var(--danger)}.btn-danger:hover{background:#dc2626}.btn-secondary{background:var(--bg-hover);border:1px solid var(--border);color:var(--text)}.btn-secondary:hover{background:#252525}.state-machine{display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}.state{padding:.5rem 1rem;border:2px solid var(--border);border-radius:6px;font-family:monospace;font-size:.875rem;background:var(--bg)}.state.active{border-color:var(--success);background:#22c55e1a;color:var(--success)}.arrow{color:var(--text-muted);font-size:1.25rem}.current-state{text-align:center;color:var(--text-muted)}.current-state strong{color:var(--primary);font-family:monospace}.log-area{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:1rem;min-height:150px;max-height:300px;overflow-y:auto;font-family:Monaco,Menlo,monospace;font-size:.8rem;margin-bottom:.5rem}.log-entry{padding:.25rem 0;border-bottom:1px solid rgba(255,255,255,.05)}.log-entry:last-child{border-bottom:none}.log-time{color:var(--text-muted);margin-right:.5rem}.code-block{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem;overflow-x:auto}.code-block pre{font-family:Monaco,Menlo,monospace;font-size:.8rem;color:#9cdcfe;margin:0;white-space:pre-wrap}.graph-visual{display:flex;flex-direction:column;align-items:center;gap:.25rem;margin-bottom:1rem}.graph-visual .node{padding:.5rem 1.5rem;background:var(--primary);border-radius:6px;font-weight:500}.arrow-down{color:var(--text-muted);font-size:1.25rem}.guard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem}.guard-item{display:flex;justify-content:space-between;align-items:center;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:6px}.guard-item code{font-family:Monaco,Menlo,monospace;font-size:.75rem;color:#9cdcfe}.guard-result{font-family:monospace;font-weight:700;padding:.25rem .5rem;border-radius:4px;font-size:.75rem}.guard-result.true{color:var(--success);background:#22c55e1a}.guard-result.false{color:var(--danger);background:#ef44441a}@media(max-width:768px){.header h1{font-size:1.5rem}.tabs{justify-content:center}.tab{padding:.4rem .75rem;font-size:.8rem}.state-machine{flex-direction:column}.arrow{transform:rotate(90deg)}}</style>
+</head>
+<body>
+<div id="app"></div>
+</body>
+</html>
